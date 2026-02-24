@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/dnapp/" />
+  <Folder Name="/dnapp/lambdas/" />
+  <Folder Name="/dnapp/lambdas/user-lambda/">
+    <Project Path="dnapp/lambdas/user-lambda/Function.csproj" />
+    <Project Path="dnapp/lambdas/user-lambda/UserLambda.Api/UserLambda.Api.csproj" />
+    <Project Path="dnapp/lambdas/user-lambda/UserLambda.Core/UserLambda.Core.csproj" />
+  </Folder>
+</Solution>

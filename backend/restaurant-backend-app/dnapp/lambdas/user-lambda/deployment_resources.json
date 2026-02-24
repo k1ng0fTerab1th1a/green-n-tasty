@@ -1,5 +1,5 @@
 {
-  "api-handler-role": {
+  "user-lambda-role": {
     "predefined_policies": [],
     "principal_service": "lambda",
     "custom_policies": [
