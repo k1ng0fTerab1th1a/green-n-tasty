@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyName>UserLambda</AssemblyName>
+    <AssemblyName>RestaurantLambdaFunction</AssemblyName>
     <TargetFramework>net8.0</TargetFramework>
     <OutputType>Library</OutputType>
     <Nullable>enable</Nullable>
@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Amazon.Lambda.AspNetCoreServer.Hosting" Version="1.10.0" />
-    <ProjectReference Include="UserLambda.Api/UserLambda.Api.csproj" />
+    <ProjectReference Include="Restaurant.Api/Restaurant.Api.csproj" />
   </ItemGroup>
 
 </Project>

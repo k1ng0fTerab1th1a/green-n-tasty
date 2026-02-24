@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
-namespace UserLambda.Api.Controllers;
+namespace Restaurant.Api.Controllers;
 
 [ApiController]
 [Route("hello")]

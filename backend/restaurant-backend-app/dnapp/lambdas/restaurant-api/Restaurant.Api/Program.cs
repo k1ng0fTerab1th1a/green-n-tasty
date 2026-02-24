@@ -1,4 +1,4 @@
-namespace UserLambda.Api
+namespace Restaurant.Api
 {
     public class Program
     {

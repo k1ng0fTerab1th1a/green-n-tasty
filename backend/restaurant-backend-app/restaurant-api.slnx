@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="dnapp/lambdas/restaurant-api/Function.csproj" />
+  <Project Path="dnapp/lambdas/restaurant-api/Restaurant.Api/Restaurant.Api.csproj" Id="abbaa191-131f-42a6-9a3d-7556835fb888" />
+  <Project Path="dnapp/lambdas/restaurant-api/Restaurant.Core/Restaurant.Core.csproj" Id="e8513bae-f607-44fc-9dca-5cc4c1d9bcc6" />
+</Solution>

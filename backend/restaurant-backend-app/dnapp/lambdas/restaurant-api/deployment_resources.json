@@ -1,5 +1,5 @@
 {
-  "user-lambda-role": {
+  "restaurant-api-role": {
     "predefined_policies": [],
     "principal_service": "lambda",
     "custom_policies": [

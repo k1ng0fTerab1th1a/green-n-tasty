@@ -24,5 +24,27 @@
     },
     "resource_type": "iam_policy",
     "tags": {}
+  },
+  "restaurant-api-gateway": {
+    "resource_type": "api_gateway",
+    "deploy_stage": "dev",
+    "dependencies": [
+        {
+            "resource_name": "restaurant-api",
+            "resource_type": "lambda"
+        }
+    ],
+    "resources": {
+        "/{proxy+}": {
+            "enable_cors": true,
+            "ANY": {
+                "authorization_type": "NONE",
+                "integration_type": "lambda",
+                "lambda_name": "restaurant-api",
+                "enable_proxy": true,
+                "default_error_pattern": true
+            }
+        }
+    }
   }
 }
