@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Restaurant.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("hello")]
 public class HelloController : ControllerBase
 {

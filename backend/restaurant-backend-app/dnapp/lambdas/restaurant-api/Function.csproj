@@ -10,7 +10,21 @@
 
   <ItemGroup>
     <PackageReference Include="Amazon.Lambda.AspNetCoreServer.Hosting" Version="1.10.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
     <ProjectReference Include="Restaurant.Api/Restaurant.Api.csproj" />
   </ItemGroup>
 
+	<ItemGroup>
+		<Compile Remove="Restaurant.Api\**" />
+		<Compile Remove="Restaurant.Core\**" />
+		<Compile Remove="Restaurant.Infrastructure\**" />
+
+		<Content Remove="Restaurant.Api\**" />
+		<Content Remove="Restaurant.Core\**" />
+		<Content Remove="Restaurant.Infrastructure\**" />
+
+		<None Remove="Restaurant.Api\**" />
+		<None Remove="Restaurant.Core\**" />
+		<None Remove="Restaurant.Infrastructure\**" />
+	</ItemGroup>
 </Project>
