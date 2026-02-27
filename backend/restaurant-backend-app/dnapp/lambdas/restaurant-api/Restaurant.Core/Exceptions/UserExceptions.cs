@@ -11,3 +11,9 @@ public class InvalidCredentialsException : Exception
 
     public InvalidCredentialsException(string message) : base(message) { }
 }
+
+public class AuthException : Exception
+{
+    public AuthException() : base("Authorization failed!") { }
+    public AuthException(string message) : base(message) { }
+}
