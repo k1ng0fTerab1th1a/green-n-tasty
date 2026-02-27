@@ -57,7 +57,7 @@ public class CognitoService : ICognitoService
         }
     }
 
-    public async Task<(string AccessToken, string RefreshToken)> SignInAsync(string email, string password)
+    public async Task<(string IdToken, string RefreshToken)> SignInAsync(string email, string password)
     {
         try
         {
@@ -74,7 +74,7 @@ public class CognitoService : ICognitoService
 
             var response = await _client.InitiateAuthAsync(request);
 
-            return (response.AuthenticationResult.AccessToken, response.AuthenticationResult.RefreshToken);
+            return (response.AuthenticationResult.IdToken, response.AuthenticationResult.RefreshToken);
         }
         catch (NotAuthorizedException)
         {

@@ -10,7 +10,7 @@ namespace Restaurant.Core.Interfaces
     {
         string GetUserPoolId();
         Task<string> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER");
-        Task<(string AccessToken, string RefreshToken)> SignInAsync(string email, string password);
+        Task<(string IdToken, string RefreshToken)> SignInAsync(string email, string password);
         Task DeleteUserAsync(string email);
         Task<string> RefreshTokenAsync(string refreshToken);
 

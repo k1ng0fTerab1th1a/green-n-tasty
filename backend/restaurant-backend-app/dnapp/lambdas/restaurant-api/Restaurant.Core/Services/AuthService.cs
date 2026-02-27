@@ -49,10 +49,10 @@ public class AuthService : IAuthService
 
     public async Task<AuthResult> SignInAsync(string email, string password)
     {
-        var (accessToken, refreshToken) = await _cognitoService.SignInAsync(email, password);
+        var (idToken, refreshToken) = await _cognitoService.SignInAsync(email, password);
 
         var handler = new JwtSecurityTokenHandler();
-        var jwtToken = handler.ReadJwtToken(accessToken);
+        var jwtToken = handler.ReadJwtToken(idToken);
 
         var firstName = jwtToken.Claims.FirstOrDefault(c => c.Type == "given_name")?.Value ?? "";
         var lastName = jwtToken.Claims.FirstOrDefault(c => c.Type == "family_name")?.Value ?? "";
@@ -61,7 +61,7 @@ public class AuthService : IAuthService
 
         var role = jwtToken.Claims.FirstOrDefault(c => c.Type == "custom:role")?.Value ?? "CUSTOMER";
 
-        return new AuthResult(accessToken, refreshToken, username, role);
+        return new AuthResult(idToken, refreshToken, username, role);
     }
 
     private bool IsWaiter()
