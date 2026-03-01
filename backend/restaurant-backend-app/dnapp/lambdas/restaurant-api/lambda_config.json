@@ -8,7 +8,12 @@
   "memory": 1024,
   "timeout": 30,
   "lambda_path": "lambdas\\restaurant-api",
-  "dependencies": [],
+  "dependencies": [
+    {
+      "resource_name": "Locations",
+      "resource_type": "dynamodb_table"
+    }
+  ],
   "event_sources": [],
   "env_variables": {
     "COGNITO_USER_POOL_ID": "eu-west-2_LqQjtis7c",
