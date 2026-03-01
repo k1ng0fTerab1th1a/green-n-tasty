@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Restaurant.Core.Interfaces;
 using Restaurant.Core.Services;
+using Restaurant.Infrastructure.Repositories;
 using Restaurant.Infrastructure.Services;
 
 namespace Restaurant.Api
@@ -47,6 +48,8 @@ namespace Restaurant.Api
             services.AddDynamoDb();
             services.AddScoped<ICognitoService, CognitoService>();
             services.AddScoped<IAuthService, AuthService>();
+            services.AddSingleton<ILocationRepository, InMemoryLocationRepository>();
+            services.AddScoped<ILocationService, LocationService>();
 
             services.AddAuthorization();
             services.AddControllers();
