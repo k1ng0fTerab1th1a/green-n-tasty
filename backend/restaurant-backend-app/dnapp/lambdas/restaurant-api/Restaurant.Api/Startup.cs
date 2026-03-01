@@ -10,6 +10,7 @@ using Microsoft.OpenApi.Models;
 using Restaurant.Core.Interfaces;
 using Restaurant.Core.Services;
 using Restaurant.Infrastructure.Repositories;
+using Restaurant.Infrastructure.Repository;
 using Restaurant.Infrastructure.Services;
 using System;
 
@@ -56,6 +57,7 @@ namespace Restaurant.Api
             services.AddScoped<ICognitoService, CognitoService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IWaiterListRepository, WaiterListRepository>();
 
             services.AddAuthorization();
             services.AddControllers();
