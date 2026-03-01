@@ -25,7 +25,6 @@ namespace Restaurant.Infrastructure.Repositories
         {
             var op = new DynamoDBOperationConfig { IndexName = EntityTypeIndexName };
 
-            // Query по GSI: entityType = LOCATION -> без Scan
             var search = _context.QueryAsync<Location>(LocationEntityType, op);
             var items = await search.GetRemainingAsync();
 
@@ -34,15 +33,11 @@ namespace Restaurant.Infrastructure.Repositories
 
         public Task<IReadOnlyList<Location>> GetLocationOptionsAsync(CancellationToken cancellationToken = default)
         {
-            // оптимізація “по-правильному” = робити projection, але для простоти
-            // повертається те саме джерело (контролер вже проектує до LocationBrief)
             return GetLocationsAsync(cancellationToken);
         }
 
         public Task<IReadOnlyList<Dish>> GetSpecialityDishesAsync(string locationId, CancellationToken cancellationToken = default)
         {
-            // Поки модулю Dishes немає — залишити mock як тимчасовий компроміс.
-            // Якщо принципово все в Dynamo — тоді робиться окрема таблиця/GSІ (можна додати окремо).
             if (string.IsNullOrWhiteSpace(locationId))
                 return Task.FromResult<IReadOnlyList<Dish>>(Array.Empty<Dish>());
 

@@ -7,5 +7,21 @@
     ],
     "resource_type": "iam_role",
     "tags": {}
+  },
+  "Locations": {
+    "resource_type": "dynamodb_table",
+    "hash_key_name": "id",
+    "hash_key_type": "S",
+    "read_capacity": 1,
+    "write_capacity": 1,
+    "global_indexes": [
+      {
+        "name": "entityType-index",
+        "index_key_name": "entityType",
+        "index_key_type": "S",
+        "index_sort_key_name": "id",
+        "index_sort_key_type": "S"
+      }
+    ]
   }
 }
