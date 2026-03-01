@@ -96,7 +96,15 @@ export default function Register() {
         try {
             // TODO: підключити реальний API
             // await signUp({ ...form });
-            navigate("/login");
+            navigate("/login", {
+                state: {
+                    toast: {
+                        type: "success",
+                        title: "Success",
+                        message: "Your account has been created successfully. Please sign in Please sign in with your details.",
+                    },
+                },
+            });
         } catch (err) {
             console.error(err);
         }
