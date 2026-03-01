@@ -48,7 +48,7 @@ namespace Restaurant.Api
             services.AddDynamoDb();
             services.AddScoped<ICognitoService, CognitoService>();
             services.AddScoped<IAuthService, AuthService>();
-            services.AddSingleton<ILocationRepository, InMemoryLocationRepository>();
+            services.AddScoped<ILocationRepository, LocationRepository>();
             services.AddScoped<ILocationService, LocationService>();
 
             services.AddAuthorization();
