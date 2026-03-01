@@ -20,4 +20,7 @@ public class Location
 
     [DynamoDBProperty("totalCapacity")]
     public int TotalCapacity { get; set; }
+
+    [DynamoDBProperty("rating")]
+    public double Rating { get; set; }
 }
