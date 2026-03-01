@@ -1,0 +1,135 @@
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Label */
+.label {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 24px;
+    color: var(--text);
+}
+
+/* Wrapper */
+.control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    height: 48px;
+    padding: 0 14px;
+
+    background: var(--neutral-0);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+/* Hover */
+.control:hover {
+    /*border-color: var(--green-200);*/
+    box-shadow: 0 0 0 4px rgba(0, 173, 12, 0.10);
+}
+
+/* Focus (focus-within) */
+.control:focus-within {
+    border-color: var(--green-200);
+    /*box-shadow: 0 0 0 4px rgba(0, 173, 12, 0.16);*/
+}
+
+/* Filled state */
+.filled {
+     background: var(--neutral-100);
+}
+
+/* Error state */
+.error {
+    border-color: var(--red-400) !important;
+    box-shadow: none !important;
+    /*box-shadow: 0 0 0 4px rgba(183, 11, 11, 0.10) !important;*/
+}
+
+/* Input itself */
+.input {
+    width: 100%;
+    border: none;
+    background: transparent;
+
+    font-size: 14px;
+    font-weight: 300; /* Light */
+    line-height: 24px;
+    color: var(--text);
+}
+
+.input::placeholder {
+    color: var(--neutral-400);
+}
+
+.input:disabled {
+    cursor: not-allowed;
+    color: var(--neutral-400);
+}
+
+/* Disabled wrapper */
+.control:has(.input:disabled) {
+    background: var(--neutral-100);
+    border-color: var(--border);
+    box-shadow: none;
+}
+
+/* Icons */
+.iconLeft,
+.iconRight {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Hint */
+.hint {
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 16px;
+    color: var(--neutral-400);
+}
+
+.hintError {
+    color: var(--red-400);
+}
+
+.hintBullet {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hintDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--neutral-400);
+    flex: 0 0 auto;
+}
+
+.hintSuccess {
+    color: var(--green-200);
+}
+
+.hintDotSuccess {
+    background: var(--green-200);
+}
+
+.labelRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.labelRight {
+    display: inline-flex;
+    align-items: center;
+}
