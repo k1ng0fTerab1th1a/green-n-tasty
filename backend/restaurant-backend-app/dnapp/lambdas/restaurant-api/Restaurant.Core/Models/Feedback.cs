@@ -18,14 +18,17 @@ public class Feedback
     [DynamoDBProperty("comment")]
     public string Comment { get; set; }
 
-    [DynamoDBProperty("user")]
-    public string User { get; set; }
+    [DynamoDBProperty("userId")]
+    public string UserId { get; set; }
 
     [DynamoDBProperty("date")]
     public string Date { get; set; }
 
     [DynamoDBProperty("locationId")]
     public string LocationId { get; set; }
+
+    [DynamoDBProperty("locationId#type")]
+    public string LocationIdAndType { get; set; }
 
     [DynamoDBProperty("type")]
     public string Type { get; set; } // "waiter" | "kitchen"

@@ -1,0 +1,49 @@
+﻿using System.Text;
+using Amazon.Runtime;
+using Restaurant.Core.Helpers;
+using Restaurant.Core.Interfaces;
+using Restaurant.Core.ServiceDTOs;
+
+namespace Restaurant.Core.Services;
+
+public class FeedbackService(IFeedbackRepository feedbackRepository, IUserRepository userRepository) : IFeedbackService
+{
+    public async Task<FeedbackPaginatedDto> GetFeedbacksForLocation(string locationId, int size, string type, List<string> sort, string? pagetToken = null)
+    {
+        FeedbackPaginatedDto result = new FeedbackPaginatedDto();
+        var receivedFeedbacks = await feedbackRepository.GetByLocationAsync(locationId, size, type, pagetToken);
+
+        result.TotalPages = receivedFeedbacks.TotalPages;
+        result.TotalElements = receivedFeedbacks.TotalSize;
+        result.Size = size;
+        result.NextPageToken = receivedFeedbacks.NextPageToken;
+
+        if (receivedFeedbacks.Feedbacks.Count > 0)
+        {
+            var userIds = receivedFeedbacks.Feedbacks.Select(a => a.UserId).Distinct().ToList();
+            foreach (var id in userIds)
+            {
+                var user = await userRepository.GetUserDataById(id);
+                for (int i = 0; i < receivedFeedbacks.Feedbacks.Count; i++)
+                {
+                    if (user.UserId == receivedFeedbacks.Feedbacks[i].UserId)
+                    {
+                        FeedbackDTO feedback = new FeedbackDTO(receivedFeedbacks.Feedbacks[i]);
+
+                        StringBuilder sb = new StringBuilder();
+                        sb.Append(user.FirstName).Append(" ").Append(user.LastName);
+                        feedback.UserName = sb.ToString();
+
+                        feedback.UserAvatarUrl = user.ImageUrl;
+                        
+                        result.Content.Add(feedback);
+                    }
+                }
+            }
+        }
+
+        result.Content = SortHelper.SortFeedbackDynamic(result.Content, sort);
+        
+        return result;
+    }
+}
