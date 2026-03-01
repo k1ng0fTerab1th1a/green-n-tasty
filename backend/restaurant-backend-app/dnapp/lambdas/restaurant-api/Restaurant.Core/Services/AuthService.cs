@@ -1,4 +1,7 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
+using System.IdentityModel.Tokens.Jwt;
 using Restaurant.Core.Interfaces;
 using Restaurant.Core.Models;
 
@@ -7,36 +10,62 @@ namespace Restaurant.Core.Services;
 public class AuthService : IAuthService
 {
     private readonly ICognitoService _cognitoService;
+    private readonly IUserRepository _userRepository;
 
-    public AuthService(ICognitoService cognitoService)
+    public AuthService(ICognitoService cognitoService, IUserRepository userRepository)
     {
         _cognitoService = cognitoService;
+        _userRepository = userRepository;
     }
 
     public async Task SignUpAsync(string email, string password, string firstName, string lastName)
     {
-        await _cognitoService.SignUpAsync(email, password, firstName, lastName);
+        var role = "CUSTOMER";
+        if(IsWaiter()) role = "WAITER";
+
+        var userId = await _cognitoService.SignUpAsync(email, password, firstName, lastName, role);
+
+        try
+        {
+            var user = new User
+            {
+                UserId = userId,
+                Email = email,
+                FirstName = firstName,
+                LastName = lastName,
+                Role = role,
+                CreatedAt = DateTime.UtcNow.ToString("o"),
+                UpdatedAt = DateTime.UtcNow.ToString("o")
+            };
+
+            await _userRepository.CreateAsync(user);
+        }
+        catch (Exception)
+        {
+            await _cognitoService.DeleteUserAsync(email);
+            throw;
+        }
     }
 
     public async Task<AuthResult> SignInAsync(string email, string password)
     {
-        var token = await _cognitoService.SignInAsync(email, password);
+        var (idToken, refreshToken) = await _cognitoService.SignInAsync(email, password);
 
         var handler = new JwtSecurityTokenHandler();
-        var jwtToken = handler.ReadJwtToken(token);
+        var jwtToken = handler.ReadJwtToken(idToken);
 
         var firstName = jwtToken.Claims.FirstOrDefault(c => c.Type == "given_name")?.Value ?? "";
         var lastName = jwtToken.Claims.FirstOrDefault(c => c.Type == "family_name")?.Value ?? "";
 
         var username = $"{firstName} {lastName}".Trim();
 
-        if (string.IsNullOrEmpty(username))
-        {
-            username = email.Split('@')[0];
-        }
+        var role = jwtToken.Claims.FirstOrDefault(c => c.Type == "custom:role")?.Value ?? "CUSTOMER";
 
-        var role = "CLIENT";
+        return new AuthResult(idToken, refreshToken, username, role);
+    }
 
-        return new AuthResult(token, username, role);
+    private bool IsWaiter()
+    {
+        return false;
     }
 }

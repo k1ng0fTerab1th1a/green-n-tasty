@@ -36,3 +36,8 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+
+src/openapi
+src/mocks
+*storybook.log
+storybook-static

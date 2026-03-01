@@ -4,26 +4,26 @@ using Amazon.DynamoDBv2.DataModel;
 public class User
 {
     [DynamoDBHashKey("userId")]
-    public string UserId { get; set; }
+    public string UserId { get; set; } = string.Empty;
 
     [DynamoDBProperty("firstName")]
-    public string FirstName { get; set; }
+    public string FirstName { get; set; } = string.Empty;
 
     [DynamoDBProperty("lastName")]
-    public string LastName { get; set; }
+    public string LastName { get; set; } = string.Empty;
 
     [DynamoDBProperty("email")]
-    public string Email { get; set; }
+    public string Email { get; set; } = string.Empty;
 
     [DynamoDBProperty("role")]
-    public string Role { get; set; }
+    public string Role { get; set; } = string.Empty;
 
     [DynamoDBProperty("imageUrl")]
-    public string ImageUrl { get; set; }
+    public string? ImageUrl { get; set; }
 
     [DynamoDBProperty("createdAt")]
-    public string CreatedAt { get; set; }
+    public string CreatedAt { get; set; } = string.Empty;
 
     [DynamoDBProperty("updatedAt")]
-    public string UpdatedAt { get; set; }
+    public string UpdatedAt { get; set; } = string.Empty;
 }
