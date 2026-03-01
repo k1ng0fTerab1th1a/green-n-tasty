@@ -1,3 +1,3 @@
 ﻿namespace Restaurant.Core.Models;
 
-public record AuthResult(string AccessToken, string Username, string Role);
+public record AuthResult(string IdToken, string RefreshToken, string Username, string Role);

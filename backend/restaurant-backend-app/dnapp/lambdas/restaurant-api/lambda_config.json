@@ -11,8 +11,8 @@
   "dependencies": [],
   "event_sources": [],
   "env_variables": {
-    "COGNITO_USER_POOL_ID": "eu-west-2_LqQjtis7c",
-    "COGNITO_CLIENT_ID": "4bf8rep8rj93o901bo3j1m0274",
+    "COGNITO_USER_POOL_ID": "eu-west-2_73rk8KVrd",
+    "COGNITO_CLIENT_ID": "5kcheif6619c6m4823pg29d910",
     "COGNITO_REGION": "eu-west-2"
   },
   "publish_version": true,
