@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import "./Toast.module.css";
+import styles from "./Toast.module.css";
 
 import checkIcon from "../../assets/icons/check-circle.svg";
 import errorIcon from "../../assets/icons/error-circle.svg";
@@ -16,6 +16,7 @@ function Toast({
                    onClose,
                }) {
     const [visible, setVisible] = useState(false);
+
     const hideTimeoutRef = useRef(null);
     const showTimeoutRef = useRef(null);
     const clearTimeoutRef = useRef(null);
@@ -44,7 +45,7 @@ function Toast({
 
         hideTimeoutRef.current = setTimeout(() => {
             setVisible(false);
-            clearTimeoutRef.current = setTimeout(() => onClose?.(), 250);
+            clearTimeoutRef.current = setTimeout(() => onClose?.(), 500);
         }, autoCloseMs);
 
         return () => {
@@ -57,24 +58,31 @@ function Toast({
     if (!open) return null;
 
     return (
-        <div className={`toast toast--${type} ${visible ? "toast--show" : ""}`} role="status" aria-live="polite">
-            <div className="toast-icon">
+        <div
+            className={`
+        ${styles.toast}
+        ${styles[type]}
+        ${visible ? styles.show : ""}
+      `}
+            role="status"
+            aria-live="polite"
+        >
+            <div className={styles.icon}>
                 <img src={icons[type] || infoIcon} alt="" />
             </div>
 
-            <div className="toast-text">
-                <div className="toast-title">{title}</div>
-                <div className="toast-sub">{message}</div>
+            <div className={styles.text}>
+                <div className={styles.title}>{title}</div>
+                <div className={styles.message}>{message}</div>
             </div>
 
             <button
-                className="toast-x"
+                className={styles.close}
                 type="button"
                 onClick={() => {
                     setVisible(false);
                     setTimeout(() => onClose?.(), 250);
                 }}
-                aria-label="Close"
             >
                 <img src={closeIcon} alt="" />
             </button>

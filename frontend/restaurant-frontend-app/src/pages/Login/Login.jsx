@@ -1,25 +1,39 @@
-import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+
+import { AuthLayout, Input, Button, PasswordInput, Toast } from "../../components/index.js";
+
+import heroImg from "../../assets/images/login-hero.svg";
 import "./Login.css";
 
-import logo from "../../assets/images/login-hero.svg";
-import eyeIcon from "../../assets/icons/eye.svg";
-import eyeOffIcon from "../../assets/icons/eye-off.svg";
 
-import { api } from "../../services/api";
-import Toast from "../../components/Toast/Toast";
+async function fakeSignIn({ email, password }) {
+    await new Promise((r) => setTimeout(r, 600));
+
+    // DEMO
+    if (email === "locked@domain.com") {
+        const err = new Error("ACCOUNT_LOCKED");
+        err.code = "ACCOUNT_LOCKED";
+        throw err;
+    }
+    if (email !== "user@domain.com" || password !== "Test123.") {
+        const err = new Error("INVALID_CREDENTIALS");
+        err.code = "INVALID_CREDENTIALS";
+        throw err;
+    }
+
+    return { token: "demo-token" };
+}
 
 function validate(form) {
     const errors = {};
 
-    // email
     if (!form.email.trim()) {
         errors.email = "Email address is required. Please enter your email to continue";
-    } else if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+    } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
         errors.email = "Invalid email address. Please ensure it follows the format: username@domain.com";
     }
 
-    // password
     if (!form.password.trim()) {
         errors.password = "Password is required. Please enter your password to continue.";
     }
@@ -27,214 +41,184 @@ function validate(form) {
     return errors;
 }
 
-function Login() {
+export default function Login() {
     const location = useLocation();
+    const navigate = useNavigate()
 
     const [form, setForm] = useState({ email: "", password: "" });
-    const [touched, setTouched] = useState({});
-    const [showPass, setShowPass] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [touched, setTouched] = useState({ email: false, password: false });
 
-    const [credentialsError, setCredentialsError] = useState(""); // под полями
-    const [lockedError, setLockedError] = useState(""); // верхний баннер
+    // server states
+    const [status, setStatus] = useState("idle"); // idle | loading | invalid | locked | server_error
+    const [banner, setBanner] = useState(""); // locked/server_error)
+    const [toastOpen, setToastOpen] = useState(false);
+    const [toastData, setToastData] = useState(null);
 
-    const [toast, setToast] = useState(null);
-
-    const errors = useMemo(() => validate(form), [form]);
-    const isValid = useMemo(() => Object.keys(errors).length === 0, [errors]);
-
-    // success toast
     useEffect(() => {
-        const msg = location.state?.successMessage;
-        if (!msg) return;
-        setToast(msg);
-        window.history.replaceState({}, "", window.location.pathname);
-    }, [location.state]);
+        const toast = location.state?.toast;
+        if (!toast) return;
+
+        setToastData(toast);
+        setToastOpen(true);
+
+        navigate(location.pathname, { replace: true, state: {} });
+    }, [location.state, location.pathname, navigate]);
+
+    const clientErrors = useMemo(() => validate(form), [form]);
+
+    const invalidMsg = "Incorrect email or password. Try again or create an account.";
+
+    const serverFieldErrors = useMemo(() => {
+        if (status === "invalid" || status === "locked") {
+            return { email: invalidMsg, password: invalidMsg };
+        }
+        return { email: "", password: "" };
+    }, [status]);
+
+    const emailError =
+        (touched.email ? clientErrors.email : "") || serverFieldErrors.email;
+
+    const passwordError =
+        (touched.password ? clientErrors.password : "") || serverFieldErrors.password;
+
+    const isLoading = status === "loading";
+
+    const isClientValid = Object.keys(clientErrors).length === 0;
 
     const onChange = (e) => {
         const { name, value } = e.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
 
-        // очищаем серверные ошибки при вводе
-        setCredentialsError("");
-        setLockedError("");
+        if (status === "invalid" || status === "locked" || status === "server_error") {
+            setStatus("idle");
+            setBanner("");
+        }
+
+        setForm((p) => ({ ...p, [name]: value }));
     };
 
     const onBlur = (e) => {
-        setTouched((prev) => ({ ...prev, [e.target.name]: true }));
-    };
-
-    const inputStateClass = (name) => {
-        if (!touched[name]) return "";
-        return errors[name] ? "input--error" : "";
+        const { name } = e.target;
+        setTouched((p) => ({ ...p, [name]: true }));
     };
 
     const onSubmit = async (e) => {
         e.preventDefault();
 
         setTouched({ email: true, password: true });
-        setCredentialsError("");
-        setLockedError("");
 
-        if (!isValid) return;
+        if (!isClientValid) return;
 
         try {
-            setLoading(true);
+            setStatus("loading");
+            setBanner("");
 
-            const res = await api.post("/auth/sign-in", {
-                email: form.email.trim(),
-                password: form.password,
-            });
+            // TODO: Replace with real API: Wait for login (form)
+            const res = await fakeSignIn(form);
 
-            const data = res.data;
-
-            localStorage.setItem("accessToken", data.accessToken);
-            localStorage.setItem("role", data.role);
-            localStorage.setItem("username", data.username);
-
-            // TODO
-            // window.location.href = "/";
-            // setToast("Logged in successfully!");
-            alert("Login success (demo)");
+            // TODO: save token, redirect
+            console.log("signed in:", res);
+            setStatus("idle");
         } catch (err) {
-            const status = err?.response?.status;
-            const apiMsg = err?.response?.data?.message;
+            const code = err?.code || err?.message;
 
-            if (status === 423 || status === 429) {
-                setLockedError(
+            if (code === "ACCOUNT_LOCKED") {
+                setStatus("locked");
+                setBanner(
                     "Your account is temporarily locked due to multiple failed login attempts. Please try again later."
                 );
-                setCredentialsError("Incorrect email or password. Try again or create an account.");
                 return;
             }
 
-            if (status === 401 || status === 400) {
-                setCredentialsError("Incorrect email or password. Try again or create an account.");
+            if (code === "INVALID_CREDENTIALS") {
+                setStatus("invalid");
                 return;
             }
 
-            setCredentialsError(apiMsg || err?.message || "Something went wrong. Please try again.");
-        } finally {
-            setLoading(false);
+            // network/server fallback
+            setStatus("server_error");
+            setBanner("Something went wrong. Please try again.");
         }
     };
 
+    const heroTitle = (
+        <>
+            <span className="auth-hero-accent">Green</span> & <span>Tasty</span>
+        </>
+    );
+
     return (
-        <div className="login-page">
-            <div className="login-card">
-                {/* LEFT */}
-                <div className="login-left">
-                    <div className="block-title login-kicker">WELCOME BACK</div>
-                    <h1 className="login-title h2">Sign In to Your Account</h1>
+        <>
+            <AuthLayout
+                kicker="WELCOME BACK"
+                title="Sign In to Your Account"
+                heroTitle={heroTitle}
+                heroImage={heroImg}
+                heroAlt="Green & Tasty"
+            >
+                <form className="login-form" onSubmit={onSubmit}>
+                    {banner ? <div className="login-banner">{banner}</div> : null}
 
-                    {lockedError && <div className="login-alert">{lockedError}</div>}
+                    <Input
+                        name="email"
+                        label="Email"
+                        placeholder="Enter your Email"
+                        value={form.email}
+                        onChange={onChange}
+                        onBlur={onBlur}
+                        hint="e.g. username@domain.com"
+                        error={emailError}
+                    />
 
-                    <form className="login-form" onSubmit={onSubmit}>
-                        <div className="field">
-                            <label className="label body-bold">Email</label>
-                            <input
-                                name="email"
-                                type="email"
-                                className={`input ${inputStateClass("email")}`}
-                                placeholder="Enter your Email"
-                                value={form.email}
-                                onChange={onChange}
-                                onBlur={onBlur}
-                            />
+                    <div className="login-password">
+                        <PasswordInput
+                            name="password"
+                            label="Password"
+                            placeholder="Enter your Password"
+                            value={form.password}
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            error={passwordError}
+                            showStrength={false}
+                            showChecklist={false}
+                        />
 
-                            <div
-                                className={`hint caption ${
-                                    (touched.email && errors.email) || credentialsError ? "hint--error" : ""
-                                }`}
-                            >
-                                {credentialsError
-                                    ? credentialsError
-                                    : touched.email && errors.email
-                                        ? errors.email
-                                        : "e.g. username@domain.com"}
-                            </div>
-                        </div>
-
-                        <div className="field">
-                            <label className="label body-bold">Password</label>
-
-                            <div className="input-wrap">
-                                <input
-                                    name="password"
-                                    type={showPass ? "text" : "password"}
-                                    className={`input input--with-icon ${inputStateClass("password")}`}
-                                    placeholder="Enter your Password"
-                                    value={form.password}
-                                    onChange={onChange}
-                                    onBlur={onBlur}
-                                />
-
-                                <button
-                                    type="button"
-                                    className="icon-btn"
-                                    onClick={() => setShowPass((v) => !v)}
-                                    aria-label={showPass ? "Hide password" : "Show password"}
-                                >
-                                    <img className="icon" src={showPass ? eyeOffIcon : eyeIcon} alt="" aria-hidden="true" />
-                                </button>
-                            </div>
-
-                            <div
-                                className={`hint caption ${
-                                    (touched.password && errors.password) || credentialsError ? "hint--error" : ""
-                                }`}
-                            >
-                                {credentialsError
-                                    ? credentialsError
-                                    : touched.password && errors.password
-                                        ? errors.password
-                                        : " "}
-                            </div>
-
-                            <a className="link login-forgot" href="/forgot-password">
-                                Forgot password?
-                            </a>
-                        </div>
-
-                        <button
-                            className={`submit button-text ${isValid ? "submit--ok" : ""}`}
-                            type="submit"
-                            disabled={!isValid || loading}
-                        >
-                            {loading ? "Signing In..." : "Sign In"}
-                        </button>
-
-                        <div className="bottom caption">
-                            Don’t have an account?{" "}
-                            <a className="link link-text" href="/register">
-                                Create an Account
-                            </a>
-                        </div>
-                    </form>
-                </div>
-
-                {/* RIGHT */}
-                <div className="login-right">
-                    <div className="brand h1">
-                        <span className="brand-green">Green</span> <span>&amp;</span>{" "}
-                        <span className="brand-dark">Tasty</span>
+                        <Link className="login-forgot" to="/forgot-password">
+                            Forgot password?
+                        </Link>
                     </div>
 
-                    <img className="brand-logo" src={logo} alt="Green & Tasty logo" />
-                </div>
+                    <div className="login-actions">
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            size="lg"
+                            fullWidth
+                            disabled={!isClientValid || isLoading}
+                        >
+                            {isLoading ? "Signing in..." : "Sign In"}
+                        </Button>
 
+                        <div className="login-footer">
+                            <span className="caption">Don’t have an account?</span>{" "}
+                            <Link className="login-link" to="/register">
+                                Create an Account
+                            </Link>
+                        </div>
+                    </div>
+                </form>
+            </AuthLayout>
+            {toastData ? (
                 <Toast
-                    open={!!toast}
-                    type="success"
-                    title="Success"
-                    message={toast || ""}
-                    onClose={() => setToast(null)}
-                    autoCloseMs={4500}
-                    showDelayMs={200}
+                    open={toastOpen}
+                    type={toastData.type}
+                    title={toastData.title}
+                    message={toastData.message}
+                    onClose={() => {
+                        setToastOpen(false);
+                        setToastData(null);
+                    }}
                 />
-            </div>
-        </div>
+            ) : null}
+        </>
     );
 }
-
-export default Login;
