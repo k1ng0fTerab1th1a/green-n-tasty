@@ -1,0 +1,55 @@
+:root {
+    /* ---------- Font ---------- */
+    --font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+
+    /* ---------- Neutral ---------- */
+    --neutral-0: #ffffff;
+    --neutral-100: #f7f7f7;
+    --neutral-200: #dadada;
+    --neutral-400: #898989;
+    --neutral-600: #575757;
+    --neutral-900: #232323;
+
+    /* ---------- Green ---------- */
+    --green-100: #e9ffea;
+    --green-200: #00ad0c;
+    --green-300: #008209;
+    --green-400: #006907;
+
+    /* ---------- Blue ---------- */
+    --blue-100: #dee9ff;
+    --blue-400: #0e53e9;
+
+    /* ---------- Orange ---------- */
+    --orange-100: #fff2d4;
+    --orange-400: #ffae00;
+
+    /* ---------- Red ---------- */
+    --red-100: #fce9ed;
+    --red-400: #b70b0b;
+
+    /* ---------- Semantic (чтобы удобно использовать везде) ---------- */
+    --bg: var(--neutral-0);
+    --text: var(--neutral-900);
+    --muted: var(--neutral-600);
+    --border: var(--neutral-200);
+
+    --primary: var(--green-200);
+    --primary-hover: var(--green-300);
+
+    --link: var(--blue-400);
+
+    --success-bg: var(--green-100);
+    --warning-bg: var(--orange-100);
+    --danger-bg: var(--red-100);
+    --danger: var(--red-400);
+
+    /* ---------- Layout tokens (по желанию) ---------- */
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --radius-lg: 18px;
+
+    --shadow-sm: 0 6px 18px rgba(0, 0, 0, 0.08);
+
+    --container: 1200px;
+}

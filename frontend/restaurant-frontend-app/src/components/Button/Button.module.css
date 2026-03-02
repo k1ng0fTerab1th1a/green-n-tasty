@@ -1,0 +1,122 @@
+.btn {
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 0 18px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+    user-select: none;
+    cursor: pointer;
+
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+/* typography for buttons */
+.text {
+    font-size: 14px;
+    font-weight: 700; /* Button bold */
+    line-height: 24px;
+}
+
+.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* widths */
+.fullWidth {
+    width: 100%;
+}
+
+/* ------------------ SIZES ------------------ */
+/* Primary XL (Extra Large) */
+.size_xl {
+    height: 56px;
+    min-width: 160px;
+    padding: 0 22px;
+}
+
+/* Large */
+.size_lg {
+    height: 40px;
+    min-width: 137px;
+}
+
+/* Small */
+.size_sm {
+    height: 40px;
+    min-width: 120px;
+    padding: 0 16px;
+}
+
+/* ------------------ VARIANTS ------------------ */
+/* PRIMARY: green filled */
+.variant_primary {
+    background: var(--green-200);
+    color: var(--neutral-0);
+}
+
+.variant_primary:hover:not(:disabled) {
+    background: var(--green-300);
+}
+
+.variant_primary:active:not(:disabled) {
+    background: var(--green-400); /* pressed */
+}
+
+/* disabled primary */
+.variant_primary:disabled {
+    background: var(--neutral-400);
+    color: var(--neutral-0);
+    cursor: not-allowed;
+}
+
+/* SECONDARY: outline green */
+.variant_secondary {
+    background: transparent;
+    color: var(--green-200);
+    border-color: var(--green-200);
+}
+
+.variant_secondary:hover:not(:disabled) {
+    background: rgba(0, 173, 12, 0.08);
+}
+
+.variant_secondary:active:not(:disabled) {
+    background: rgba(0, 173, 12, 0.18);
+}
+
+.variant_secondary:disabled {
+    color: var(--neutral-400);
+    border-color: var(--neutral-200);
+    background: var(--neutral-100);
+    cursor: not-allowed;
+}
+
+/* TERTIARY: text button */
+.variant_tertiary {
+    background: transparent;
+    color: var(--green-200);
+    border-color: transparent;
+    padding: 0;
+    height: auto;
+    min-width: auto;
+}
+
+.variant_tertiary:hover:not(:disabled) {
+    text-decoration: underline;
+}
+
+.variant_tertiary:active:not(:disabled) {
+    color: var(--green-400);
+}
+
+.variant_tertiary:disabled {
+    color: var(--neutral-400);
+    cursor: not-allowed;
+    text-decoration: none;
+}

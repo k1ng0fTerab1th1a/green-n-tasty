@@ -1,0 +1,66 @@
+.auth-hero-accent {
+    color: var(--green-200);
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 10px;
+}
+
+.login-password {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.login-forgot {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 16px;
+    color: var(--blue-400);
+    text-decoration: none;
+    width: fit-content;
+}
+
+.login-forgot:hover {
+    text-decoration: underline;
+}
+
+.login-actions {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.login-footer {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.login-link {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 16px;
+    color: var(--blue-400);
+    text-decoration: none;
+}
+
+.login-link:hover {
+    text-decoration: underline;
+}
+
+/* Account locked banner (pink block) */
+.login-banner {
+    background: rgba(183, 11, 11, 0.08);
+    border-radius: 10px;
+    padding: 16px;
+
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 24px;
+    color: var(--red-400);
+}

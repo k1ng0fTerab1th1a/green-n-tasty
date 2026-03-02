@@ -1,0 +1,114 @@
+.toast {
+    position: fixed;
+    top: 40px;
+    right: 40px;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+
+    width: 416px;
+    max-width: calc(100vw - 32px);
+
+    padding: 12px;
+    border-radius: 16px;
+
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+    transform: translateY(-20px);
+    opacity: 0;
+    transition: all 0.25s ease;
+
+    z-index: 9999;
+}
+
+.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* ===== Types ===== */
+
+.success {
+    background: #E6F4EA;
+    border: 1px solid var(--green-200);
+}
+
+.error {
+    background: #FDECEC;
+    border: 1px solid var(--red-400);
+}
+
+.info {
+    background: #E7F0FF;
+    border: 1px solid var(--blue-400);
+}
+
+/* ===== Icon ===== */
+
+.icon {
+    flex-shrink: 0;
+
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon img {
+    width: 24px;
+    height: 24px;
+}
+
+/* ===== Text ===== */
+
+.text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.title {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: var(--text);
+}
+
+.message {
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 18px;
+    color: var(--neutral-600);
+}
+
+/* ===== Close ===== */
+
+.close {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+
+    width: 18px;
+    height: 18px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.close:hover {
+    opacity: 1;
+}
+
+.close img {
+    width: 16px;
+    height: 16px;
+}

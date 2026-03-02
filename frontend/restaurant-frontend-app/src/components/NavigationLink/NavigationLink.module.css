@@ -1,0 +1,31 @@
+.link {
+    position: relative;
+    text-decoration: none;
+
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 32px;
+
+    color: var(--text);
+    padding: 4px 2px;
+}
+
+.link:hover {
+    color: var(--green-200);
+    text-decoration: none;
+}
+
+.active {
+    color: var(--green-200);
+}
+
+.active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -3px;
+    height: 2px;
+    background: var(--green-200);
+    border-radius: 999px;
+}

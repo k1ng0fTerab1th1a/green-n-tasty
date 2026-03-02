@@ -6,6 +6,8 @@
     <OutputType>Library</OutputType>
     <Nullable>enable</Nullable>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+	<PublishReadyToRun>true</PublishReadyToRun>
+	<RuntimeIdentifier>linux-x64</RuntimeIdentifier>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,0 +1,79 @@
+/* Headings */
+.h1 {
+    font-size: 48px;
+    font-weight: 500; /* Medium */
+    line-height: 48px;
+    letter-spacing: 0;
+}
+
+.h2 {
+    font-size: 24px;
+    font-weight: 500; /* Medium */
+    line-height: 40px;
+    letter-spacing: 0;
+}
+
+.h3 {
+    font-size: 18px;
+    font-weight: 500; /* Medium */
+    line-height: 32px;
+    letter-spacing: 0;
+}
+
+/* Text */
+.block-title {
+    font-size: 14px;
+    font-weight: 300; /* Light */
+    line-height: 24px;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.body-bold {
+    font-size: 14px;
+    font-weight: 500; /* Medium */
+    line-height: 24px;
+    letter-spacing: 0;
+}
+
+.body {
+    font-size: 14px;
+    font-weight: 300; /* Light */
+    line-height: 24px;
+    letter-spacing: 0;
+}
+
+.button-text {
+    font-size: 14px;
+    font-weight: 700; /* Bold */
+    line-height: 24px;
+    letter-spacing: 0;
+}
+
+.button-light {
+    font-size: 14px;
+    font-weight: 500; /* Medium */
+    line-height: 24px;
+    letter-spacing: 0;
+}
+
+.caption {
+    font-size: 12px;
+    font-weight: 300; /* Light */
+    line-height: 16px;
+    letter-spacing: 0;
+}
+
+.link-text {
+    font-size: 12px;
+    font-weight: 700; /* Bold */
+    line-height: 16px;
+    letter-spacing: 0;
+}
+
+.navigation {
+    font-size: 20px;
+    font-weight: 500; /* Medium */
+    line-height: 32px;
+    letter-spacing: 0;
+}
