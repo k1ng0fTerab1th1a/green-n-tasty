@@ -18,7 +18,8 @@
   "env_variables": {
     "COGNITO_USER_POOL_ID": "eu-west-2_LqQjtis7c",
     "COGNITO_CLIENT_ID": "4bf8rep8rj93o901bo3j1m0274",
-    "COGNITO_REGION": "eu-west-2"
+    "COGNITO_REGION": "eu-west-2",
+    "SEED_TOKEN": "dev-seed-123"
   },
   "publish_version": true,
   "alias": "${lambdas_alias_name}",
