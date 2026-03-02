@@ -8,7 +8,7 @@ import heroImg from "../../assets/images/login-hero.svg";
 
 import "./Register.css";
 
-// import { signUp } from "../../services/auth";
+import { signUp } from "../../services/auth";
 
 const NAME_RE = /^[a-zA-Z\s'-]+$/;
 // const NAME_RE = /^[A-Za-zА-Яа-яІіЇїЄє' -]+$/;
@@ -66,6 +66,7 @@ export default function Register() {
     });
 
     const [touched, setTouched] = useState({});
+    const [serverErrors, setServerErrors] = useState({});
     const errors = useMemo(() => validate(form), [form]);
 
     const isValid = Object.keys(errors).length === 0;
@@ -94,19 +95,33 @@ export default function Register() {
         if (!isValid) return;
 
         try {
-            // TODO: підключити реальний API
-            // await signUp({ ...form });
+            setServerErrors({});
+
+            await signUp({
+                firstName: form.firstName.trim(),
+                lastName: form.lastName.trim(),
+                email: form.email.trim(),
+                password: form.password,
+            });
+
             navigate("/login", {
                 state: {
                     toast: {
                         type: "success",
                         title: "Success",
-                        message: "Your account has been created successfully. Please sign in Please sign in with your details.",
+                        message:
+                            "Your account has been created successfully. Please sign in with your details.",
                     },
                 },
             });
         } catch (err) {
-            console.error(err);
+            if (err.response?.status === 409) {
+                setServerErrors({
+                    email: err.response.data?.message || "User already exists.",
+                });
+            } else {
+                console.error(err);
+            }
         }
     };
 
@@ -154,10 +169,17 @@ export default function Register() {
                     label="Email"
                     placeholder="Enter your Email"
                     value={form.email}
-                    onChange={onChange}
+                    onChange={(e) => {
+                        onChange(e);
+                        setServerErrors((prev) => ({ ...prev, email: "" }));
+                    }}
                     onBlur={onBlur}
                     hint="e.g. username@domain.com"
-                    error={touched.email ? errors.email : ""}
+                    error={
+                        touched.email
+                            ? errors.email || serverErrors.email
+                            : serverErrors.email
+                    }
                 />
 
                 <PasswordInput

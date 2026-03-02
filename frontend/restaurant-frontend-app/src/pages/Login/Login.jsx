@@ -2,28 +2,10 @@ import { useMemo, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { AuthLayout, Input, Button, PasswordInput, Toast } from "../../components/index.js";
+import { signIn } from "../../services/auth";
 
 import heroImg from "../../assets/images/login-hero.svg";
 import "./Login.css";
-
-
-async function fakeSignIn({ email, password }) {
-    await new Promise((r) => setTimeout(r, 600));
-
-    // DEMO
-    if (email === "locked@domain.com") {
-        const err = new Error("ACCOUNT_LOCKED");
-        err.code = "ACCOUNT_LOCKED";
-        throw err;
-    }
-    if (email !== "user@domain.com" || password !== "Test123.") {
-        const err = new Error("INVALID_CREDENTIALS");
-        err.code = "INVALID_CREDENTIALS";
-        throw err;
-    }
-
-    return { token: "demo-token" };
-}
 
 function validate(form) {
     const errors = {};
@@ -105,38 +87,62 @@ export default function Login() {
         e.preventDefault();
 
         setTouched({ email: true, password: true });
-
         if (!isClientValid) return;
 
         try {
             setStatus("loading");
             setBanner("");
 
-            // TODO: Replace with real API: Wait for login (form)
-            const res = await fakeSignIn(form);
+            const res = await signIn({
+                email: form.email.trim(),
+                password: form.password,
+            });
 
-            // TODO: save token, redirect
-            console.log("signed in:", res);
+            if (!res?.isSuccess) {
+                setStatus("server_error");
+                setBanner(res?.message || "Login failed. Please try again.");
+                return;
+            }
+
+            const idToken = res?.data?.idToken;
+            const refreshToken = res?.data?.refreshToken;
+
+            if (!idToken || !refreshToken) {
+                setStatus("server_error");
+                setBanner("Tokens were not returned by the server.");
+                return;
+            }
+
+            localStorage.setItem("token", idToken);
+            localStorage.setItem("idToken", idToken);
+            localStorage.setItem("refreshToken", refreshToken);
+
             setStatus("idle");
+            navigate("/main", { replace: true });
         } catch (err) {
-            const code = err?.code || err?.message;
+            const httpStatus = err?.response?.status;
+            const serverMsg = err?.response?.data?.message;
 
-            if (code === "ACCOUNT_LOCKED") {
+            if (httpStatus === 401 || httpStatus === 400) {
+                setStatus("invalid");
+                return;
+            }
+            if (httpStatus === 423) {
                 setStatus("locked");
                 setBanner(
+                    serverMsg ||
                     "Your account is temporarily locked due to multiple failed login attempts. Please try again later."
                 );
                 return;
             }
-
-            if (code === "INVALID_CREDENTIALS") {
-                setStatus("invalid");
+            if (httpStatus === 403) {
+                setStatus("locked");
+                setBanner(serverMsg || "Access denied. Please contact support.");
                 return;
             }
 
-            // network/server fallback
             setStatus("server_error");
-            setBanner("Something went wrong. Please try again.");
+            setBanner(serverMsg || "Something went wrong. Please try again.");
         }
     };
 

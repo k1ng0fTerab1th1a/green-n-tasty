@@ -1,9 +1,12 @@
 import { api } from "./api";
 
-export function signUp(payload) {
-    return api.post("/auth/sign-up", payload);
+
+export async function signUp(payload) {
+    const res = await api.post("/auth/sign-up", payload);
+    return res.data;
 }
 
-export function signIn(payload) {
-    return api.post("/auth/sign-in", payload);
+export async function signIn(payload) {
+    const res = await api.post("/auth/sign-in", payload);
+    return res.data;
 }
