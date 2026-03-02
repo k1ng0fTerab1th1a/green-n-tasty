@@ -7,7 +7,7 @@ using Restaurant.Core.Interfaces;
 namespace Restaurant.Api.Controllers
 {
     [ApiController]
-    [Route("api/v1/locations")]
+    [Route("locations")]
     public sealed class LocationsController : ControllerBase
     {
         private readonly ILocationService _locationService;

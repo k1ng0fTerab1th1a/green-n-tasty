@@ -27,7 +27,7 @@ public sealed class DevSeedController : ControllerBase
         return string.Equals(provided.ToString(), expected, StringComparison.Ordinal);
     }
 
-    [HttpPost("api/v1/dev/seed/locations")]
+    [HttpPost("seed/locations")]
     public async Task<IActionResult> SeedLocation([FromBody] CreateLocationRequest req, CancellationToken ct)
     {
         if (!IsAllowed())
