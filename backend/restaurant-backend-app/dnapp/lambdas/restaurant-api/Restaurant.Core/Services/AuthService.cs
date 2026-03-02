@@ -11,17 +11,19 @@ public class AuthService : IAuthService
 {
     private readonly ICognitoService _cognitoService;
     private readonly IUserRepository _userRepository;
+    private readonly IWaiterListRepository _waiterListRepository;
 
-    public AuthService(ICognitoService cognitoService, IUserRepository userRepository)
+    public AuthService(ICognitoService cognitoService, IUserRepository userRepository, IWaiterListRepository waiterListRepository)
     {
         _cognitoService = cognitoService;
         _userRepository = userRepository;
+        _waiterListRepository = waiterListRepository;
     }
 
     public async Task SignUpAsync(string email, string password, string firstName, string lastName)
     {
         var role = "CUSTOMER";
-        if(IsWaiter()) role = "WAITER";
+        if(await IsWaiter(email)) role = "WAITER";
 
         var userId = await _cognitoService.SignUpAsync(email, password, firstName, lastName, role);
 
@@ -64,8 +66,8 @@ public class AuthService : IAuthService
         return new AuthResult(idToken, refreshToken, username, role);
     }
 
-    private bool IsWaiter()
+    private async Task<bool> IsWaiter(string email)
     {
-        return false;
+        return await _waiterListRepository.ContainsAsync(email);
     }
 }
