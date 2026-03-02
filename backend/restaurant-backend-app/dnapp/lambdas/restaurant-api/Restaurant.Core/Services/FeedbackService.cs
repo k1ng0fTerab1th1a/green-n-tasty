@@ -20,25 +20,13 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IUserReposi
 
         if (receivedFeedbacks.Feedbacks.Count > 0)
         {
-            var userIds = receivedFeedbacks.Feedbacks.Select(a => a.UserId).Distinct().ToList();
-            foreach (var id in userIds)
+            // TODO: Replace user data getting and setting with the actual user data getting
+            for (int i = 0; i < receivedFeedbacks.Feedbacks.Count; i++)
             {
-                var user = await userRepository.GetUserDataById(id);
-                for (int i = 0; i < receivedFeedbacks.Feedbacks.Count; i++)
-                {
-                    if (user.UserId == receivedFeedbacks.Feedbacks[i].UserId)
-                    {
-                        FeedbackDTO feedback = new FeedbackDTO(receivedFeedbacks.Feedbacks[i]);
-
-                        StringBuilder sb = new StringBuilder();
-                        sb.Append(user.FirstName).Append(" ").Append(user.LastName);
-                        feedback.UserName = sb.ToString();
-
-                        feedback.UserAvatarUrl = user.ImageUrl;
-                        
-                        result.Content.Add(feedback);
-                    }
-                }
+                FeedbackDTO feedback = new FeedbackDTO(receivedFeedbacks.Feedbacks[i]);
+                feedback.UserName = "Test User " + i.ToString();
+                feedback.UserAvatarUrl = "TestUserAvatar.jpg" + i.ToString();
+                result.Content.Add(feedback);
             }
         }
 

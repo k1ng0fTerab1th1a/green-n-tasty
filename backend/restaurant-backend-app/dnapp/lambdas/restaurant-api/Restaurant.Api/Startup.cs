@@ -1,12 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Restaurant.Core.Interfaces;
 using Restaurant.Core.Services;
+using Restaurant.Infrastructure.Repositories;
 using Restaurant.Infrastructure.Services;
+using Restaurant.Infrastructure.Utils;
 
 namespace Restaurant.Api
 {
@@ -47,6 +45,11 @@ namespace Restaurant.Api
             services.AddDynamoDb();
             services.AddScoped<ICognitoService, CognitoService>();
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IFeedbackService, FeedbackService>();
+            services.AddScoped<IRawMappingService, RawMappingService>();
+            services.AddScoped<DynamoDbSeeder>();
 
             services.AddAuthorization();
             services.AddControllers();
@@ -54,12 +57,13 @@ namespace Restaurant.Api
             services.AddSwaggerGen();
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, DynamoDbSeeder seeder)
         {
             if (env.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+                //seeder.SeedAsync().Wait();
             }
 
             app.UseExceptionHandler();

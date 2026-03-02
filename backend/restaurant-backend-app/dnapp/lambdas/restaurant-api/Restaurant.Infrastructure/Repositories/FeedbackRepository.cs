@@ -1,7 +1,7 @@
 ﻿using System.Text;
-using System.Text.Json;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
 using Restaurant.Core.Interfaces;
 using Restaurant.Core.ServiceDTOs;
@@ -25,13 +25,14 @@ public class FeedbackRepository(IDynamoDBContext context,
         if (!string.IsNullOrEmpty(pageToken))
         {
             var json = Encoding.UTF8.GetString(Convert.FromBase64String(pageToken));
-            exclusiveStartKey = JsonSerializer.Deserialize<Dictionary<string, AttributeValue>>(json);
+            var doc = Document.FromJson(json);
+            exclusiveStartKey = doc.ToAttributeMap();
         }
 
         var request = new QueryRequest
         {
             TableName = "Feedbacks",
-            IndexName = "locationIdType-index",
+            IndexName = "locationId-type-index",
             KeyConditionExpression = "#lt = :locType",
             ExpressionAttributeNames = new Dictionary<string, string>
             {
@@ -50,7 +51,8 @@ public class FeedbackRepository(IDynamoDBContext context,
         string? nextToken = null;
         if (response.LastEvaluatedKey?.Count > 0)
         {
-            var json = JsonSerializer.Serialize(response.LastEvaluatedKey);
+            var doc = Document.FromAttributeMap(response.LastEvaluatedKey);
+            var json = doc.ToJson();
             nextToken = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
         }
 
@@ -70,7 +72,7 @@ public class FeedbackRepository(IDynamoDBContext context,
         var countRequest = new QueryRequest
         {
             TableName = "Feedbacks",
-            IndexName = "locationIdType-index",
+            IndexName = "locationId-type-index",
             KeyConditionExpression = "#lt = :locType",
             ExpressionAttributeNames = new Dictionary<string, string>
             {

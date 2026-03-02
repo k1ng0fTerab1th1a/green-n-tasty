@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Restaurant.Core.Interfaces;
+using Restaurant.Infrastructure.Utils;
 
 namespace Restaurant.Api.Controllers;
 
 [ApiController]
 [Route("locations")]
-public class LocationsController(IFeedbackService feedbackService) : ControllerBase
+public class LocationsController(IFeedbackService feedbackService, DynamoDbSeeder seeder) : ControllerBase
 {
     [HttpGet("{id}/feedbacks")]
     public async Task<ActionResult> GetFeedbacksByLocationId(string id, string type, [FromQuery] List<string> sort, int page = 0, int size = 20, string? pageToken = null )
