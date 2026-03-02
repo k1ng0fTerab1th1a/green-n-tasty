@@ -59,7 +59,17 @@ namespace Restaurant.Api
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IWaiterListRepository, WaiterListRepository>();
 
+
             services.AddAuthorization();
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", builder =>
+                {
+                    builder.AllowAnyOrigin()
+                           .AllowAnyMethod()
+                           .AllowAnyHeader();
+                });
+            });
             services.AddControllers();
 
             if (_env.IsDevelopment())
@@ -104,6 +114,9 @@ namespace Restaurant.Api
 
             app.UseExceptionHandler();
             app.UseRouting();
+
+            app.UseCors("AllowAll");
+
             app.UseAuthentication();
             app.UseAuthorization();
 
