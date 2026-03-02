@@ -1,0 +1,105 @@
+.header {
+    width: 100%;
+    background: var(--neutral-0);
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.inner {
+    height: 88px;
+    /*max-width: 1240px;*/
+    margin: 0 auto;
+    padding: 0 40px;
+
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+}
+
+/* ===== Brand ===== */
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    text-align: left;
+}
+
+.brandIcon {
+    width: 48px;
+    height: 48px;
+    display: block;
+}
+
+.brandText {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 24px;
+}
+
+.brandGreen {
+    color: var(--green-200);
+}
+
+.brandAmp {
+    color: var(--text);
+}
+
+.brandDark {
+    color: var(--text);
+}
+
+/* ===== Nav (only layout now) ===== */
+
+.nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* ===== Right ===== */
+
+.right {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.iconBtn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: transparent;
+    border: 1px solid transparent;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+}
+
+.iconBtn:hover {
+    background: var(--neutral-100);
+    border-color: var(--neutral-200);
+}
+
+.iconBtn img {
+    width: 24px;
+    height: 24px;
+    display: block;
+}

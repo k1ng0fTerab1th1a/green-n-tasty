@@ -4,3 +4,8 @@ export { default as Button } from "./Button/Button";
 export { default as PasswordStrength} from "./PasswordStrength/PasswordStrength";
 export { default as AuthLayout } from "./AuthLayout/AuthLayout";
 export { default as Toast } from "./Toast/Toast";
+export { default as Header } from "./Header/Header";
+export { default as NavigationLink } from "./NavigationLink/NavigationLink";
+export { default as Tab } from "./Tab/Tab";
+export { default as Pagination } from "./Pagination/Pagination";
+export { default as PageItem } from "./Pagination/PageItem";
