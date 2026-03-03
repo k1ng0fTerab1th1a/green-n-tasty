@@ -8,12 +8,18 @@
   "memory": 1024,
   "timeout": 30,
   "lambda_path": "lambdas\\restaurant-api",
-  "dependencies": [],
+  "dependencies": [
+    {
+      "resource_name": "Locations",
+      "resource_type": "dynamodb_table"
+    }
+  ],
   "event_sources": [],
   "env_variables": {
     "COGNITO_USER_POOL_ID": "eu-west-2_73rk8KVrd",
     "COGNITO_CLIENT_ID": "5kcheif6619c6m4823pg29d910",
-    "COGNITO_REGION": "eu-west-2"
+    "COGNITO_REGION": "eu-west-2",
+    "SEED_TOKEN": "dev-seed-123"
   },
   "publish_version": true,
   "alias": "${lambdas_alias_name}",
