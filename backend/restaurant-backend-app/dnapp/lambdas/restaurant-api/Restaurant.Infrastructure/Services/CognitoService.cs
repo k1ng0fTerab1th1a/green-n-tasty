@@ -2,7 +2,7 @@
 using Amazon.CognitoIdentityProvider.Model;
 using Microsoft.Extensions.Configuration;
 using Restaurant.Core.Exceptions;
-using Restaurant.Core.Interfaces;
+using Restaurant.Core.Interfaces.Services;
 
 namespace Restaurant.Infrastructure.Services;
 

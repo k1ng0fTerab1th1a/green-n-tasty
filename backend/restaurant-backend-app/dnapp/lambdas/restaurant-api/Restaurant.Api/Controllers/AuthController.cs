@@ -1,10 +1,10 @@
 ﻿using Amazon.CognitoIdentityProvider.Model;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Restaurant.Api.DTOs;
-using Restaurant.Api.Models;
-using Restaurant.Core.Interfaces;
-using Restaurant.Core.Models;
+using Restaurant.Api.Contracts.Requests;
+using Restaurant.Api.Contracts.Responses;
+using Restaurant.Core.Interfaces.Services;
+using Restaurant.Core.SharedModels;
 
 namespace Restaurant.Api.Controllers;
 
@@ -22,7 +22,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("sign-up")]
-    public async Task<IActionResult> SignUp([FromBody] DTOs.SignUpRequest request)
+    public async Task<IActionResult> SignUp([FromBody] Contracts.Requests.SignUpRequest request)
     {
         await _authService.SignUpAsync(request.Email, request.Password, request.FirstName, request.LastName);
 
