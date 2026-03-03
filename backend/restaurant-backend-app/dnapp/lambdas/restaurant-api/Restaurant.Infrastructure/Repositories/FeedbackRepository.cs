@@ -56,38 +56,11 @@ public class FeedbackRepository(IDynamoDBContext context,
             nextToken = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
         }
 
-        var pageCountData = await GetTotalPagedValues(locationId, size, type);
 
         return new FeedbackPaginatedDBResponseDto
         {
-            TotalPages = pageCountData.totalPages,
-            TotalSize = pageCountData.totalSize,
             Feedbacks = mappingService.MapToFeedback(response.Items).ToList(),
             NextPageToken = nextToken
         };
-    }
-
-    private async Task<(int totalSize, int totalPages)> GetTotalPagedValues(string locationId, int size, string type)
-    {
-        var countRequest = new QueryRequest
-        {
-            TableName = "Feedbacks",
-            IndexName = "locationId-type-index",
-            KeyConditionExpression = "#lt = :locType",
-            ExpressionAttributeNames = new Dictionary<string, string>
-            {
-                { "#lt", "locationId#type" }
-            },
-            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-            {
-                { ":locType", new AttributeValue($"{locationId}#{type}") }
-            },
-            Select = Select.COUNT
-        };
-
-        var countResponse = await client.QueryAsync(countRequest);
-        var totalPages = (int)Math.Ceiling(countResponse.Count / (double)size);
-
-        return (countResponse.Count, totalPages);
     }
 }

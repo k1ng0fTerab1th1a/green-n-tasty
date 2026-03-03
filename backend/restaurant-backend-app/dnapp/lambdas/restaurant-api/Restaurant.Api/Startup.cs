@@ -46,10 +46,8 @@ namespace Restaurant.Api
             services.AddScoped<ICognitoService, CognitoService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IFeedbackRepository, FeedbackRepository>();
-            services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<IRawMappingService, RawMappingService>();
-            services.AddScoped<DynamoDbSeeder>();
 
             services.AddAuthorization();
             services.AddControllers();
@@ -57,13 +55,12 @@ namespace Restaurant.Api
             services.AddSwaggerGen();
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, DynamoDbSeeder seeder)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
-                //seeder.SeedAsync().Wait();
             }
 
             app.UseExceptionHandler();

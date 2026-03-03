@@ -24,6 +24,7 @@ public class FeedbackDTO
         Date = feedback.Date;
         Type = feedback.Type;
         LocationId = feedback.LocationId;
-
+        UserName = feedback.UserName;
+        UserAvatarUrl = feedback.UserAvatarUrl;
     }
 }

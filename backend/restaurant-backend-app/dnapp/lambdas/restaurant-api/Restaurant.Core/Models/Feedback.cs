@@ -32,4 +32,8 @@ public class Feedback
 
     [DynamoDBProperty("type")]
     public string Type { get; set; } // "waiter" | "kitchen"
+    [DynamoDBProperty("userName")]
+    public string UserName { get; set; }
+    [DynamoDBProperty("userAvatarUrl")]
+    public string UserAvatarUrl { get; set; }
 }

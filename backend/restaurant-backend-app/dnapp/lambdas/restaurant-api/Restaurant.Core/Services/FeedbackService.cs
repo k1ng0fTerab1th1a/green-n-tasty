@@ -6,15 +6,13 @@ using Restaurant.Core.ServiceDTOs;
 
 namespace Restaurant.Core.Services;
 
-public class FeedbackService(IFeedbackRepository feedbackRepository, IUserRepository userRepository) : IFeedbackService
+public class FeedbackService(IFeedbackRepository feedbackRepository) : IFeedbackService
 {
-    public async Task<FeedbackPaginatedDto> GetFeedbacksForLocation(string locationId, int size, string type, List<string> sort, string? pagetToken = null)
+    public async Task<FeedbackPaginatedDto> GetFeedbacksForLocation(string locationId, int size, string type, List<string> sort, string? pageToken = null)
     {
         FeedbackPaginatedDto result = new FeedbackPaginatedDto();
-        var receivedFeedbacks = await feedbackRepository.GetByLocationAsync(locationId, size, type, pagetToken);
+        var receivedFeedbacks = await feedbackRepository.GetByLocationAsync(locationId, size, type, pageToken);
 
-        result.TotalPages = receivedFeedbacks.TotalPages;
-        result.TotalElements = receivedFeedbacks.TotalSize;
         result.Size = size;
         result.NextPageToken = receivedFeedbacks.NextPageToken;
 
@@ -24,8 +22,6 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IUserReposi
             for (int i = 0; i < receivedFeedbacks.Feedbacks.Count; i++)
             {
                 FeedbackDTO feedback = new FeedbackDTO(receivedFeedbacks.Feedbacks[i]);
-                feedback.UserName = "Test User " + i.ToString();
-                feedback.UserAvatarUrl = "TestUserAvatar.jpg" + i.ToString();
                 result.Content.Add(feedback);
             }
         }
