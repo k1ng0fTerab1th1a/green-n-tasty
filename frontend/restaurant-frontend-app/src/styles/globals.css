@@ -1,5 +1,54 @@
+/* Можно так подключить Poppins (быстро и просто) */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap");
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
+    font-family: var(--font-family);
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* Ссылки */
+a {
+    color: var(--link);
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/* Кнопки (общий дефолт) */
+button {
+    font-family: var(--font-family);
+    border: none;
+    cursor: pointer;
+}
+
+/* Инпуты (общий дефолт) */
+input, textarea, select {
+    font-family: var(--font-family);
+    outline: none;
+}
+
+/* Небольшие утилиты (по желанию) */
+.container {
+    max-width: var(--container);
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+.card {
+    background: var(--neutral-0);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
 }
