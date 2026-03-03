@@ -1,0 +1,129 @@
+.card {
+    width: 360px;
+    background: var(--neutral-0);
+    border: 1px solid var(--neutral-200);
+    border-radius: 24px;
+    padding: 18px;
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+}
+
+.topRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.left {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.rightTop {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    min-width: 120px;
+}
+
+/* badge */
+.badge {
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 16px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.badge_reserved {
+    background: rgba(255, 242, 212, 1);
+    color: var(--orange-400);
+    border-color: rgba(255, 174, 0, 0.22);
+}
+
+.badge_progress {
+    background: rgba(222, 233, 255, 1);
+    color: var(--blue-400);
+    border-color: rgba(14, 83, 233, 0.2);
+}
+
+.badge_finished {
+    background: rgba(233, 255, 234, 1);
+    color: var(--green-300);
+    border-color: rgba(0, 130, 9, 0.18);
+}
+
+.badge_canceled {
+    background: rgba(252, 233, 237, 1);
+    color: var(--red-400);
+    border-color: rgba(183, 11, 11, 0.18);
+}
+
+/* waiter dropdown container */
+.tableBox {
+    width: 140px;
+}
+
+/* info rows */
+.infoRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: var(--green-200);
+    opacity: 0.95;
+    flex: 0 0 auto;
+}
+
+.infoText {
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 16px;
+    color: var(--neutral-600);
+}
+
+/* bottom rows */
+.bottomRow {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.cancelLink {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 16px;
+    color: var(--text);
+    text-decoration: underline;
+}
+
+.actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* customer single action button */
+.singleAction {
+    margin-top: 18px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.fullBtn {
+    min-width: 220px;
+}

@@ -1,0 +1,52 @@
+.wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.native {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.radio {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+
+    border: 2px solid var(--green-200);
+    background: var(--neutral-0);
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--green-200);
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.checked .dot {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.label {
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 24px;
+    color: var(--text);
+}
