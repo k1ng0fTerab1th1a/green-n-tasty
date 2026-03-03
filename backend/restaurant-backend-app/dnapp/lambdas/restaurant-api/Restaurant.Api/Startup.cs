@@ -1,27 +1,13 @@
-<<<<<<< backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Api/Startup.cs
 
-=======
 using Amazon.CognitoIdentityProvider;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
->>>>>>> backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Api/Startup.cs
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Restaurant.Core.Interfaces;
 using Restaurant.Core.Services;
 using Restaurant.Infrastructure.Repositories;
-<<<<<<< backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Api/Startup.cs
-
-using Restaurant.Infrastructure.Utils;
-=======
 using Restaurant.Infrastructure.Repository;
 using Restaurant.Infrastructure.Services;
-using System;
->>>>>>> backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Api/Startup.cs
 
 namespace Restaurant.Api
 {
@@ -65,16 +51,13 @@ namespace Restaurant.Api
 
             services.AddScoped<ICognitoService, CognitoService>();
             services.AddScoped<IAuthService, AuthService>();
-<<<<<<< backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Api/Startup.cs
             services.AddScoped<IFeedbackRepository, FeedbackRepository>();
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<IRawMappingService, RawMappingService>();
-=======
             services.AddScoped<ILocationRepository, LocationRepository>();
             services.AddScoped<ILocationService, LocationService>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IWaiterListRepository, WaiterListRepository>();
->>>>>>> backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Api/Startup.cs
 
             services.AddAuthorization();
             services.AddCors(options =>

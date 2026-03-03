@@ -1,32 +1,8 @@
-<<<<<<< backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Api/Controllers/LocationsController.cs
-using Restaurant.Core.Interfaces;
-using Restaurant.Infrastructure.Utils;
-
-namespace Restaurant.Api.Controllers;
-
-[ApiController]
-[Route("locations")]
-public class LocationsController(IFeedbackService feedbackService) : ControllerBase
-{
-    [HttpGet("{id}/feedbacks")]
-    public async Task<ActionResult> GetFeedbacksByLocationId(string id, string type, [FromQuery] List<string> sort, int size = 20, string? pageToken = null )
-    {
-        if (sort.Count == 0)
-        {
-            sort.Add("date,asc");
-        }
-
-        var feedbackResponse = await feedbackService.GetFeedbacksForLocation(id, size, type, sort, pageToken);
-        return Ok(feedbackResponse);
-    }
-}
-=======
-﻿using System.Globalization;
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.DTOs;
 using Restaurant.Api.Models;
 using Restaurant.Core.Interfaces;
-using Restaurant.Infrastructure.Utils;
 namespace Restaurant.Api.Controllers
 {
     [ApiController]
@@ -85,4 +61,3 @@ namespace Restaurant.Api.Controllers
         }
     }
 }
->>>>>>> backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Api/Controllers/LocationsController.cs

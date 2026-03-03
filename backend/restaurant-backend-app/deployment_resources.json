@@ -57,9 +57,6 @@
       }
     }
   },
-<<<<<<< backend/restaurant-backend-app/deployment_resources.json
-
-=======
   "restaurant-user-pool": {
     "resource_type": "cognito_idp",
     "password_policy": {
@@ -97,14 +94,10 @@
   "Users": {
     "resource_type": "dynamodb_table",
     "hash_key_name": "userId",
->>>>>>> backend/restaurant-backend-app/deployment_resources.json
     "hash_key_type": "S",
     "billing_mode": "PAY_PER_REQUEST",
     "read_capacity": 1,
     "write_capacity": 1,
-<<<<<<< backend/restaurant-backend-app/deployment_resources.json
-
-=======
     "global_indexes": [],
     "autoscaling": [],
     "tags": {}
@@ -117,7 +110,6 @@
     "read_capacity": 1,
     "write_capacity": 1,
     "global_indexes": [],
->>>>>>> backend/restaurant-backend-app/deployment_resources.json
     "autoscaling": [],
     "tags": {}
   },
