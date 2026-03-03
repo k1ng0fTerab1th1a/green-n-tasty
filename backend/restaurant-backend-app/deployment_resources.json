@@ -143,6 +143,28 @@
     ],
     "autoscaling": [],
     "tags": {}
+  },
+  "Dishes": {
+    "resource_type": "dynamodb_table",
+    "hash_key_name": "id",
+    "hash_key_type": "S",
+    "billing_mode": "PAY_PER_REQUEST",
+    "read_capacity": 1,
+    "write_capacity": 1,
+    "global_indexes": [
+      {
+        "name": "PopularDishesIndex",
+        "index_key_name": "popularityFlag",
+        "index_key_type": "S"
+      },
+      {
+        "name": "SpecialityIndex",
+        "index_key_name": "specialityForLocation",
+        "index_key_type": "S"
+      }
+    ],
+    "autoscaling": [],
+    "tags": {}
   }
 
 }

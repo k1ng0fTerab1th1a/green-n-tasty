@@ -3,14 +3,14 @@ using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
-using Restaurant.Core.Interfaces;
+using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.ServiceDTOs;
 using Restaurant.Core.Services;
 
 namespace Restaurant.Infrastructure.Repositories;
 
 public class FeedbackRepository(IDynamoDBContext context, 
-    IAmazonDynamoDB client, IRawMappingService mappingService) : IFeedbackRepository
+    IAmazonDynamoDB client) : IFeedbackRepository
 {
     public async Task SaveAsync(Feedback feedback)
     {
@@ -69,7 +69,7 @@ public class FeedbackRepository(IDynamoDBContext context,
 
         return new FeedbackPaginatedDBResponseDto
         {
-            Feedbacks = mappingService.MapToFeedback(response.Items).ToList(),
+            Feedbacks = response.Items.Select(item => context.FromDocument<Feedback>(Document.FromAttributeMap(item))).ToList(),
             NextPageToken = nextToken
         };
     }

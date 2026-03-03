@@ -1,6 +1,6 @@
 ﻿using Restaurant.Core.ServiceDTOs;
 
-namespace Restaurant.Core.Interfaces;
+namespace Restaurant.Core.Interfaces.Services;
 
 public interface IFeedbackService
 {

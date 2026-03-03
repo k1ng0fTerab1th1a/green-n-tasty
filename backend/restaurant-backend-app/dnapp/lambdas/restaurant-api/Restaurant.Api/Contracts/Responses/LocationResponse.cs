@@ -1,7 +1,5 @@
-﻿namespace Restaurant.Api.DTOs
+﻿namespace Restaurant.Api.Contracts.Responses
 {
-    public record DishResponse(string Name, string Price, string Weight, string ImageUrl);
-
     public record LocationResponse(
         string Id,
         string Address,

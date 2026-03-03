@@ -1,24 +1,25 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
-using Restaurant.Api.DTOs;
-using Restaurant.Api.Models;
-using Restaurant.Core.Interfaces;
+using Restaurant.Api.Contracts.Responses;
+using Restaurant.Api.Mappers;
+using Restaurant.Core.Interfaces.Services;
+using Restaurant.Core.ServiceDTOs;
 namespace Restaurant.Api.Controllers
 {
     [ApiController]
     [Route("locations")]
-    public sealed class LocationsController(IFeedbackService feedbackService, ILocationService _locationService) : ControllerBase
+    public sealed class LocationsController(IFeedbackService _feedbackService, ILocationService _locationService, IDishService _dishService) : ControllerBase
     {
         [HttpGet("{id}/feedbacks")]
-        public async Task<ActionResult> GetFeedbacksByLocationId(string id, string type, [FromQuery] List<string> sort, int size = 20, string? pageToken = null )
+        public async Task<IActionResult> GetFeedbacksByLocationId(string id, string type, [FromQuery] List<string> sort, int size = 20, string? pageToken = null )
         {
             if (sort.Count == 0)
             {
                 sort.Add("date,asc");
             }
 
-            var feedbackResponse = await feedbackService.GetFeedbacksForLocation(id, size, type, sort, pageToken);
-            return Ok(feedbackResponse);
+            var feedbackResponse = await _feedbackService.GetFeedbacksForLocation(id, size, type, sort, pageToken);
+            return ApiResponse<FeedbackPaginatedDto>.Success(StatusCodes.Status200OK, feedbackResponse);
         }
 
 
@@ -43,11 +44,11 @@ namespace Restaurant.Api.Controllers
         [HttpGet("{id}/speciality-dishes")]
         public async Task<IActionResult> GetSpecialityDishes([FromRoute] string id, CancellationToken cancellationToken)
         {
-            var dishes = await _locationService.GetSpecialityDishesAsync(id, cancellationToken);
+            var dishesEntities = await _dishService.GetSpecialityDishesByLocationIdAsync(id, cancellationToken);
 
-            var response = dishes.Select(d => new DishResponse(d.Name, d.Price, d.Weight, d.ImageUrl)).ToArray();
+            var mappedDishes = dishesEntities.Select(dish => dish.ToShortResponse()).ToList();
 
-            return ApiResponse<DishResponse[]>.Success(StatusCodes.Status200OK, response);
+            return ApiResponse<List<DishShortResponse>>.Success(StatusCodes.Status200OK, mappedDishes);
         }
 
         [HttpGet("select-options")]

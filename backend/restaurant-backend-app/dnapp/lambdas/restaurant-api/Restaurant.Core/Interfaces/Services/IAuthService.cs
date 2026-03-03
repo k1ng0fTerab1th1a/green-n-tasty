@@ -1,6 +1,6 @@
-﻿using Restaurant.Core.Models;
+﻿using Restaurant.Core.SharedModels;
 
-namespace Restaurant.Core.Interfaces;
+namespace Restaurant.Core.Interfaces.Services;
 
 public interface IAuthService
 {

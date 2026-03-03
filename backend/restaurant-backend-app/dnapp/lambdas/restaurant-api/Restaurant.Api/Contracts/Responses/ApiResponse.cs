@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
 
-namespace Restaurant.Api.Models;
+namespace Restaurant.Api.Contracts.Responses;
 
 public class ApiResponse<T> : IActionResult
 {
