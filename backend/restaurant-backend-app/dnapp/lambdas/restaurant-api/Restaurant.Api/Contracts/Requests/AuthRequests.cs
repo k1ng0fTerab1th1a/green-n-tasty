@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Restaurant.Api.DTOs;
+namespace Restaurant.Api.Contracts.Requests;
 
 public class SignUpRequest
 {

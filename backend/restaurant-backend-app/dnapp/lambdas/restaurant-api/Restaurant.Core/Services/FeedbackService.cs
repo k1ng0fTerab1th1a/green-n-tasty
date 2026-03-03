@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Amazon.Runtime;
-using Restaurant.Core.Interfaces;
+using Restaurant.Core.Interfaces.Repositories;
+using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.ServiceDTOs;
 
 namespace Restaurant.Core.Services;

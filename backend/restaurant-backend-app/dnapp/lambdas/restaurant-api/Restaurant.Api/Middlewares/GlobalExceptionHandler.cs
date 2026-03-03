@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
-using Restaurant.Api.Models;
+using Restaurant.Api.Contracts.Responses;
 using Restaurant.Core.Exceptions;
 
 namespace Restaurant.Api.Middlewares;

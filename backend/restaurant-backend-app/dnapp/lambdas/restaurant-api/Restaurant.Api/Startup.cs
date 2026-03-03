@@ -3,10 +3,10 @@ using Amazon.CognitoIdentityProvider;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Restaurant.Core.Interfaces;
+using Restaurant.Core.Interfaces.Repositories;
+using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Services;
 using Restaurant.Infrastructure.Repositories;
-using Restaurant.Infrastructure.Repository;
 using Restaurant.Infrastructure.Services;
 
 namespace Restaurant.Api
@@ -51,13 +51,16 @@ namespace Restaurant.Api
 
             services.AddScoped<ICognitoService, CognitoService>();
             services.AddScoped<IAuthService, AuthService>();
-            services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+            services.AddScoped<IDishService, DishService>();
             services.AddScoped<IFeedbackService, FeedbackService>();
-            services.AddScoped<IRawMappingService, RawMappingService>();
-            services.AddScoped<ILocationRepository, LocationRepository>();
             services.AddScoped<ILocationService, LocationService>();
+
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IWaiterListRepository, WaiterListRepository>();
+            services.AddScoped<IDishRepository, DishRepository>();
+            services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+            services.AddScoped<ILocationRepository, LocationRepository>();
+
 
             services.AddAuthorization();
             services.AddCors(options =>
