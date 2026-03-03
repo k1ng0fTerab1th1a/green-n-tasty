@@ -1,21 +1,26 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.DTOs;
 using Restaurant.Api.Models;
 using Restaurant.Core.Interfaces;
-
 namespace Restaurant.Api.Controllers
 {
     [ApiController]
     [Route("locations")]
-    public sealed class LocationsController : ControllerBase
+    public sealed class LocationsController(IFeedbackService feedbackService, ILocationService _locationService) : ControllerBase
     {
-        private readonly ILocationService _locationService;
-
-        public LocationsController(ILocationService locationService)
+        [HttpGet("{id}/feedbacks")]
+        public async Task<ActionResult> GetFeedbacksByLocationId(string id, string type, [FromQuery] List<string> sort, int size = 20, string? pageToken = null )
         {
-            _locationService = locationService;
+            if (sort.Count == 0)
+            {
+                sort.Add("date,asc");
+            }
+
+            var feedbackResponse = await feedbackService.GetFeedbacksForLocation(id, size, type, sort, pageToken);
+            return Ok(feedbackResponse);
         }
+
 
         [HttpGet]
         public async Task<IActionResult> GetLocations(CancellationToken cancellationToken)
