@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using Amazon.Runtime;
-using Restaurant.Core.Helpers;
 using Restaurant.Core.Interfaces;
 using Restaurant.Core.ServiceDTOs;
 
@@ -11,7 +10,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository) : IFeedback
     public async Task<FeedbackPaginatedDto> GetFeedbacksForLocation(string locationId, int size, string type, List<string> sort, string? pageToken = null)
     {
         FeedbackPaginatedDto result = new FeedbackPaginatedDto();
-        var receivedFeedbacks = await feedbackRepository.GetByLocationAsync(locationId, size, type, pageToken);
+        var receivedFeedbacks = await feedbackRepository.GetByLocationAsync(locationId, size, type, sort, pageToken);
 
         result.Size = size;
         result.NextPageToken = receivedFeedbacks.NextPageToken;
@@ -25,9 +24,6 @@ public class FeedbackService(IFeedbackRepository feedbackRepository) : IFeedback
                 result.Content.Add(feedback);
             }
         }
-
-        result.Content = SortHelper.SortFeedbackDynamic(result.Content, sort);
-        
         return result;
     }
 }

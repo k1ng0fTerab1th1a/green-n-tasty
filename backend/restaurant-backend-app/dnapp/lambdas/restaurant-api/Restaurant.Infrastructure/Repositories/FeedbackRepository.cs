@@ -19,7 +19,7 @@ public class FeedbackRepository(IDynamoDBContext context,
     }
 
     public async Task<FeedbackPaginatedDBResponseDto> GetByLocationAsync(string locationId,
-        int size, string type = "waiter", string? pageToken = null)
+        int size, string type = "waiter", List<string>? sort = null, string? pageToken = null)
     {
         Dictionary<string, AttributeValue>? exclusiveStartKey = null;
         if (!string.IsNullOrEmpty(pageToken))
@@ -29,10 +29,20 @@ public class FeedbackRepository(IDynamoDBContext context,
             exclusiveStartKey = doc.ToAttributeMap();
         }
 
+        string indexName = "LocationType-Date-Index";
+        bool isAscending = true;
+
+        if (sort != null && sort.Count > 0)
+        {
+            var sortStr = sort[0].ToLower();
+            if (sortStr.Contains("rate")) indexName = "LocationType-Rate-Index";
+            if (sortStr.Contains("desc")) isAscending = false;
+        }
+
         var request = new QueryRequest
         {
             TableName = "Feedbacks",
-            IndexName = "locationId-type-index",
+            IndexName = indexName,
             KeyConditionExpression = "#lt = :locType",
             ExpressionAttributeNames = new Dictionary<string, string>
             {
@@ -43,7 +53,8 @@ public class FeedbackRepository(IDynamoDBContext context,
                 { ":locType", new AttributeValue($"{locationId}#{type}") }
             },
             Limit = size,
-            ExclusiveStartKey = exclusiveStartKey
+            ExclusiveStartKey = exclusiveStartKey,
+            ScanIndexForward = isAscending
         };
 
         var response = await client.QueryAsync(request);
@@ -55,7 +66,6 @@ public class FeedbackRepository(IDynamoDBContext context,
             var json = doc.ToJson();
             nextToken = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
         }
-
 
         return new FeedbackPaginatedDBResponseDto
         {

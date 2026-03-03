@@ -59,11 +59,25 @@
     "read_capacity": 1,
     "write_capacity": 1,
     "global_indexes": [
-            {
-        "name": "locationId-type-index",
-        "index_key_name": "locationId#type",
-        "index_key_type": "S"
-      }
+        {
+            "name": "locationId-type-index",
+            "index_key_name": "locationId#type",
+            "index_key_type": "S"
+        },
+        {
+            "name": "LocationType-Date-Index",
+            "index_key_name": "locationId#type",
+            "index_key_type": "S",
+            "index_sort_key_name": "date",
+            "index_sort_key_type": "S"
+        },
+        {
+            "name": "LocationType-Rate-Index",
+            "index_key_name": "locationId#type",
+            "index_key_type": "S",
+            "index_sort_key_name": "rate",
+            "index_sort_key_type": "N"
+        }
     ],
     "autoscaling": [],
     "tags": {}
