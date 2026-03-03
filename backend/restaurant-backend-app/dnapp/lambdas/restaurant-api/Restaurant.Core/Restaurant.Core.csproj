@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
@@ -15,10 +15,6 @@
 		<PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.300.2" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
 		<PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.1" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Attributes\" />
 	</ItemGroup>
 
 </Project>
