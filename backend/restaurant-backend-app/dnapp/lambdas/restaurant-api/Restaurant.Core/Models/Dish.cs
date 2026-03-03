@@ -1,11 +1,10 @@
-﻿using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DataModel;
 
 namespace Restaurant.Core.Models;
 
 [DynamoDBTable("Dishes")]
 public class Dish
 {
-    // Обов'язкові поля (без них страва не має сенсу)
     [DynamoDBHashKey("id")]
     public string Id { get; set; }
 
