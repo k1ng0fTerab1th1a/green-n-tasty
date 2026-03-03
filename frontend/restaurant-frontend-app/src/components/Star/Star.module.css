@@ -1,0 +1,28 @@
+.star {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+
+    background: transparent;
+    border: 1px solid transparent;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+}
+
+.star:hover {
+    background: var(--neutral-100);
+    border-color: var(--neutral-200);
+}
+
+.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.icon {
+    display: block;
+}
