@@ -26,17 +26,12 @@ public sealed class Reservation
     [DynamoDBGlobalSecondaryIndexHashKey("tableKey-start-index")]
     public string TableKey { get; set; } = null!; // $"{locationId}#{tableNumber}"
 
-    [DynamoDBProperty("startCustomer")]
-    [DynamoDBGlobalSecondaryIndexRangeKey("customerId-start-index")]
-    public string StartCustomer { get; set; } = null!;
-
-    [DynamoDBProperty("startTable")]
-    [DynamoDBGlobalSecondaryIndexRangeKey("tableKey-start-index")]
-    public string StartTable { get; set; } = null!;
-
-    [DynamoDBProperty("startWaiter")]
-    [DynamoDBGlobalSecondaryIndexRangeKey("waiterId-start-index")]
-    public string StartWaiter { get; set; } = null!;
+    [DynamoDBProperty("startDateTime")]
+    [DynamoDBGlobalSecondaryIndexRangeKey(
+        "customerId-start-index", 
+        "tableKey-start-index", 
+        "waiterId-start-index")]
+    public string StartDateTime { get; set; } = null!;
 
     [DynamoDBProperty("endDateTime")]
     public string EndDateTime { get; set; } = null!;

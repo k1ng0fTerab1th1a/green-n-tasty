@@ -33,21 +33,21 @@
         "name": "customerId-start-index",
         "index_key_name": "customerId",
         "index_key_type": "S",
-        "index_sort_key_name": "startCustomer",
+        "index_sort_key_name": "startDateTime",
         "index_sort_key_type": "S"
       },
       {
         "name": "tableKey-start-index",
         "index_key_name": "tableKey",
         "index_key_type": "S",
-        "index_sort_key_name": "startTable",
+        "index_sort_key_name": "startDateTime",
         "index_sort_key_type": "S"
       },
       {
         "name": "waiterId-start-index",
         "index_key_name": "waiterId",
         "index_key_type": "S",
-        "index_sort_key_name": "startWaiter",
+        "index_sort_key_name": "startDateTime",
         "index_sort_key_type": "S"
       }
     ]
