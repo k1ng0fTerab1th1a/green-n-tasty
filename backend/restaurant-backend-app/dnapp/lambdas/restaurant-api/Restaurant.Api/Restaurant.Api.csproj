@@ -23,4 +23,8 @@
 	  <ProjectReference Include="..\Restaurant.Infrastructure\Restaurant.Infrastructure.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Models\Requests\Reservations\" />
+	</ItemGroup>
+
 </Project>
