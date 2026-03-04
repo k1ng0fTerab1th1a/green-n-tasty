@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.Models;
+using Restaurant.Api.Models.Mappers;
+using Restaurant.Api.Models.Responses.Reservations;
 using Restaurant.Core.Interfaces;
 using Restaurant.Core.Models;
 
@@ -34,7 +36,9 @@ namespace Restaurant.Api.Controllers
             var actorIsWaiter = _authService.IsWaiter(User);
 
             var items = await _reservationService.GetMyAsync(actorUserId, actorIsWaiter, ct);
-            return ApiResponse<IReadOnlyList<Reservation>>.Success(StatusCodes.Status200OK, items);
+
+            var dto = items.Select(x => x.ToResponse()).ToList();
+            return ApiResponse<List<ReservationResponse>>.Success(StatusCodes.Status200OK, dto);
         }
 
         [HttpGet("{id}")]
@@ -44,13 +48,13 @@ namespace Restaurant.Api.Controllers
             if (string.IsNullOrWhiteSpace(actorUserId))
                 return ApiResponse<object>.Fail(StatusCodes.Status401Unauthorized, "Unauthorized.");
 
-            var actorIsWaiter = User.IsInRole("Waiter");
-            var item = await _reservationService.GetByIdAsync(id, actorUserId, actorIsWaiter, ct);
+            var actorIsWaiter = _authService.IsWaiter(User);
 
-            if (item is null)
+            var entity = await _reservationService.GetByIdAsync(id, actorUserId, actorIsWaiter, ct);
+            if (entity is null)
                 return ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Reservation not found.");
 
-            return ApiResponse<Reservation>.Success(StatusCodes.Status200OK, item);
+            return ApiResponse<ReservationResponse>.Success(StatusCodes.Status200OK, entity.ToResponse());
         }
     }
 }
