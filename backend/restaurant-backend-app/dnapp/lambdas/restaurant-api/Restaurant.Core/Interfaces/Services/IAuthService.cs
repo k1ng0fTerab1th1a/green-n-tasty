@@ -1,5 +1,5 @@
 ﻿using System.Security.Claims;
-using Restaurant.Core.SharedModels;
+using Restaurant.Core.Models.SharedModels;
 
 namespace Restaurant.Core.Interfaces.Services;
 
