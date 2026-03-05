@@ -16,8 +16,8 @@
   ],
   "event_sources": [],
   "env_variables": {
-    "COGNITO_USER_POOL_ID": "eu-west-2_73rk8KVrd",
-    "COGNITO_CLIENT_ID": "5kcheif6619c6m4823pg29d910",
+    "COGNITO_USER_POOL_ID": "eu-west-2_P6LY1N5rd",
+    "COGNITO_CLIENT_ID": "6bftv83o17i8ptp0rg2sbgqb2i",
     "COGNITO_REGION": "eu-west-2",
     "SEED_TOKEN": "dev-seed-123"
   },
