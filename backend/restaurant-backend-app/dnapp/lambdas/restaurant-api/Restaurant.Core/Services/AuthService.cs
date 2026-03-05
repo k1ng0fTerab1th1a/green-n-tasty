@@ -1,9 +1,12 @@
 ﻿using System;
 using System.IdentityModel.Tokens.Jwt;
-using Restaurant.Core.SharedModels;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using System.IdentityModel.Tokens.Jwt;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
-using System.Security.Claims;
+using Restaurant.Core.Models.SharedModels;
 
 namespace Restaurant.Core.Services;
 
