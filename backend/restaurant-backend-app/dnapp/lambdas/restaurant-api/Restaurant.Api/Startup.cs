@@ -60,6 +60,7 @@ namespace Restaurant.Api
             services.AddScoped<IDishRepository, DishRepository>();
             services.AddScoped<IFeedbackRepository, FeedbackRepository>();
             services.AddScoped<ILocationRepository, LocationRepository>();
+
             services.AddScoped<IReservationRepository, ReservationRepository>();
             services.AddScoped<IReservationService, ReservationService>();
 
