@@ -1,13 +1,11 @@
 ﻿using System;
-using System.IdentityModel.Tokens.Jwt;
-using Restaurant.Core.SharedModels;
-using Restaurant.Core.Interfaces.Repositories;
-using Restaurant.Core.Interfaces.Services;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using Restaurant.Core.Interfaces;
-using Restaurant.Core.Models;
+using System.IdentityModel.Tokens.Jwt;
+using Restaurant.Core.Interfaces.Repositories;
+using Restaurant.Core.Interfaces.Services;
+using Restaurant.Core.Models.SharedModels;
 
 namespace Restaurant.Core.Services;
 
@@ -68,14 +66,6 @@ public class AuthService : IAuthService
         var role = jwtToken.Claims.FirstOrDefault(c => c.Type == "custom:role")?.Value ?? "CUSTOMER";
 
         return new AuthResult(idToken, refreshToken, username, role);
-    }
-
-    public bool IsWaiter(ClaimsPrincipal user)
-    {
-        var role = user?.FindFirst("custom:role")?.Value
-                   ?? user?.FindFirst(ClaimTypes.Role)?.Value;
-
-        return string.Equals(role, "WAITER", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<bool> IsWaiter(string email)

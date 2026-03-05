@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.DocumentModel;
-using Restaurant.Core.Interfaces;
+using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 
 namespace Restaurant.Infrastructure.Repositories

@@ -1,0 +1,104 @@
+.card {
+    width: 320px;
+    background: var(--neutral-0);
+    border: 1px solid var(--neutral-200);
+    border-radius: 24px;
+    padding: 18px 18px 20px;
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--neutral-200);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.avatarImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.avatarFallback {
+    width: 24px;
+    height: 24px;
+    display: block;
+    opacity: 0.7;
+}
+
+.meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.name {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 24px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.date {
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 16px;
+    color: var(--neutral-400);
+}
+
+/* stars */
+.stars {
+    display: inline-flex;
+    gap: 3px;
+    line-height: 1;
+    margin-top: 2px;
+    flex: 0 0 auto;
+}
+
+.star {
+    font-size: 16px;
+    line-height: 16px;
+}
+
+.starOn {
+    color: var(--orange-400);
+}
+
+.starOff {
+    color: var(--neutral-200);
+}
+
+/* text */
+.text {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 24px;
+    color: var(--neutral-600);
+}
