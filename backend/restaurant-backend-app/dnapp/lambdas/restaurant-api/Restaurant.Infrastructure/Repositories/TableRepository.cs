@@ -12,18 +12,18 @@ public class TableRepository : ITableRepository
         _context = context;
     }
 
-    public async Task<IReadOnlyList<Table>> GetAllAsync()
+    public async Task<IReadOnlyList<Table>> GetAllAsync(CancellationToken ct)
     {
         var conditions = new List<ScanCondition>();
         var search = _context.ScanAsync<Table>(conditions);
 
-        return await search.GetRemainingAsync();
+        return await search.GetRemainingAsync(ct);
     }
 
-    public async Task<IReadOnlyList<Table>> GetByLocationIdAsync(string locationId)
+    public async Task<IReadOnlyList<Table>> GetByLocationIdAsync(string locationId, CancellationToken ct)
     {
         var search = _context.QueryAsync<Table>(locationId);
 
-        return await search.GetRemainingAsync();
+        return await search.GetRemainingAsync(ct);
     }
 }
