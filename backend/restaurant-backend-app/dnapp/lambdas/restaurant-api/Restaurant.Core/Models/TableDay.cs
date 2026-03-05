@@ -5,8 +5,8 @@ namespace Restaurant.Core.Models;
 [DynamoDBTable("TableDay")]
 public class TableDay
 {
-    [DynamoDBHashKey("tableId")]
-    public string TableId { get; set; } = null!;
+    [DynamoDBHashKey("tableKey")]
+    public string TableKey { get; set; } = null!;
 
     [DynamoDBRangeKey("date")]
     public string Date { get; set; } = null!;

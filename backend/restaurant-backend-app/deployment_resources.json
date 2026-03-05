@@ -168,11 +168,12 @@
   },
   "TableDays": {
     "resource_type": "dynamodb_table",
-    "hash_key_name": "tableId",
+    "hash_key_name": "tableKey",
     "hash_key_type": "S",
     "sort_key_name": "date",
     "sort_key_type": "S",
     "billing_mode": "PAY_PER_REQUEST",
+    "ttl_attribute": "ttl",
     "read_capacity": 1,
     "write_capacity": 1,
     "global_indexes": [],
