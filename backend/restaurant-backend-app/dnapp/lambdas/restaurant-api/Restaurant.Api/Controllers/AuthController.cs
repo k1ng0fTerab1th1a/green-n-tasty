@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.DTOs;
 using Restaurant.Api.Models;
 using Restaurant.Core.Interfaces;
-using Restaurant.Core.Models;
+using Restaurant.Core.Models.SharedModels;
 
 namespace Restaurant.Api.Controllers;
 

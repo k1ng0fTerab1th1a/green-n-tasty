@@ -4,7 +4,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Restaurant.Core.Interfaces;
-using Restaurant.Core.Models;
+using Restaurant.Core.Models.SharedModels;
 
 namespace Restaurant.Core.Services;
 
