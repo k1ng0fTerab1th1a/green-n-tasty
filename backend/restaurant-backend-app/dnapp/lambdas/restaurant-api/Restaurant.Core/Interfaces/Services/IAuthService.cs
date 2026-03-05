@@ -1,9 +1,5 @@
-<<<<<<< HEAD:backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Core/Interfaces/Services/IAuthService.cs
-﻿using Restaurant.Core.SharedModels;
-=======
 ﻿using System.Security.Claims;
-using Restaurant.Core.Models;
->>>>>>> 7a195bb (expose IAuthService.IsWaiter for role checks):backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Core/Interfaces/IAuthService.cs
+using Restaurant.Core.SharedModels;
 
 namespace Restaurant.Core.Interfaces.Services;
 
