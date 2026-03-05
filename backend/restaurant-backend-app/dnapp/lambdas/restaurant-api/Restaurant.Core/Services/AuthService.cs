@@ -68,14 +68,6 @@ public class AuthService : IAuthService
         return new AuthResult(idToken, refreshToken, username, role);
     }
 
-    public bool IsWaiter(ClaimsPrincipal user)
-    {
-        var role = user?.FindFirst("custom:role")?.Value
-                   ?? user?.FindFirst(ClaimTypes.Role)?.Value;
-
-        return string.Equals(role, "WAITER", StringComparison.OrdinalIgnoreCase);
-    }
-
     private async Task<bool> IsWaiter(string email)
     {
         return await _waiterListRepository.ContainsAsync(email);
