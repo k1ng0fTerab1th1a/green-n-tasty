@@ -1,49 +1,50 @@
 using Amazon.DynamoDBv2.DataModel;
 
-public enum ReservationStatus
-{
-    Pending,
-    Confirmed,
-    Cancelled,
-    Completed
-}
+namespace Restaurant.Core.Models;
 
 [DynamoDBTable("Reservations")]
-public class Reservation
+public sealed class Reservation
 {
-    [DynamoDBHashKey("reservationId")]
-    public string ReservationId { get; set; }
+    [DynamoDBHashKey("id")]
+    public string Id { get; set; } = null!;
 
-    [DynamoDBProperty("tableId")]
-    public string TableId { get; set; }
-
-    [DynamoDBProperty("userId")]
-    public string UserId { get; set; }
-
-    [DynamoDBProperty("date")]
-    public string Date { get; set; }
-
-    [DynamoDBProperty("timeStart")]
-    public string TimeStart { get; set; }
-
-    [DynamoDBProperty("timeFinish")]
-    public string TimeFinish { get; set; }
-
-    [DynamoDBProperty("guestsNumber")]
-    public int GuestsNumber { get; set; }
-
-    [DynamoDBProperty("status")]
-    public string Status { get; set; }
-
-    [DynamoDBProperty("createdAt")]
-    public string CreatedAt { get; set; }
-
-    [DynamoDBProperty("updatedAt")]
-    public string UpdatedAt { get; set; }
-
-    [DynamoDBProperty("feedbackId")]
-    public string? FeedbackId { get; set; }
+    [DynamoDBProperty("customerId")]
+    [DynamoDBGlobalSecondaryIndexHashKey("customerId-start-index")]
+    public string CustomerId { get; set; } = null!;
 
     [DynamoDBProperty("waiterId")]
-    public string? WaiterId { get; set; }
+    [DynamoDBGlobalSecondaryIndexHashKey("waiterId-start-index")]
+    public string WaiterId { get; set; } = null!;
+
+    [DynamoDBProperty("locationId")]
+    public string LocationId { get; set; } = null!;
+
+    [DynamoDBProperty("tableNumber")]
+    public int TableNumber { get; set; }
+
+    [DynamoDBProperty("tableKey")]
+    [DynamoDBGlobalSecondaryIndexHashKey("tableKey-start-index")]
+    public string TableKey { get; set; } = null!; // $"{locationId}#{tableNumber}"
+
+    [DynamoDBProperty("startDateTime")]
+    [DynamoDBGlobalSecondaryIndexRangeKey(
+        "customerId-start-index", 
+        "tableKey-start-index", 
+        "waiterId-start-index")]
+    public string StartDateTime { get; set; } = null!;
+
+    [DynamoDBProperty("endDateTime")]
+    public string EndDateTime { get; set; } = null!;
+
+    [DynamoDBProperty("guestsCount")]
+    public int GuestsCount { get; set; }
+
+    [DynamoDBProperty("status")]
+    public ReservationStatus Status { get; set; } = ReservationStatus.Reserved;
+
+    [DynamoDBProperty("createdAt")]
+    public string CreatedAt { get; set; } = null!;
+
+    [DynamoDBProperty("updatedAt")]
+    public string UpdatedAt { get; set; } = null!;
 }
