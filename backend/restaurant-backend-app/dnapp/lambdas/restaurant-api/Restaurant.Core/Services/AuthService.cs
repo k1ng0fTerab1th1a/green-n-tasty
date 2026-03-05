@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using System.IdentityModel.Tokens.Jwt;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
-using Restaurant.Core.Models.SharedModels;
+using Restaurant.Core.SharedModels;
 
 namespace Restaurant.Core.Services;
 

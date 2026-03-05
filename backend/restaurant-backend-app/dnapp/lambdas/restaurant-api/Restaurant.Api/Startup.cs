@@ -54,6 +54,7 @@ namespace Restaurant.Api
             services.AddScoped<IDishService, DishService>();
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<ILocationService, LocationService>();
+            services.AddScoped<IReservationService, ReservationService>();
 
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IWaiterListRepository, WaiterListRepository>();
@@ -61,9 +62,8 @@ namespace Restaurant.Api
             services.AddScoped<IFeedbackRepository, FeedbackRepository>();
             services.AddScoped<ILocationRepository, LocationRepository>();
             services.AddScoped<ITableDayRepository, TableDayRepository>();
-
             services.AddScoped<IReservationRepository, ReservationRepository>();
-            services.AddScoped<IReservationService, ReservationService>();
+            services.AddScoped<IWaiterScheduleRepository, WaiterScheduleRepository>();
 
             services.AddAuthorization();
             services.AddCors(options =>

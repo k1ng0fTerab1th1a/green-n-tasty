@@ -22,5 +22,7 @@ namespace Restaurant.Core.Interfaces.Repositories
             string? startFromIso = null,
             string? startToIso = null,
             CancellationToken ct = default);
+
+        Task<bool> CreateWithSlotsAsync(Reservation reservation, DateOnly date, List<string> slots, CancellationToken ct = default);
     }
 }
