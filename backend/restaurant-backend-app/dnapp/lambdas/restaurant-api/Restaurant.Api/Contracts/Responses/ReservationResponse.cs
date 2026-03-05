@@ -1,4 +1,4 @@
-﻿namespace Restaurant.Api.Models.Responses.Reservations
+﻿namespace Restaurant.Api.Contracts.Responses
 {
     public sealed class ReservationResponse
     {

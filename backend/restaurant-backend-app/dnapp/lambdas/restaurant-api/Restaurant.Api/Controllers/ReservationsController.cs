@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Api.Models;
 using Restaurant.Api.Models.Mappers;
-using Restaurant.Api.Models.Responses.Reservations;
 using Restaurant.Core.Interfaces;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
@@ -32,9 +31,6 @@ namespace Restaurant.Api.Controllers
                 User.FindFirstValue(ClaimTypes.NameIdentifier) ??
                 User.FindFirstValue("sub");
 
-            if (string.IsNullOrWhiteSpace(actorUserId))
-                return ApiResponse<object>.Fail(StatusCodes.Status401Unauthorized, "Unauthorized.");
-
             var actorIsWaiter = _authService.IsWaiter(User);
 
             var items = await _reservationService.GetMyAsync(actorUserId, actorIsWaiter, ct);
@@ -47,8 +43,6 @@ namespace Restaurant.Api.Controllers
         public async Task<IActionResult> GetById([FromRoute] string id, CancellationToken ct)
         {
             var actorUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-            if (string.IsNullOrWhiteSpace(actorUserId))
-                return ApiResponse<object>.Fail(StatusCodes.Status401Unauthorized, "Unauthorized.");
 
             var actorIsWaiter = _authService.IsWaiter(User);
 

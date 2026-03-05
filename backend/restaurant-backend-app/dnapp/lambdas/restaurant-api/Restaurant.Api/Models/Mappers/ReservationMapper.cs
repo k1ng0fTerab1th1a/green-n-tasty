@@ -1,4 +1,4 @@
-﻿using Restaurant.Api.Models.Responses.Reservations;
+﻿using Restaurant.Api.Contracts.Responses;
 using Restaurant.Core.Models;
 
 namespace Restaurant.Api.Models.Mappers
