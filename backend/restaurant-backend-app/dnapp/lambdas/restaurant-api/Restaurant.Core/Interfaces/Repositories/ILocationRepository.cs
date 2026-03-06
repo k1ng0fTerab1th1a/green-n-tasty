@@ -11,5 +11,6 @@ namespace Restaurant.Core.Interfaces.Repositories
     {
         Task<IReadOnlyList<Location>> GetLocationsAsync(CancellationToken cancellationToken = default);
         Task<IReadOnlyList<Location>> GetLocationOptionsAsync(CancellationToken cancellationToken = default);
+        Task<Location?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
     }
 }

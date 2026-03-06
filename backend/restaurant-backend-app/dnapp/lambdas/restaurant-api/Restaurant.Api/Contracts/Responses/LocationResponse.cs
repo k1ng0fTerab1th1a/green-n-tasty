@@ -3,11 +3,14 @@
     public record LocationResponse(
         string Id,
         string Address,
+        string TimeZone,
+        string OpenTime,
+        string CloseTime,
         string Description,
-        string TotalCapacity,
-        string AverageOccupancy,
+        int TotalCapacity,
+        double AverageOccupancy,
         string ImageUrl,
-        string Rating
+        double Rating
     );
 
     public record LocationBrief(string Id, string Address);

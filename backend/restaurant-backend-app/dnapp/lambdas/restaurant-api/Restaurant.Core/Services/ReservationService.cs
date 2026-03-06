@@ -3,6 +3,7 @@ using Restaurant.Core.Exceptions;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
+using TimeZoneConverter;
 
 namespace Restaurant.Core.Services
 {
@@ -10,11 +11,13 @@ namespace Restaurant.Core.Services
     {
         private readonly IReservationRepository _repo;
         private readonly IWaiterScheduleRepository _waiterScheduleRepo;
+        private readonly ILocationRepository _locationRepo;
 
-        public ReservationService(IReservationRepository repo, IWaiterScheduleRepository waiterScheduleRepo)
+        public ReservationService(IReservationRepository repo, IWaiterScheduleRepository waiterScheduleRepo, ILocationRepository locationRepo)
         {
             _repo = repo;
             _waiterScheduleRepo = waiterScheduleRepo;
+            _locationRepo = locationRepo;
         }
 
         public async Task<IReadOnlyList<Reservation>> GetMyAsync(string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
@@ -40,31 +43,14 @@ namespace Restaurant.Core.Services
 
         public async Task<Reservation> CreateForClientAsync(string customerId, CreateReservationDTO dto, CancellationToken ct = default)
         {
-            if (dto.TimeFrom.Minute % 15 != 0 || dto.TimeFrom.Second != 0)
-                throw new BusinessException("Start time must be a multiple of 15 minutes.");
+            var location = await _locationRepo.GetByIdAsync(dto.LocationId, ct)
+                        ?? throw new BusinessException("Location not found.");
 
-            if (dto.TimeTo.Minute % 15 != 0 || dto.TimeTo.Second != 0)
-                throw new BusinessException("End time must be a multiple of 15 minutes.");
+            ValidateReservationTime(dto.TimeFrom, dto.TimeTo, dto.Date, location);
 
-            if (dto.TimeFrom == dto.TimeTo)
-                throw new BusinessException("Start and end times cannot be the same.");
+            var slots = GenerateSlots(dto.Date, dto.TimeFrom, dto.TimeTo, location.TimeZone);
 
-            var duration = CalculateDuration(dto.TimeFrom, dto.TimeTo);
-            if (duration < 45)
-                throw new BusinessException("Minimum booking duration is 45 minutes.");
-            if (duration > 6 * 60)
-                throw new BusinessException("Maximum booking duration is 6 hours.");
-
-            var bookingStart = dto.Date.ToDateTime(dto.TimeFrom);
-            if (bookingStart <= DateTime.UtcNow)
-                throw new BusinessException("Cannot book for a past date or time.");
-
-            var slots = GenerateSlots(dto.Date, dto.TimeFrom, dto.TimeTo);
-
-            var schedule = await _waiterScheduleRepo.GetAsync(
-                    $"{dto.LocationId}#{dto.TableNumber}",
-                    dto.Date.ToString("yyyy-MM-dd"),
-                    ct);
+            var schedule = await _waiterScheduleRepo.GetAsync($"{dto.LocationId}#{dto.TableNumber}", dto.Date.ToString("yyyy-MM-dd"), ct);
 
             var waiterId = schedule?.WaiterId ?? throw new BusinessException("No waiter assigned for this table on this date.");
 
@@ -76,8 +62,8 @@ namespace Restaurant.Core.Services
                 LocationId = dto.LocationId,
                 TableNumber = dto.TableNumber,
                 TableKey = $"{dto.LocationId}#{dto.TableNumber}",
-                StartDateTime = $"{dto.Date:yyyy-MM-dd}T{dto.TimeFrom:HH:mm}Z",
-                EndDateTime = $"{dto.Date:yyyy-MM-dd}T{dto.TimeTo:HH:mm}Z",
+                StartDateTime = FormatWithOffset(dto.Date, dto.TimeFrom, location.TimeZone),
+                EndDateTime = FormatWithOffset(dto.Date, dto.TimeTo, location.TimeZone),
                 GuestsCount = dto.GuestsCount,
                 Status = ReservationStatus.Reserved,
                 CreatedAt = DateTime.UtcNow.ToString("o"),
@@ -92,6 +78,42 @@ namespace Restaurant.Core.Services
             return reservation;
         }
 
+        private static void ValidateReservationTime(TimeOnly from, TimeOnly to, DateOnly date, Location location)
+        {
+            var openTime = TimeOnly.Parse(location.OpenTime);
+            var closeTime = TimeOnly.Parse(location.CloseTime);
+            var crossMidnight = closeTime < openTime;
+
+            var fromValid = crossMidnight
+                ? from >= openTime || from < closeTime
+                : from >= openTime && from < closeTime;
+
+            var toValid = crossMidnight
+                ? to > openTime || to <= closeTime
+                : to > openTime && to <= closeTime;
+
+            if (!fromValid || !toValid)
+                throw new BusinessException($"Reservation must be within working hours ({location.OpenTime} - {location.CloseTime}).");
+
+            if (from.Minute % 15 != 0 || from.Second != 0)
+                throw new BusinessException("Start time must be a multiple of 15 minutes.");
+
+            if (to.Minute % 15 != 0 || to.Second != 0)
+                throw new BusinessException("End time must be a multiple of 15 minutes.");
+
+            if (from == to)
+                throw new BusinessException("Start and end times cannot be the same.");
+
+            var duration = CalculateDuration(from, to);
+            if (duration < 60)
+                throw new BusinessException("Minimum booking duration is 60 minutes.");
+
+            if (duration > 6 * 60)
+                throw new BusinessException("Maximum booking duration is 6 hours.");
+
+            if (date.ToDateTime(from) <= DateTime.UtcNow)
+                throw new BusinessException("Cannot book for a past date or time.");
+        }
         private static int CalculateDuration(TimeOnly from, TimeOnly to)
         {
             if (to > from)
@@ -101,31 +123,28 @@ namespace Restaurant.Core.Services
             var fromMidnight = to.Hour * 60 + to.Minute;
             return toMidnight + fromMidnight;
         }
-
-        private static List<string> GenerateSlots(DateOnly date, TimeOnly from, TimeOnly to)
+        private static List<string> GenerateSlots(DateOnly date, TimeOnly from, TimeOnly to, string timeZoneId)
         {
             var slots = new List<string>();
             var cursor = from;
             var cursorDate = date;
-            var crossMidnight = to < from;
-
             while (true)
             {
-                slots.Add($"{cursorDate:yyyy-MM-dd}T{cursor:HH:mm}Z");
-
-                if (cursor == to && !crossMidnight) break;
-                if (cursor == to && crossMidnight) break;
-
+                slots.Add(FormatWithOffset(cursorDate, cursor, timeZoneId));
+                if (cursor == to) break;
                 cursor = cursor.AddMinutes(15);
-
                 if (cursor == TimeOnly.MinValue)
                     cursorDate = cursorDate.AddDays(1);
-
-                if (slots.Count > 200)
-                    throw new BusinessException("Занадто великий діапазон часу.");
             }
-
             return slots;
+        }
+        private static string FormatWithOffset(DateOnly date, TimeOnly time, string timeZoneId)
+        {
+            var tz = TZConvert.GetTimeZoneInfo(timeZoneId);
+            var dt = date.ToDateTime(time);
+            var offset = tz.GetUtcOffset(dt);
+            var dto = new DateTimeOffset(dt, offset);
+            return dto.ToString("yyyy-MM-ddTHH:mmzzz");
         }
     }
 }

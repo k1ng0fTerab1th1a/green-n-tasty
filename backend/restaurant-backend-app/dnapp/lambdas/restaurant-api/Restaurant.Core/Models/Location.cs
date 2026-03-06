@@ -14,6 +14,15 @@ public class Location
     [DynamoDBProperty("address")]
     public string Address { get; set; } = null!;
 
+    [DynamoDBProperty("timeZone")]
+    public string TimeZone { get; set; } = "Asia/Tbilisi";
+
+    [DynamoDBProperty("openTime")]
+    public string OpenTime { get; set; } = "10:00";
+
+    [DynamoDBProperty("closeTime")]
+    public string CloseTime { get; set; } = "22:00";
+
     [DynamoDBProperty("description")]
     public string Description { get; set; } = null!;
 

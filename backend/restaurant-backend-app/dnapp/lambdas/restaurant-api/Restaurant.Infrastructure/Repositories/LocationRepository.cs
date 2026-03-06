@@ -30,5 +30,10 @@ namespace Restaurant.Infrastructure.Repositories
         {
             return GetLocationsAsync(cancellationToken);
         }
+
+        public Task<Location?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+        {
+            return _context.LoadAsync<Location>(id, cancellationToken);
+        }
     }
 }
