@@ -1,0 +1,63 @@
+.card {
+    width: 230px;
+    background: var(--neutral-0);
+    border: 1px solid var(--neutral-200);
+    border-radius: 16px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+    padding: 14px;
+}
+
+.head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 2px 4px 10px;
+}
+
+.name {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 24px;
+    color: var(--text);
+}
+
+.email {
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 16px;
+    color: var(--neutral-600);
+}
+
+.divider {
+    height: 1px;
+    background: var(--neutral-200);
+    margin: 6px 0 8px;
+}
+
+.item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 8px;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: left;
+
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 24px;
+    color: var(--text);
+}
+
+.item:hover {
+    background: var(--neutral-100);
+}
+
+.itemIcon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}

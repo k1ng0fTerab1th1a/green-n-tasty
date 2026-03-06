@@ -2,20 +2,7 @@ import { useMemo } from "react";
 import styles from "./DishCard.module.css";
 import { Button } from "../index.js";
 
-/**
- * DishCard
- *
- * Props:
- * - name: string
- * - price: number | string   (e.g. 17 or "17")
- * - weight: number | string  (e.g. 430 or "430")
- * - imageSrc: string
- * - available?: boolean (default true)
- * - badgeText?: string (default "On Stop" when !available)
- * - onPreOrder?: () => void
- * - currency?: string (default "$")
- * - className?: string
- */
+
 export default function DishCard({
                                      name,
                                      price,

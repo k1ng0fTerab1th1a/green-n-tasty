@@ -4,21 +4,6 @@ import styles from "./Dropdown.module.css";
 import chevronDown from "../../assets/icons/chevron-down.svg";
 import chevronUp from "../../assets/icons/chevron-up.svg";
 
-/**
- * Dropdown
- *
- * Props:
- * - label?: string
- * - value: string | number | null
- * - onChange: (newValue) => void
- * - options: Array<{ value: string|number, label: string, disabled?: boolean }>
- * - placeholder?: string (default "Text")
- * - leftIcon?: string | ReactNode (если строка -> <img/>)
- * - error?: string
- * - hint?: string
- * - disabled?: boolean
- * - className?: string
- */
 export default function Dropdown({
                                      label,
                                      value = null,
@@ -80,7 +65,6 @@ export default function Dropdown({
     const onKeyDown = (e) => {
         if (disabled) return;
 
-        // open with Enter/Space/ArrowDown
         if (!open && (e.key === "Enter" || e.key === " " || e.key === "ArrowDown")) {
             e.preventDefault();
             setOpen(true);
@@ -182,8 +166,7 @@ export default function Dropdown({
     );
 }
 
-/* ===== helpers ===== */
-
+/* helpers */
 function firstEnabledIndex(options) {
     return options.findIndex((o) => !o.disabled);
 }

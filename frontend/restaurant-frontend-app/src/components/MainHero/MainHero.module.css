@@ -8,13 +8,11 @@
     background-repeat: no-repeat;
 }
 
-/* легкий градієнт для читабельності */
 .overlay {
     position: absolute;
     inset: 0;
 }
 
-/* текст поверх картинки */
 .content {
     position: absolute;
     left: 40px;
@@ -54,7 +52,6 @@
     width: 100%;
 }
 
-/* responsive */
 @media (max-width: 768px) {
     .hero {
         height: 260px;

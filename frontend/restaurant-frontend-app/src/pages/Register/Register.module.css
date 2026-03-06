@@ -1,9 +1,7 @@
-/* акцент для "Green" у заголовку справа */
 .auth-hero-accent {
     color: var(--green-200);
 }
 
-/* форма */
 .register-form {
     display: flex;
     flex-direction: column;
@@ -11,7 +9,6 @@
     margin-top: 10px;
 }
 
-/* два поля в ряд */
 .register-grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -25,7 +22,6 @@
     gap: 14px;
 }
 
-/* підвал з лінком */
 .register-footer {
     display: inline-flex;
     align-items: center;
@@ -44,7 +40,6 @@
     text-decoration: underline;
 }
 
-/* mobile */
 @media (max-width: 560px) {
     .register-grid-2 {
         grid-template-columns: 1fr;

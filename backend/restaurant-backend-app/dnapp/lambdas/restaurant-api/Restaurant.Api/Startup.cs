@@ -55,12 +55,14 @@ namespace Restaurant.Api
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<ILocationService, LocationService>();
             services.AddScoped<IReservationService, ReservationService>();
+            services.AddScoped<ITableService, TableService>();
 
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IWaiterListRepository, WaiterListRepository>();
             services.AddScoped<IDishRepository, DishRepository>();
             services.AddScoped<IFeedbackRepository, FeedbackRepository>();
             services.AddScoped<ILocationRepository, LocationRepository>();
+            services.AddScoped<ITableRepository, TableRepository>();
             services.AddScoped<ITableDayRepository, TableDayRepository>();
             services.AddScoped<IReservationRepository, ReservationRepository>();
             services.AddScoped<IWaiterScheduleRepository, WaiterScheduleRepository>();
