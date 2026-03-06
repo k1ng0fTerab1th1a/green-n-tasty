@@ -89,8 +89,7 @@ export default function PasswordInput({
                 <ul className={styles.checklist}>
                     {rules.map((r) => {
                         const ok = checks[r.key];
-
-                        // когда уже что-то вводишь или есть ошибка — показываем состояния как на макете
+                        
                         const showState = hasValue || !!error;
 
                         const itemClass = showState

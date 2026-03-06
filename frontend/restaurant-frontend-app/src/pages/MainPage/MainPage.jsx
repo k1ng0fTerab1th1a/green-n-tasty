@@ -1,9 +1,9 @@
 import { useMemo } from "react";
-import { Header, DishCard, LocationCard, MainHero } from "../../components/index.js";
+import { useNavigate } from "react-router-dom";
+import { DishCard, LocationCard, MainHero, MainLayout } from "../../components/index.js";
 
 import styles from "./MainPage.module.css";
 
-// demo assets (заміни на свої)
 import heroImg from "../../assets/images/main-hero.jpg";
 import dish1 from "../../assets/images/main-hero.jpg";
 import dish2 from "../../assets/images/main-hero.jpg";
@@ -15,6 +15,9 @@ import loc2 from "../../assets/images/main-hero.jpg";
 import loc3 from "../../assets/images/main-hero.jpg";
 
 export default function MainPage() {
+    const navigate = useNavigate();
+    const defaultLocationId = 1;
+
     const popularDishes = useMemo(
         () => [
             { id: 1, name: "Fresh Strawberry Mint Salad", price: 17, weight: 430, imageSrc: dish1 },
@@ -34,54 +37,54 @@ export default function MainPage() {
         []
     );
 
+    const hero = (
+        <MainHero
+            imageSrc={heroImg}
+            title="Green & Tasty"
+            description={[
+                "A network of restaurants in Tbilisi, Georgia, offering fresh, locally sourced dishes with a focus on health and sustainability.",
+                "Our diverse menu includes vegetarian and vegan options, crafted to highlight the rich flavors of Georgian cuisine with a modern twist.",
+            ]}
+            onViewMenu={() => console.log("go to menu")}
+        />
+    );
+
     return (
-        <>
-            <Header isAuth={false} role={"customer"} />
-            <MainHero
-                imageSrc={heroImg}
-                title="Green & Tasty"
-                description={[
-                    "A network of restaurants in Tbilisi, Georgia, offering fresh, locally sourced dishes with a focus on health and sustainability.",
-                    "Our diverse menu includes vegetarian and vegan options, crafted to highlight the rich flavors of Georgian cuisine with a modern twist.",
-                ]}
-                onViewMenu={() => console.log("go to menu")}
-            />
-            <main className={styles.page}>
-                <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>Most Popular Dishes</h2>
+        <MainLayout hero={hero} headerProps={{ isAuth: false, role: "customer" }}>
+            <section className={styles.section}>
+                <h2 className={styles.sectionTitle}>Most Popular Dishes</h2>
 
-                    <div className={styles.gridDishes}>
-                        {popularDishes.map((d) => (
-                            <DishCard
-                                key={d.id}
-                                name={d.name}
-                                price={d.price}
-                                weight={d.weight}
-                                imageSrc={d.imageSrc}
-                                available
-                                onPreOrder={() => console.log("preorder", d.id)}
-                            />
-                        ))}
-                    </div>
-                </section>
+                <div className={styles.gridDishes}>
+                    {popularDishes.map((d) => (
+                        <DishCard
+                            key={d.id}
+                            name={d.name}
+                            price={d.price}
+                            weight={d.weight}
+                            imageSrc={d.imageSrc}
+                            available
+                            onPreOrder={() => navigate(`/locations/${defaultLocationId}`)}
+                        />
+                    ))}
+                </div>
+            </section>
 
-                <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>Locations</h2>
+            <section className={styles.section}>
+                <h2 className={styles.sectionTitle}>Locations</h2>
 
-                    <div className={styles.gridLocations}>
-                        {locations.map((l) => (
-                            <LocationCard
-                                key={l.id}
-                                imageSrc={l.imageSrc}
-                                address={l.address}
-                                tables={l.tables}
-                                occupancy={l.occupancy}
-                                onClick={() => console.log("open location", l.id)}
-                            />
-                        ))}
-                    </div>
-                </section>
-            </main>
-        </>
+                <div className={styles.gridLocations}>
+                    {locations.map((l) => (
+                        <LocationCard
+                            key={l.id}
+                            imageSrc={l.imageSrc}
+                            address={l.address}
+                            tables={l.tables}
+                            occupancy={l.occupancy}
+                            onClick={() => navigate(`/locations/${l.id}`)}
+                        />
+                    ))}
+                </div>
+            </section>
+        </MainLayout>
     );
 }

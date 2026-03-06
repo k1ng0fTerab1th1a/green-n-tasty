@@ -1,20 +1,7 @@
 import styles from "./ReviewCard.module.css";
 
-import userIcon from "../../assets/icons/user-circle.svg"; // постав свій svg
+import userIcon from "../../assets/icons/user-circle.svg";
 
-/**
- * ReviewCard
- *
- * Props:
- * - name: string (може бути "Anna" або "User 1765")
- * - date: string (наприклад "6/8/2024" або "Oct 14, 2024")
- * - rating: number (0..5)
- * - text: string
- * - avatarSrc?: string | null
- * - anonymous?: boolean (default false) -> якщо true і name не передали, зробить "User ####"
- * - userId?: number|string (для генерації імені якщо anonymous)
- * - className?: string
- */
 export default function ReviewCard({
                                        name = "",
                                        date = "",

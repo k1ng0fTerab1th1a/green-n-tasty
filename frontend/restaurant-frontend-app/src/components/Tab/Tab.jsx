@@ -1,15 +1,5 @@
 import styles from "./Tab.module.css";
 
-/**
- * Tab
- * Props:
- * - active?: boolean
- * - children
- * - onClick?: () => void
- * - disabled?: boolean
- * - className?: string
- * - type?: "button" | "submit"
- */
 export default function Tab({
                                 active = false,
                                 children,

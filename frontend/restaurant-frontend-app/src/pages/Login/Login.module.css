@@ -53,7 +53,6 @@
     text-decoration: underline;
 }
 
-/* Account locked banner (pink block) */
 .login-banner {
     background: rgba(183, 11, 11, 0.08);
     border-radius: 10px;
