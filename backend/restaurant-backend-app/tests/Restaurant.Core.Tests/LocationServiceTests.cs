@@ -96,5 +96,22 @@ namespace Restaurant.Core.Tests
             repo.Verify(r => r.GetLocationsAsync(It.IsAny<CancellationToken>()), Times.Once);
             repo.VerifyNoOtherCalls();
         }
+
+        [Fact]
+        public async Task GetLocationOptionsAsync_WhenRepositoryReturnsEmpty_ShouldReturnEmpty()
+        {
+            var repo = new Mock<ILocationRepository>(MockBehavior.Strict);
+
+            repo.Setup(r => r.GetLocationOptionsAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<Location>());
+
+            var sut = new LocationService(repo.Object);
+
+            var result = await sut.GetLocationOptionsAsync(CancellationToken.None);
+
+            result.Should().BeEmpty();
+            repo.Verify(r => r.GetLocationOptionsAsync(It.IsAny<CancellationToken>()), Times.Once);
+            repo.VerifyNoOtherCalls();
+        }
     }
 }

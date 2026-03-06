@@ -155,4 +155,35 @@ public sealed class ReservationServiceTests
         repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
     }
+
+    [Fact]
+    public async Task GetByIdAsync_WhenActorIsDifferentWaiter_ShouldThrow()
+    {
+        var repo = new Mock<IReservationRepository>(MockBehavior.Strict);
+        repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Reservation
+            {
+                Id = "r1",
+                CustomerId = "customerA",
+                WaiterId = "waiterA",
+                LocationId = "l",
+                TableNumber = 1,
+                TableKey = "l#1",
+                StartDateTime = "2026-03-05T10:00:00Z",
+                EndDateTime = "2026-03-05T11:30:00Z",
+                GuestsCount = 2,
+                CreatedAt = "c",
+                UpdatedAt = "u"
+            });
+
+        var sut = new ReservationService(repo.Object);
+
+        var act = async () => await sut.GetByIdAsync("r1", actorUserId: "waiterB", actorIsWaiter: true, ct: default);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("Forbidden.");
+
+        repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
+        repo.VerifyNoOtherCalls();
+    }
 }
