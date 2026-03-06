@@ -3,15 +3,6 @@ import styles from "./Star.module.css";
 import starOn from "../../assets/icons/star-filled.svg";
 import starOff from "../../assets/icons/star-outline.svg";
 
-/**
- * Star (favorite)
- * Props:
- * - checked: boolean
- * - onChange: (next:boolean) => void
- * - disabled?: boolean
- * - size?: number (default 20)
- * - ariaLabel?: string
- */
 export default function Star({
                                  checked,
                                  onChange,

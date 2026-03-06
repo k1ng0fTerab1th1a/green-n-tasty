@@ -1,13 +1,6 @@
 import PageItem from "./PageItem";
 import styles from "./Pagination.module.css";
 
-/**
- * Pagination
- * Props:
- * - page: number (1-based)
- * - totalPages: number
- * - onChange: (newPage:number) => void
- */
 export default function Pagination({ page = 1, totalPages = 1, onChange }) {
     if (totalPages <= 1) return null;
 

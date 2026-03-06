@@ -2,14 +2,6 @@ import styles from "./Checkbox.module.css";
 
 import checkIcon from "../../assets/icons/check.svg";
 
-/**
- * Checkbox
- * Props:
- * - checked: boolean
- * - onChange: (next:boolean) => void
- * - label?: string
- * - disabled?: boolean
- */
 export default function Checkbox({
                                      checked,
                                      onChange,

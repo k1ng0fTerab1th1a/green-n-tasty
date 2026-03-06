@@ -1,8 +1,7 @@
 :root {
-    /* ---------- Font ---------- */
     --font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 
-    /* ---------- Neutral ---------- */
+    /*  Neutral  */
     --neutral-0: #ffffff;
     --neutral-100: #f7f7f7;
     --neutral-200: #dadada;
@@ -10,25 +9,25 @@
     --neutral-600: #575757;
     --neutral-900: #232323;
 
-    /* ---------- Green ---------- */
+    /*  Green  */
     --green-100: #e9ffea;
     --green-200: #00ad0c;
     --green-300: #008209;
     --green-400: #006907;
 
-    /* ---------- Blue ---------- */
+    /*  Blue  */
     --blue-100: #dee9ff;
     --blue-400: #0e53e9;
 
-    /* ---------- Orange ---------- */
+    /*  Orange  */
     --orange-100: #fff2d4;
     --orange-400: #ffae00;
 
-    /* ---------- Red ---------- */
+    /*  Red  */
     --red-100: #fce9ed;
     --red-400: #b70b0b;
 
-    /* ---------- Semantic (чтобы удобно использовать везде) ---------- */
+    /*  Semantic */
     --bg: var(--neutral-0);
     --text: var(--neutral-900);
     --muted: var(--neutral-600);
@@ -44,7 +43,7 @@
     --danger-bg: var(--red-100);
     --danger: var(--red-400);
 
-    /* ---------- Layout tokens (по желанию) ---------- */
+    /*  Layout tokens */
     --radius-sm: 10px;
     --radius-md: 14px;
     --radius-lg: 18px;

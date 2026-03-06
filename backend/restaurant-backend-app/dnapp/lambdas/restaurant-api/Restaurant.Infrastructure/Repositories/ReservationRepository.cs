@@ -14,6 +14,7 @@ namespace Restaurant.Infrastructure.Repositories
     {
         private const string CustomerIndex = "customerId-start-index";
         private const string WaiterIndex = "waiterId-start-index";
+        private const string TableIndex = "tableKey-start-index";
 
         private readonly IDynamoDBContext _context;
 
@@ -83,6 +84,23 @@ namespace Restaurant.Infrastructure.Repositories
             {
                 search = _context.QueryAsync<Reservation>(waiterId, op);
             }
+
+            return await search.GetRemainingAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<Reservation>> QueryByTableAsync(
+            string tableKey,
+            string startFromIso,
+            string startToIso,
+            CancellationToken ct)
+        {
+            var op = new DynamoDBOperationConfig { IndexName = TableIndex };
+
+            var search = _context.QueryAsync<Reservation>(
+                tableKey,
+                QueryOperator.Between,
+                new[] { startFromIso, startToIso },
+                op);
 
             return await search.GetRemainingAsync(ct);
         }

@@ -2,7 +2,7 @@
 
 namespace Restaurant.Core.Models;
 
-[DynamoDBTable("TableDay")]
+[DynamoDBTable("TableDays")]
 public class TableDay
 {
     [DynamoDBHashKey("tableKey")]

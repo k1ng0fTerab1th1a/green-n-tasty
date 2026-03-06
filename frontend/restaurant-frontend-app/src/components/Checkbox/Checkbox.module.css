@@ -43,7 +43,7 @@
 
 .checked .check {
     opacity: 1;
-    filter: brightness(0) invert(1); /* робить іконку білою, якщо svg чорний */
+    filter: brightness(0) invert(1);
 }
 
 .label {

@@ -5,18 +5,15 @@ import { checkPasswordAllRules } from "../../utils/passwordRules";
 import { AuthLayout, Input, PasswordInput, Button } from "../../components/index.js";
 
 import heroImg from "../../assets/images/login-hero.svg";
-
-import "./Register.css";
+import styles from "./Register.module.css";
 
 import { signUp } from "../../services/auth";
 
 const NAME_RE = /^[a-zA-Z\s'-]+$/;
-// const NAME_RE = /^[A-Za-zА-Яа-яІіЇїЄє' -]+$/;
 
 function validate(form) {
     const errors = {};
 
-    // firstName
     const firstNameTrimmed = form.firstName.trim();
     if (!firstNameTrimmed) {
         errors.firstName = "First name is required.";
@@ -24,20 +21,17 @@ function validate(form) {
         errors.firstName = "First name must be up to 50 characters. Only Latin letters, hyphens, and apostrophes are allowed.";
     }
 
-    // lastName
     const lastNameTrimmed = form.lastName.trim();
     if (!lastNameTrimmed) {
-        errors.lastName = "First name is required.";
+        errors.lastName = "Last name is required.";
     } else if (lastNameTrimmed.length > 50 || !NAME_RE.test(lastNameTrimmed)) {
-        errors.lastName = "First name must be up to 50 characters. Only Latin letters, hyphens, and apostrophes are allowed.";
+        errors.lastName = "Last name must be up to 50 characters. Only Latin letters, hyphens, and apostrophes are allowed.";
     }
 
-    // email
     if (!form.email.trim()) errors.email = "Email address is required. Please enter your email to continue";
     else if (!/^\S+@\S+\.\S+$/.test(form.email))
         errors.email = "Invalid email address. Please ensure it follows the format: username@domain.com";
 
-    // password
     if (!form.password.trim()) {
         errors.password = "Password is required. Please enter your password to continue.";
     } else {
@@ -47,7 +41,6 @@ function validate(form) {
         }
     }
 
-    // confirmPassword
     if (!form.confirmPassword.trim()) errors.confirmPassword = "Confirm password is required.";
     else if (form.confirmPassword !== form.password) errors.confirmPassword = "Passwords don't match.";
 
@@ -139,8 +132,8 @@ export default function Register() {
             heroImage={heroImg}
             heroAlt="Green & Tasty"
         >
-            <form className="register-form" onSubmit={onSubmit}>
-                <div className="register-grid-2">
+            <form className={styles['register-form']} onSubmit={onSubmit}>
+                <div className={styles['register-grid-2']}>
                     <Input
                         name="firstName"
                         label="First Name"
@@ -208,7 +201,7 @@ export default function Register() {
                     hint="Confirm password must match new password"
                 />
 
-                <div className="register-actions">
+                <div className={styles['register-actions']}>
                     <Button
                         type="submit"
                         variant="primary"
@@ -219,9 +212,9 @@ export default function Register() {
                         Create an Account
                     </Button>
 
-                    <div className="register-footer">
+                    <div className={styles['register-footer']}>
                         <span className="caption">Already have an account?</span>{" "}
-                        <Link className="register-link" to="/login">
+                        <Link className={styles['register-link']} to="/login">
                             Login
                         </Link>{" "}
                         <span className="caption">instead</span>

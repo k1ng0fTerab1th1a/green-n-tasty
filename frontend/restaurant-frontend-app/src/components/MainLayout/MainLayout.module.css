@@ -1,0 +1,14 @@
+.page {
+    padding: 60px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    background: var(--neutral-100);
+    min-height: calc(100vh - 70px);
+}
+
+@media (max-width: 760px) {
+    .page {
+        padding: 16px 16px 40px;
+    }
+}
