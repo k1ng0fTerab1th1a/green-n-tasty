@@ -1,0 +1,18 @@
+stages: [test, integration]
+
+test:
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  stage: test
+  script:
+    - dotnet test restaurant-api.sln -c Release
+
+integration:
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  stage: integration
+  services:
+    - name: amazon/dynamodb-local:latest
+      alias: dynamodb
+  variables:
+    DYNAMODB_ENDPOINT: "http://dynamodb:8000"
+  script:
+    - dotnet test tests/Restaurant.Infrastructure.IntegrationTests/Restaurant.Infrastructure.IntegrationTests.csproj -c Release

@@ -22,6 +22,7 @@ public class GlobalExceptionHandler : IExceptionHandler
             UserAlreadyExistsException ex => (StatusCodes.Status409Conflict, ex.Message),
             InvalidCredentialsException ex => (StatusCodes.Status401Unauthorized, ex.Message),
             AuthException ex => (StatusCodes.Status400BadRequest, ex.Message),
+            UnauthorizedAccessException ex => (StatusCodes.Status403Forbidden, ex.Message),
 
             _ => (StatusCodes.Status500InternalServerError, exception.Message)
         };
