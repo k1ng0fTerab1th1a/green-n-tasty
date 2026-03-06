@@ -3,15 +3,15 @@ using Amazon.DynamoDBv2.DataModel;
 [DynamoDBTable("Tables")]
 public class Table
 {
-    [DynamoDBHashKey("tableId")]
-    public string TableId { get; set; }
+    [DynamoDBHashKey("locationId")]
+    public required string LocationId { get; set; }
 
-    [DynamoDBProperty("locationId")]
-    public string LocationId { get; set; }
+    [DynamoDBRangeKey("tableNumber")]
+    public required int TableNumber { get; set; }
 
-    [DynamoDBProperty("tableNumber")]
-    public int TableNumber { get; set; }
+    [DynamoDBProperty("locationAddress")]
+    public required string LocationAddress { get; set; }
 
     [DynamoDBProperty("capacity")]
-    public int Capacity { get; set; }
+    public required int Capacity { get; set; }
 }
