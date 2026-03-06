@@ -1,15 +1,5 @@
 import styles from "./Radio.module.css";
 
-/**
- * Radio
- * Props:
- * - name: string
- * - value: string
- * - checked: boolean
- * - onChange: (value:string) => void
- * - label?: string
- * - disabled?: boolean
- */
 export default function Radio({
                                   name,
                                   value,

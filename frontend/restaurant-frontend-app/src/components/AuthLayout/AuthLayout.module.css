@@ -22,7 +22,6 @@
     padding: 48px;
 }
 
-/* LEFT */
 .left {
     display: flex;
     flex-direction: column;
@@ -42,7 +41,6 @@
     margin-top: 22px;
 }
 
-/* RIGHT */
 .right {
     display: flex;
     flex-direction: column;
@@ -65,7 +63,6 @@
     height: auto;
 }
 
-/* Responsive */
 @media (max-width: 980px) {
     .card {
         grid-template-columns: 1fr;

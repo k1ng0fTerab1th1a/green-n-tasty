@@ -3,9 +3,10 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { AuthLayout, Input, Button, PasswordInput, Toast } from "../../components/index.js";
 import { signIn } from "../../services/auth";
+import { useAuth } from "../../auth/AuthContext";
 
 import heroImg from "../../assets/images/login-hero.svg";
-import "./Login.css";
+import styles from "./Login.module.css";
 
 function validate(form) {
     const errors = {};
@@ -30,11 +31,11 @@ export default function Login() {
     const [form, setForm] = useState({ email: "", password: "" });
     const [touched, setTouched] = useState({ email: false, password: false });
 
-    // server states
     const [status, setStatus] = useState("idle"); // idle | loading | invalid | locked | server_error
     const [banner, setBanner] = useState(""); // locked/server_error)
     const [toastOpen, setToastOpen] = useState(false);
     const [toastData, setToastData] = useState(null);
+    const { signInSuccess } = useAuth();
 
     useEffect(() => {
         const toast = location.state?.toast;
@@ -104,8 +105,7 @@ export default function Login() {
                 return;
             }
 
-            const idToken = res?.data?.idToken;
-            const refreshToken = res?.data?.refreshToken;
+            const { idToken, refreshToken, username, role } = res.data;
 
             if (!idToken || !refreshToken) {
                 setStatus("server_error");
@@ -113,9 +113,10 @@ export default function Login() {
                 return;
             }
 
-            localStorage.setItem("token", idToken);
-            localStorage.setItem("idToken", idToken);
-            localStorage.setItem("refreshToken", refreshToken);
+            signInSuccess({ idToken, refreshToken, username, role });
+
+            setStatus("idle");
+            navigate("/main", { replace: true });
 
             setStatus("idle");
             navigate("/main", { replace: true });
@@ -161,8 +162,8 @@ export default function Login() {
                 heroImage={heroImg}
                 heroAlt="Green & Tasty"
             >
-                <form className="login-form" onSubmit={onSubmit}>
-                    {banner ? <div className="login-banner">{banner}</div> : null}
+                <form className={styles['login-form']} onSubmit={onSubmit}>
+                    {banner ? <div className={styles['login-banner']}>{banner}</div> : null}
 
                     <Input
                         name="email"
@@ -175,7 +176,7 @@ export default function Login() {
                         error={emailError}
                     />
 
-                    <div className="login-password">
+                    <div className={styles['login-password']}>
                         <PasswordInput
                             name="password"
                             label="Password"
@@ -188,12 +189,12 @@ export default function Login() {
                             showChecklist={false}
                         />
 
-                        <Link className="login-forgot" to="/forgot-password">
+                        <Link className={styles['login-forgot']} to="/forgot-password">
                             Forgot password?
                         </Link>
                     </div>
 
-                    <div className="login-actions">
+                    <div className={styles['login-actions']}>
                         <Button
                             type="submit"
                             variant="primary"
@@ -204,9 +205,9 @@ export default function Login() {
                             {isLoading ? "Signing in..." : "Sign In"}
                         </Button>
 
-                        <div className="login-footer">
+                        <div className={styles['login-footer']}>
                             <span className="caption">Don’t have an account?</span>{" "}
-                            <Link className="login-link" to="/register">
+                            <Link className={styles['login-link']} to="/register">
                                 Create an Account
                             </Link>
                         </div>
