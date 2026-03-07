@@ -16,7 +16,7 @@ namespace Restaurant.Api.Controllers
 {
     [ApiController]
     [Route("reservations")]
-    //[Authorize]
+    [Authorize]
     public sealed class ReservationsController : ControllerBase
     {
         private readonly IReservationService _reservationService;
@@ -56,14 +56,9 @@ namespace Restaurant.Api.Controllers
         public async Task<IActionResult> Delete(string id, CancellationToken ct)
         {
             var actorUserId = User.GetUserId();
-            if (string.IsNullOrEmpty(actorUserId))
-            {
-                return Unauthorized("You must log in to proceed with actions to the reservation");
-            }
             var actorIsWaiter = User.IsWaiter();
-            var result = await _reservationService.CancelReservation(id,actorUserId, actorIsWaiter, ct);
-            if (result) return Ok();
-            return BadRequest("Deletion is unsuccessful");
+            var result = await _reservationService.CancelReservation(id, actorUserId, actorIsWaiter, ct);
+            return ApiResponse<object>.Success(StatusCodes.Status200OK, null, "Reservation cancelled successfully.");
         }
 
         [HttpPost("client")]

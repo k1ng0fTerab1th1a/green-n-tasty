@@ -1,4 +1,5 @@
 using Amazon.DynamoDBv2.DataModel;
+using Restaurant.Core.SharedModels;
 
 namespace Restaurant.Core.Models;
 
@@ -39,7 +40,7 @@ public sealed class Reservation
     [DynamoDBProperty("guestsCount")]
     public int GuestsCount { get; set; }
 
-    [DynamoDBProperty("status")]
+    [DynamoDBProperty("status", typeof(ReservationStatusConverter))]
     public ReservationStatus Status { get; set; } = ReservationStatus.Reserved;
 
     [DynamoDBProperty("createdAt")]

@@ -172,9 +172,9 @@ namespace Restaurant.Infrastructure.Repositories
             return await search.GetRemainingAsync(ct);
         }
 
-        public async Task<bool> DeleteReservationAsync(Reservation reservation, List<string> slots, CancellationToken ct = default)
+        public async Task<bool> CancelReservationAsync(Reservation reservation, List<string> slots, CancellationToken ct = default)
         {
-            var date = DateOnly.Parse(reservation.StartDateTime[..10]);
+            var date = DateOnly.FromDateTime(DateTimeOffset.Parse(reservation.StartDateTime).DateTime);
 
             var transactItems = new List<TransactWriteItem>
             {
@@ -195,7 +195,7 @@ namespace Restaurant.Infrastructure.Repositories
                         },
                         ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                         {
-                            [":cancelled"]  = new() { N = ((int)ReservationStatus.Canceled).ToString() },
+                            [":cancelled"] = new() { S = ReservationStatus.Cancelled.ToString() },
                             [":updatedAt"]  = new() { S = DateTime.UtcNow.ToString("O") }
                         }
                     }

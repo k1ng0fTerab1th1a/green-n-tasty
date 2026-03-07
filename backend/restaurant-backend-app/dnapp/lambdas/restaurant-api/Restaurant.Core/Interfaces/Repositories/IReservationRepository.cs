@@ -29,7 +29,7 @@ namespace Restaurant.Core.Interfaces.Repositories
             string startToIso,
             CancellationToken ct);
 
-        public Task<bool> DeleteReservationAsync(Reservation reservation, List<string> slots,
+        public Task<bool> CancelReservationAsync(Reservation reservation, List<string> slots,
             CancellationToken ct = default);
     }
 }
