@@ -1,4 +1,5 @@
-﻿using Restaurant.Core.DTOs;
+using System.Globalization;
+using Restaurant.Core.DTOs;
 using Restaurant.Core.Exceptions;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
@@ -41,6 +42,29 @@ namespace Restaurant.Core.Services
             return r;
         }
 
+        public async Task<bool> CancelReservation(string reservationId, string userId, bool isWaiter, CancellationToken ct = default)
+        {
+            var reservation = await GetByIdAsync(reservationId, userId, isWaiter, ct) 
+                ?? throw new ArgumentNullException("reservation", "Reservation does not exist");
+
+            if (reservation.Status != ReservationStatus.Reserved)
+                throw new BusinessException("Only reserved reservations can be cancelled.");
+
+            var start = DateTimeOffset.Parse(reservation.StartDateTime);
+            var end = DateTimeOffset.Parse(reservation.EndDateTime);
+
+            if ((start - DateTimeOffset.UtcNow).TotalMinutes < 30)
+                throw new BusinessException("Reservation cannot be cancelled less than 30 minutes before it starts.");
+
+            var slots = GenerateSlots(start, end);
+
+            var success = await _repo.CancelReservationAsync(reservation, slots, ct);
+            if (!success)
+                throw new BusinessException("Failed to cancel reservation.");
+
+            return true;
+        }
+        
         public async Task<Reservation> CreateForClientAsync(string customerId, CreateReservationDTO dto, CancellationToken ct = default)
         {
             var location = await _locationRepo.GetByIdAsync(dto.LocationId, ct)
@@ -48,7 +72,11 @@ namespace Restaurant.Core.Services
 
             ValidateReservationTime(dto.TimeFrom, dto.TimeTo, dto.Date, location);
 
-            var slots = GenerateSlots(dto.Date, dto.TimeFrom, dto.TimeTo, location.TimeZone);
+            var endDate = dto.TimeTo < dto.TimeFrom ? dto.Date.AddDays(1) : dto.Date;
+            var start = ToDateTimeOffset(dto.Date, dto.TimeFrom, location.TimeZone);
+            var end = ToDateTimeOffset(endDate, dto.TimeTo, location.TimeZone);
+
+            var slots = GenerateSlots(start, end);
 
             var schedule = await _waiterScheduleRepo.GetAsync($"{dto.LocationId}#{dto.TableNumber}", dto.Date.ToString("yyyy-MM-dd"), ct);
 
@@ -62,8 +90,8 @@ namespace Restaurant.Core.Services
                 LocationId = dto.LocationId,
                 TableNumber = dto.TableNumber,
                 TableKey = $"{dto.LocationId}#{dto.TableNumber}",
-                StartDateTime = FormatWithOffset(dto.Date, dto.TimeFrom, location.TimeZone),
-                EndDateTime = FormatWithOffset(dto.Date, dto.TimeTo, location.TimeZone),
+                StartDateTime = start.ToString("yyyy-MM-ddTHH:mmzzz"),
+                EndDateTime = end.ToString("yyyy-MM-ddTHH:mmzzz"),
                 GuestsCount = dto.GuestsCount,
                 Status = ReservationStatus.Reserved,
                 CreatedAt = DateTime.UtcNow.ToString("o"),
@@ -120,28 +148,25 @@ namespace Restaurant.Core.Services
             var fromMidnight = to.Hour * 60 + to.Minute;
             return toMidnight + fromMidnight;
         }
-        private static List<string> GenerateSlots(DateOnly date, TimeOnly from, TimeOnly to, string timeZoneId)
+        private static List<string> GenerateSlots(DateTimeOffset start, DateTimeOffset end)
         {
             var slots = new List<string>();
-            var cursor = from;
-            var cursorDate = date;
+            var cursor = start;
+
             while (true)
             {
-                slots.Add(FormatWithOffset(cursorDate, cursor, timeZoneId));
-                if (cursor == to) break;
+                slots.Add(cursor.ToString("yyyy-MM-ddTHH:mmzzz"));
+                if (cursor == end) break;
                 cursor = cursor.AddMinutes(15);
-                if (cursor == TimeOnly.MinValue)
-                    cursorDate = cursorDate.AddDays(1);
             }
+
             return slots;
         }
-        private static string FormatWithOffset(DateOnly date, TimeOnly time, string timeZoneId)
+        private static DateTimeOffset ToDateTimeOffset(DateOnly date, TimeOnly time, string timeZoneId)
         {
             var tz = TZConvert.GetTimeZoneInfo(timeZoneId);
             var dt = date.ToDateTime(time);
-            var offset = tz.GetUtcOffset(dt);
-            var dto = new DateTimeOffset(dt, offset);
-            return dto.ToString("yyyy-MM-ddTHH:mmzzz");
+            return new DateTimeOffset(dt, tz.GetUtcOffset(dt));
         }
     }
 }

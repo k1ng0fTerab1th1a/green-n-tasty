@@ -1,4 +1,4 @@
-﻿using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
 
 namespace Restaurant.Infrastructure.Repositories
 {
@@ -169,6 +170,67 @@ namespace Restaurant.Infrastructure.Repositories
                 op);
 
             return await search.GetRemainingAsync(ct);
+        }
+
+        public async Task<bool> CancelReservationAsync(Reservation reservation, List<string> slots, CancellationToken ct = default)
+        {
+            var date = DateOnly.FromDateTime(DateTimeOffset.Parse(reservation.StartDateTime).DateTime);
+
+            var transactItems = new List<TransactWriteItem>
+            {
+                new()
+                {
+                    Update = new Update
+                    {
+                        TableName = "Reservations",
+                        Key = new Dictionary<string, AttributeValue>
+                        {
+                            ["id"] = new() { S = reservation.Id }
+                        },
+                        UpdateExpression = "SET #s = :cancelled, updatedAt = :updatedAt",
+                        ConditionExpression = "attribute_exists(id)",
+                        ExpressionAttributeNames = new Dictionary<string, string>
+                        {
+                            ["#s"] = "status"
+                        },
+                        ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                        {
+                            [":cancelled"] = new() { S = ReservationStatus.Cancelled.ToString() },
+                            [":updatedAt"]  = new() { S = DateTime.UtcNow.ToString("O") }
+                        }
+                    }
+                },
+
+                // Remove slots from TableDays
+                new()
+                {
+                    Update = new Update
+                    {
+                        TableName = "TableDays",
+                        Key = new Dictionary<string, AttributeValue>
+                        {
+                            ["tableKey"] = new() { S = reservation.TableKey },
+                            ["date"]     = new() { S = date.ToString("yyyy-MM-dd") }
+                        },
+                        UpdateExpression = "DELETE reservedSlots :slots",
+                        ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                        {
+                            [":slots"] = new() { SS = slots }
+                        }
+                    }
+                }
+            };
+
+            try
+            {
+                await _dynamoDb.TransactWriteItemsAsync(
+                    new TransactWriteItemsRequest { TransactItems = transactItems }, ct);
+                return true;
+            }
+            catch (TransactionCanceledException)
+            {
+                return false;
+            }
         }
     }
 }
