@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -37,6 +38,57 @@ namespace Restaurant.Core.Services
             if (!allowed) throw new UnauthorizedAccessException("Forbidden.");
 
             return r;
+        }
+
+        public async Task<bool> CancelReservation(string reservationId, string userId, bool isWaiter, CancellationToken ct = default)
+        {
+            var reservation = await _repo.GetByIdAsync(reservationId, ct);
+            if (reservation == null)
+            {
+                throw new ArgumentNullException("reservation", "Reservation does not exist");
+            }
+            
+
+            var allowed = reservation.CustomerId == userId || 
+                          (isWaiter && reservation.WaiterId == userId);
+            if (!allowed) throw new UnauthorizedAccessException("Forbidden.");
+
+            var startTime = DateTime.Parse(reservation.StartDateTime, null, DateTimeStyles.RoundtripKind);
+            if ((startTime - DateTime.UtcNow).TotalMinutes < 30)
+                throw new InvalidOperationException("Reservation cannot be cancelled less than 30 minutes before it starts.");
+            
+            var slots = GenerateSlots(DateTime.Parse(reservation.StartDateTime),
+                DateTime.Parse(reservation.EndDateTime));
+
+            bool result = await _repo.DeleteReservationAsync(reservation, slots, ct);
+            if (!result)
+            {
+                // TODO: Change to custom exception
+                throw new Exception("Something went wrong");
+            }
+
+            return true;
+        }
+        
+        private static List<string> GenerateSlots(DateTime start, DateTime end)
+        {
+            var slots = new List<string>();
+            var cursor = start;
+
+            while (cursor <= end)
+            {
+                slots.Add(cursor.ToString("yyyy-MM-ddTHH:mmZ"));
+
+                if (cursor == end) break;
+
+                cursor = cursor.AddMinutes(15);
+
+                if (slots.Count > 200)
+                    // TODO: Change to custom exception
+                    throw new Exception("Too big time diapason");
+            }
+
+            return slots;
         }
     }
 }

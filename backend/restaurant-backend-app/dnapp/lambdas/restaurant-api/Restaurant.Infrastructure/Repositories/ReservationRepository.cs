@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.DocumentModel;
+using Amazon.DynamoDBv2.Model;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 
@@ -17,10 +19,12 @@ namespace Restaurant.Infrastructure.Repositories
         private const string TableIndex = "tableKey-start-index";
 
         private readonly IDynamoDBContext _context;
+        private readonly IAmazonDynamoDB _client;
 
-        public ReservationRepository(IDynamoDBContext context)
+        public ReservationRepository(IDynamoDBContext context, IAmazonDynamoDB client)
         {
             _context = context;
+            _client = client;
         }
 
         public async Task<Reservation?> GetByIdAsync(string id, CancellationToken ct = default)
@@ -103,6 +107,67 @@ namespace Restaurant.Infrastructure.Repositories
                 op);
 
             return await search.GetRemainingAsync(ct);
+        }
+
+        public async Task<bool> DeleteReservationAsync(Reservation reservation, List<string> slots, CancellationToken ct = default)
+        {
+            var date = DateOnly.Parse(reservation.StartDateTime[..10]);
+
+            var transactItems = new List<TransactWriteItem>
+            {
+                new()
+                {
+                    Update = new Update
+                    {
+                        TableName = "Reservations",
+                        Key = new Dictionary<string, AttributeValue>
+                        {
+                            ["id"] = new() { S = reservation.Id }
+                        },
+                        UpdateExpression = "SET #s = :cancelled, updatedAt = :updatedAt",
+                        ConditionExpression = "attribute_exists(id)",
+                        ExpressionAttributeNames = new Dictionary<string, string>
+                        {
+                            ["#s"] = "status"
+                        },
+                        ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                        {
+                            [":cancelled"]  = new() { N = ((int)ReservationStatus.Canceled).ToString() },
+                            [":updatedAt"]  = new() { S = DateTime.UtcNow.ToString("O") }
+                        }
+                    }
+                },
+
+                // Remove slots from TableDays
+                new()
+                {
+                    Update = new Update
+                    {
+                        TableName = "TableDays",
+                        Key = new Dictionary<string, AttributeValue>
+                        {
+                            ["tableKey"] = new() { S = reservation.TableKey },
+                            ["date"]     = new() { S = date.ToString("yyyy-MM-dd") }
+                        },
+                        UpdateExpression = "DELETE reservedSlots :slots",
+                        ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                        {
+                            [":slots"] = new() { SS = slots }
+                        }
+                    }
+                }
+            };
+
+            try
+            {
+                await _client.TransactWriteItemsAsync(
+                    new TransactWriteItemsRequest { TransactItems = transactItems }, ct);
+                return true;
+            }
+            catch (TransactionCanceledException)
+            {
+                return false;
+            }
         }
     }
 }

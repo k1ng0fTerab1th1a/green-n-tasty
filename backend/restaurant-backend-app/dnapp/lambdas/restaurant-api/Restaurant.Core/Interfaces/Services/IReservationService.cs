@@ -11,5 +11,6 @@ namespace Restaurant.Core.Interfaces.Services
     {
         Task<Reservation?> GetByIdAsync(string id, string actorUserId, bool actorIsWaiter, CancellationToken ct = default);
         Task<IReadOnlyList<Reservation>> GetMyAsync(string actorUserId, bool actorIsWaiter, CancellationToken ct = default);
+        Task<bool> CancelReservation(string reservationId, string userId, bool isWaiter, CancellationToken ct = default);
     }
 }

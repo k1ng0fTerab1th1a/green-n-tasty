@@ -66,6 +66,7 @@ namespace Restaurant.Api
             services.AddScoped<IReservationRepository, ReservationRepository>();
             services.AddScoped<IReservationService, ReservationService>();
 
+
             services.AddAuthorization();
             services.AddCors(options =>
             {
