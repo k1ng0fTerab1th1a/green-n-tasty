@@ -1,10 +1,11 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Restaurant.Api.Contracts.Requests;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Api.Extensions;
+using Restaurant.Api.Mappers;
 using Restaurant.Api.Models;
-using Restaurant.Api.Models.Mappers;
 using Restaurant.Core.Interfaces;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
@@ -48,6 +49,17 @@ namespace Restaurant.Api.Controllers
                 return ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Reservation not found.");
 
             return ApiResponse<ReservationResponse>.Success(StatusCodes.Status200OK, entity.ToResponse());
+        }
+
+        [HttpPost("client")]
+        public async Task<IActionResult> CreateForClient([FromBody] CreateReservationRequest request, CancellationToken ct)
+        {
+            var customerId = User.GetUserId();
+            var reservationEntity = await _reservationService.CreateForClientAsync(customerId, request.ToCreateDTO(), ct);
+            if (reservationEntity is null)
+                return ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Failed to create reservation.");
+
+            return ApiResponse<ReservationResponse>.Success(StatusCodes.Status201Created, reservationEntity.ToResponse());
         }
     }
 }
