@@ -1,14 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
 
 namespace Restaurant.Infrastructure.Repositories
 {
@@ -19,12 +20,12 @@ namespace Restaurant.Infrastructure.Repositories
         private const string TableIndex = "tableKey-start-index";
 
         private readonly IDynamoDBContext _context;
-        private readonly IAmazonDynamoDB _client;
+        private readonly IAmazonDynamoDB _dynamoDb;
 
-        public ReservationRepository(IDynamoDBContext context, IAmazonDynamoDB client)
+        public ReservationRepository(IDynamoDBContext context, IAmazonDynamoDB dynamoDb)
         {
             _context = context;
-            _client = client;
+            _dynamoDb = dynamoDb;
         }
 
         public async Task<Reservation?> GetByIdAsync(string id, CancellationToken ct = default)
@@ -90,6 +91,68 @@ namespace Restaurant.Infrastructure.Repositories
             }
 
             return await search.GetRemainingAsync(ct);
+        }
+
+        public async Task<bool> CreateWithSlotsAsync(Reservation reservation, DateOnly date, List<string> slots, CancellationToken ct = default)
+        {
+            var reservationItem = _context.ToDocument(reservation).ToAttributeMap();
+
+            var conditionParts = slots.Select((_, i) => $"NOT contains(reservedSlots, :s{i})");
+            var conditionExpression = string.Join(" AND ", conditionParts);
+
+            var expressionValues = slots
+                .Select((slot, i) => (Key: $":s{i}", Value: slot))
+                .ToDictionary(
+                    x => x.Key,
+                    x => new AttributeValue { S = x.Value });
+
+            expressionValues[":newSlots"] = new AttributeValue { SS = slots };
+
+            var ttl = new DateTimeOffset(date.AddDays(2).ToDateTime(TimeOnly.MinValue)).ToUnixTimeSeconds();
+            expressionValues[":ttl"] = new AttributeValue { N = ttl.ToString() };
+
+            var transactItems = new List<TransactWriteItem>
+            {
+                new()
+                {
+                    Put = new Put
+                    {
+                        TableName           = "Reservations",
+                        Item                = reservationItem,
+                        ConditionExpression = "attribute_not_exists(id)"
+                    }
+                },
+                new()
+                {
+                    Update = new Update
+                    {
+                        TableName        = "TableDays",
+                        Key = new Dictionary<string, AttributeValue>
+                        {
+                            ["tableKey"] = new() { S = reservation.TableKey },
+                            ["date"]     = new() { S = date.ToString("yyyy-MM-dd") }
+                        },
+                        UpdateExpression = "ADD reservedSlots :newSlots SET #ttl = if_not_exists(#ttl, :ttl)",
+                        ExpressionAttributeNames = new Dictionary<string, string>
+                        {
+                            ["#ttl"] = "ttl"
+                        },
+                        ConditionExpression          = conditionExpression,
+                        ExpressionAttributeValues    = expressionValues
+                    }
+                }
+            };
+
+            try
+            {
+                await _dynamoDb.TransactWriteItemsAsync(
+                    new TransactWriteItemsRequest { TransactItems = transactItems }, ct);
+                return true;
+            }
+            catch (TransactionCanceledException)
+            {
+                return false;
+            }
         }
 
         public async Task<IReadOnlyList<Reservation>> QueryByTableAsync(
@@ -160,7 +223,7 @@ namespace Restaurant.Infrastructure.Repositories
 
             try
             {
-                await _client.TransactWriteItemsAsync(
+                await _dynamoDb.TransactWriteItemsAsync(
                     new TransactWriteItemsRequest { TransactItems = transactItems }, ct);
                 return true;
             }

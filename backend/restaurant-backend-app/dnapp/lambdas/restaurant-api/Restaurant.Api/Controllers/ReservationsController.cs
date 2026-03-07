@@ -1,11 +1,12 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Amazon.DynamoDBv2.DataModel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Restaurant.Api.Contracts.Requests;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Api.Extensions;
+using Restaurant.Api.Mappers;
 using Restaurant.Api.Models;
-using Restaurant.Api.Models.Mappers;
 using Restaurant.Core.Interfaces;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
@@ -63,6 +64,17 @@ namespace Restaurant.Api.Controllers
             var result = await _reservationService.CancelReservation(id,actorUserId, actorIsWaiter, ct);
             if (result) return Ok();
             return BadRequest("Deletion is unsuccessful");
+        }
+
+        [HttpPost("client")]
+        public async Task<IActionResult> CreateForClient([FromBody] CreateReservationRequest request, CancellationToken ct)
+        {
+            var customerId = User.GetUserId();
+            var reservationEntity = await _reservationService.CreateForClientAsync(customerId, request.ToCreateDTO(), ct);
+            if (reservationEntity is null)
+                return ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Failed to create reservation.");
+
+            return ApiResponse<ReservationResponse>.Success(StatusCodes.Status201Created, reservationEntity.ToResponse());
         }
     }
 }
