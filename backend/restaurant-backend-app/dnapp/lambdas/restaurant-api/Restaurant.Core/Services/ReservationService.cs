@@ -101,9 +101,6 @@ namespace Restaurant.Core.Services
             if (to.Minute % 15 != 0 || to.Second != 0)
                 throw new BusinessException("End time must be a multiple of 15 minutes.");
 
-            if (from == to)
-                throw new BusinessException("Start and end times cannot be the same.");
-
             var duration = CalculateDuration(from, to);
             if (duration < 60)
                 throw new BusinessException("Minimum booking duration is 60 minutes.");

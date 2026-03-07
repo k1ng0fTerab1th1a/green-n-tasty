@@ -107,6 +107,9 @@ namespace Restaurant.Infrastructure.Repositories
 
             expressionValues[":newSlots"] = new AttributeValue { SS = slots };
 
+            var ttl = new DateTimeOffset(date.AddDays(2).ToDateTime(TimeOnly.MinValue)).ToUnixTimeSeconds();
+            expressionValues[":ttl"] = new AttributeValue { N = ttl.ToString() };
+
             var transactItems = new List<TransactWriteItem>
             {
                 new()
@@ -128,7 +131,11 @@ namespace Restaurant.Infrastructure.Repositories
                             ["tableKey"] = new() { S = reservation.TableKey },
                             ["date"]     = new() { S = date.ToString("yyyy-MM-dd") }
                         },
-                        UpdateExpression             = "ADD reservedSlots :newSlots",
+                        UpdateExpression = "ADD reservedSlots :newSlots SET #ttl = if_not_exists(#ttl, :ttl)",
+                        ExpressionAttributeNames = new Dictionary<string, string>
+                        {
+                            ["#ttl"] = "ttl"
+                        },
                         ConditionExpression          = conditionExpression,
                         ExpressionAttributeValues    = expressionValues
                     }

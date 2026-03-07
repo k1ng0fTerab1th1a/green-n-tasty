@@ -20,7 +20,7 @@ public class AuthException : Exception
 
 public sealed class SlotUnavailableException : Exception
 {
-    public SlotUnavailableException() : base("Обраний час вже зайнятий.") { }
+    public SlotUnavailableException() : base("The selected time is already taken.") { }
 
     public SlotUnavailableException(string message) : base(message) { }
 }
