@@ -12,6 +12,9 @@ public class Table
     [DynamoDBProperty("locationAddress")]
     public required string LocationAddress { get; set; }
 
+    [DynamoDBProperty("locationTimeZone")]
+    public required string LocationTimeZone { get; set; }
+
     [DynamoDBProperty("capacity")]
     public required int Capacity { get; set; }
 }

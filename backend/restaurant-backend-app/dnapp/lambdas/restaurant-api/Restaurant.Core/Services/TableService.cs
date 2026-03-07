@@ -2,12 +2,12 @@
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Microsoft.Extensions.Configuration;
-using System.Runtime.CompilerServices;
+using Restaurant.Core.Models;
 
 namespace Restaurant.Core.Services;
 
 public class TableService(
-    ITableRepository _tableRepository, 
+    ITableRepository _tableRepository,
     ITableDayRepository _tableDayRepository,
     IConfiguration _config) : ITableService
 {
@@ -15,10 +15,10 @@ public class TableService(
     private const int IGNORE_SLOT_IF_LESS_THAN_MINUTES = 60;
 
     public async Task<IReadOnlyList<TableWithAvailableSlots>> GetAvailableTablesAsync(
-        DateOnly date, 
-        TimeOnly? time, 
-        string? locationId, 
-        int? capacity, 
+        DateOnly date,
+        TimeOnly? time,
+        string? locationId,
+        int? capacity,
         CancellationToken ct)
     {
         IReadOnlyList<Table> tables = string.IsNullOrWhiteSpace(locationId)
@@ -48,20 +48,20 @@ public class TableService(
             shiftEndLocal = shiftEndLocal.AddDays(1);
         }
 
-        DateTime shiftStartUtc = TimeZoneInfo.ConvertTimeToUtc(shiftStartLocal, tz);
-        DateTime shiftEndUtc = TimeZoneInfo.ConvertTimeToUtc(shiftEndLocal, tz);
+        DateTimeOffset shiftStartOffset = new(shiftStartLocal, tz.GetUtcOffset(shiftStartLocal));
+        DateTimeOffset shiftEndOffset = new(shiftEndLocal, tz.GetUtcOffset(shiftEndLocal));
 
-        DateTime? requestedTimeUtc = null;
+        DateTime? requestedLocalDt = null;
         if (time.HasValue)
         {
-            var reqLocalDt = date.ToDateTime(time.Value);
+            requestedLocalDt = date.ToDateTime(time.Value);
 
             if (isNightShift && time.Value < openTime)
             {
-                reqLocalDt = reqLocalDt.AddDays(1);
+                requestedLocalDt = requestedLocalDt.Value.AddDays(1);
             }
 
-            requestedTimeUtc = TimeZoneInfo.ConvertTimeToUtc(reqLocalDt, tz); // TODO: convert for each table using table.LocationTimeZone
+            requestedTimeOffset = new(requestedLocalDt.Value, tz.GetUtcOffset(requestedLocalDt.Value)); // TODO: convert for each table using table.LocationTimeZone
         }
 
         List<TableWithAvailableSlots> result = new();
@@ -76,19 +76,22 @@ public class TableService(
             HashSet<string> reserved = tableDay?.ReservedSlots ?? new HashSet<string>();
 
             // If time is specified, do not process tables where the requested time is reserved
-            if (requestedTimeUtc.HasValue && reserved.Contains(requestedTimeUtc.Value.ToString("yyyy-MM-ddTHH:mm:ssZ")))
+            if (requestedTimeOffset.HasValue && reserved.Contains(requestedTimeOffset.Value.ToString("yyyy-MM-ddTHH:mm:ssZ")))
                 continue;
 
             var availableSlots = new List<TimeSlot>();
-            var slotStartUtc = shiftStartUtc;
+            var slotStartUtc = shiftStartOffset;
             TimeSlot? currentAvailableSlot = null;
 
             while (slotStartUtc < shiftEndUtc)
             {
-                if (slotStartUtc < nowUtc) 
-                    continue;
-
                 var slotEndUtc = slotStartUtc.AddMinutes(SLOT_DURATION_MINUTES);
+
+                if (slotStartUtc < nowUtc)
+                {
+                    slotStartUtc = slotEndUtc;
+                    continue;
+                }
 
                 bool slotIsFree = !reserved.Contains(slotStartUtc.ToString("yyyy-MM-ddTHH:mm:ssZ"));
 
@@ -96,30 +99,31 @@ public class TableService(
                 {
                     if (currentAvailableSlot == null)
                     {
-                        currentAvailableSlot = new TimeSlot { 
-                            StartUtc = slotStartUtc,
-                            EndUtc = slotEndUtc 
+                        currentAvailableSlot = new TimeSlot
+                        {
+                            StartOffset = slotStartUtc,
+                            EndOffset = slotEndUtc
                         };
                     }
                     else
                     {
-                        currentAvailableSlot.EndUtc = slotEndUtc;
+                        currentAvailableSlot.EndOffset = slotEndUtc;
                     }
                 }
                 else
                 {
-                    if (currentAvailableSlot != null && 
+                    if (currentAvailableSlot != null &&
                         currentAvailableSlot.IsAtLeastMinutes(IGNORE_SLOT_IF_LESS_THAN_MINUTES))
                     {
                         availableSlots.Add(currentAvailableSlot);
-                        currentAvailableSlot = null;
                     }
+                    currentAvailableSlot = null;
                 }
 
                 slotStartUtc = slotEndUtc;
             }
 
-            if (currentAvailableSlot != null && 
+            if (currentAvailableSlot != null &&
                 currentAvailableSlot.IsAtLeastMinutes(IGNORE_SLOT_IF_LESS_THAN_MINUTES))
             {
                 availableSlots.Add(currentAvailableSlot);
@@ -132,19 +136,81 @@ public class TableService(
                 TableNumber = table.TableNumber,
                 Capacity = table.Capacity,
                 LocationAddress = table.LocationAddress,
-                LocationTimeZone = tzId, // TODO: get from table
+                LocationTimeZone = table.LocationTimeZone,
                 AvailableSlots = availableSlots
             });
         }
 
         return result;
     }
+
+    private static List<TimeSlot> GenerateAvailableSlots(
+        IList<DateTimeOffset> allSlots, 
+        HashSet<string> reserved,
+        TimeZoneInfo tz)
+    {
+        List<TimeSlot> availableSlots = new();
+        TimeSlot? currentAvailableSlot = null;
+        DateTimeOffset nowOffset = DateTimeOffset.UtcNow;
+
+        foreach (DateTimeOffset slotStartOffset in allSlots)
+        {
+            if (slotStartOffset < nowOffset)
+                continue;
+            
+            DateTimeOffset slotEndOffset = slotStartOffset.AddMinutesWithTz(SLOT_DURATION_MINUTES, tz);
+
+            bool slotIsFree = !reserved.Contains(slotStartOffset.ToString("yyyy-MM-ddTHH:mmzzz"));
+
+            if (slotIsFree)
+            {
+                if (currentAvailableSlot == null)
+                {
+                    currentAvailableSlot = new TimeSlot
+                    {
+                        StartOffset = slotStartOffset,
+                        EndOffset = slotEndOffset
+                    };
+                }
+                else
+                {
+                    currentAvailableSlot.EndOffset = slotEndOffset;
+                }
+            }
+            else
+            {
+                if (currentAvailableSlot != null &&
+                    currentAvailableSlot.IsAtLeastMinutes(IGNORE_SLOT_IF_LESS_THAN_MINUTES, tz))
+                {
+                    availableSlots.Add(currentAvailableSlot);
+                }
+                currentAvailableSlot = null;
+            }
+        }
+
+        if (currentAvailableSlot != null &&
+        currentAvailableSlot.IsAtLeastMinutes(IGNORE_SLOT_IF_LESS_THAN_MINUTES, tz))
+        {
+            availableSlots.Add(currentAvailableSlot);
+        }
+
+        return availableSlots;
+    }
 }
 
-static class TimeSlotExtensions
+static class TimeExtensions
 {
-    internal static bool IsAtLeastMinutes(this TimeSlot timeSlot, int minutes)
+    internal static bool IsAtLeastMinutes(this TimeSlot timeSlot, int minutes, TimeZoneInfo tz)
     {
-        return timeSlot.StartUtc.AddMinutes(minutes) <= timeSlot.EndUtc;
+        return timeSlot.StartOffset.AddMinutesWithTz(minutes, tz) <= timeSlot.EndOffset;
+    }
+
+    internal static DateTimeOffset AddMinutesWithTz(this DateTimeOffset dateTimeOffset, int minutes, TimeZoneInfo tz)
+    {
+        var resultUtc = dateTimeOffset.UtcDateTime.AddMinutes(minutes);
+        return new DateTimeOffset(
+            TimeZoneInfo.ConvertTimeFromUtc(resultUtc, tz),
+            tz.GetUtcOffset(resultUtc)
+        );
     }
 }

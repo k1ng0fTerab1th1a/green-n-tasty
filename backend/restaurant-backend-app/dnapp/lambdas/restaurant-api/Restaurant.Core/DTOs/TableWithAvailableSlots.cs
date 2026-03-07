@@ -13,6 +13,6 @@ public class TableWithAvailableSlots
 
 public class TimeSlot
 {
-    public required DateTime StartUtc { get; set; }
-    public required DateTime EndUtc { get; set; }
+    public required DateTimeOffset StartOffset { get; set; }
+    public required DateTimeOffset EndOffset { get; set; }
 }
