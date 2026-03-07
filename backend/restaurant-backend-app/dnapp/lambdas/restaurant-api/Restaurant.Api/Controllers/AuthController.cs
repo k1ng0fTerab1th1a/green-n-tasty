@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.Contracts.Requests;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Core.Interfaces.Services;
-using Restaurant.Core.Models.SharedModels;
+using Restaurant.Core.SharedModels;
 
 namespace Restaurant.Api.Controllers;
 

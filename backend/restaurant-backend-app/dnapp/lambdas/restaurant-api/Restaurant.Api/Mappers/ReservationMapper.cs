@@ -1,7 +1,9 @@
-﻿using Restaurant.Api.Contracts.Responses;
+﻿using Restaurant.Api.Contracts.Requests;
+using Restaurant.Api.Contracts.Responses;
+using Restaurant.Core.DTOs;
 using Restaurant.Core.Models;
 
-namespace Restaurant.Api.Models.Mappers
+namespace Restaurant.Api.Mappers
 {
     public static class ReservationMapper
     {
@@ -15,5 +17,14 @@ namespace Restaurant.Api.Models.Mappers
             EndDateTime = x.EndDateTime,
             Status = x.Status.ToString()
         };
+
+        public static CreateReservationDTO ToCreateDTO(this CreateReservationRequest x) => new(
+            x.LocationId,
+            x.TableNumber,
+            DateOnly.Parse(x.Date),
+            TimeOnly.Parse(x.TimeFrom),
+            TimeOnly.Parse(x.TimeTo),
+            x.GuestsCount
+        );
     }
 }
