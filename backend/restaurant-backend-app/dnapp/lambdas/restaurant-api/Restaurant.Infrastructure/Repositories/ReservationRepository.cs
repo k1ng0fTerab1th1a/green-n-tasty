@@ -234,37 +234,27 @@ namespace Restaurant.Infrastructure.Repositories
             List<string> newSlots,
             List<string> oldSlots,
             string oldTableKey,
-            string oldDateString,
-            bool isDayDifferent,
-            Table? newTable = null,
+            DateTimeOffset oldStart,
             CancellationToken ct = default)
         {
-            var oldDate = DateOnly.Parse(oldDateString);
-            var newDate = DateOnly.Parse(reservation.StartDateTime[..10]);
-            var ttl     = ComputeTtl(newDate);
+            var oldDate = DateOnly.FromDateTime(oldStart.DateTime);
+            var newDate = DateOnly.FromDateTime(DateTimeOffset.Parse(reservation.StartDateTime).DateTime);
+            var ttl = ComputeTtl(newDate);
 
             var reservationItem = _context.ToDocument(reservation).ToAttributeMap();
 
-            if (!isDayDifferent && newTable == null)
-            {
-                await UpdateSameTableSameDayAsync(
-                    reservation, reservationItem, newSlots, oldSlots,
-                    oldTableKey, oldDate, ttl, ct);
-            }
-            else
-            {
-                var targetTableKey = newTable != null ? reservation.TableKey : oldTableKey;
+            bool isTableDifferent = oldTableKey != reservation.TableKey;
+            bool isDayDifferent = oldDate != newDate;
 
-                await UpdateDifferentTableOrDayAsync(
-                    reservationItem, newSlots, oldSlots,
-                    targetTableKey, oldTableKey, newDate, oldDate, ttl, ct);
-            }
+            if (!isTableDifferent && !isDayDifferent)
+                await UpdateSameTableSameDayAsync(reservationItem, newSlots, oldSlots, reservation.TableKey, newDate, ttl, ct);
+            else
+                await UpdateDifferentTableOrDayAsync(reservationItem, newSlots, oldSlots, reservation.TableKey, oldTableKey, newDate, oldDate, ttl, ct);
 
             return reservation;
         }
-        
+
         private async Task UpdateSameTableSameDayAsync(
-            Reservation reservation,
             Dictionary<string, AttributeValue> reservationItem,
             List<string> newSlots,
             List<string> oldSlots,

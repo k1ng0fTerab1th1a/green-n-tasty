@@ -37,9 +37,7 @@ namespace Restaurant.Core.Interfaces.Repositories
             List<string> newSlots,
             List<string> oldSlots,
             string oldTableKey,
-            string oldDateString,
-            bool isDayDifferent,
-            Table? newTable = null,
+            DateTimeOffset oldStart,
             CancellationToken ct = default);
     }
 }

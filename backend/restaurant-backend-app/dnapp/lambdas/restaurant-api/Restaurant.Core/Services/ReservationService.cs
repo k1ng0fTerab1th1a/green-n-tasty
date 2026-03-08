@@ -137,35 +137,24 @@ namespace Restaurant.Core.Services
             List<string> oldSlots = GenerateSlots(oldStart, oldEnd);
             List<string> newSlots = GenerateSlots(newStart, newEnd);
 
-            bool isTableDifferent = reservation.TableNumber != dto.TableNumber;
-            bool isDayDifferent   = newStart.Date != oldStart.Date;
+            var oldTableKey = reservation.TableKey;
 
-            Table? table = await _tableRepository.GetByLocationAndTableNumberAsync(
-                reservation.LocationId,
-                isTableDifferent ? dto.TableNumber : reservation.TableNumber,
-                ct) ?? throw new ArgumentNullException("dto", "This table does not exist");
+            var table = await _tableRepository.GetByLocationAndTableNumberAsync(
+                reservation.LocationId, dto.TableNumber, ct)
+                ?? throw new BusinessException("Table not found.");
 
             if (table.Capacity < dto.GuestNumber)
-                throw new BusinessException("Amount of guests exceeds the table capacity");
+                throw new BusinessException("Amount of guests exceeds the table capacity.");
 
-            var oldTableKey   = reservation.TableKey; 
-            var oldDateString = reservation.StartDateTime;
-            // Apply new values to reservation object before passing to repo
-            reservation.GuestsCount   = dto.GuestNumber;
+            reservation.GuestsCount = dto.GuestNumber;
             reservation.StartDateTime = newStart.ToString("yyyy-MM-ddTHH:mmzzz");
-            reservation.EndDateTime   = newEnd.ToString("yyyy-MM-ddTHH:mmzzz");
-            reservation.UpdatedAt     = DateTime.UtcNow.ToString("O");
+            reservation.EndDateTime = newEnd.ToString("yyyy-MM-ddTHH:mmzzz");
+            reservation.UpdatedAt = DateTime.UtcNow.ToString("O");
 
-            if (isTableDifferent)
-            {
-                reservation.TableNumber = dto.TableNumber;
-                reservation.TableKey    = $"{reservation.LocationId}#{dto.TableNumber}";
-            }
+            reservation.TableNumber = dto.TableNumber;
+            reservation.TableKey = $"{reservation.LocationId}#{dto.TableNumber}";
 
-            return await _repo.UpdateReservationAsync(reservation, newSlots, oldSlots, oldTableKey, 
-                oldDateString, 
-                isDayDifferent,
-                isTableDifferent ? table : null, ct);
+            return await _repo.UpdateReservationAsync(reservation, newSlots, oldSlots, oldTableKey, oldStart, ct);
         }
 
         private static void ValidateReservationTime(TimeOnly from, TimeOnly to, DateOnly date, Location location)
@@ -203,7 +192,7 @@ namespace Restaurant.Core.Services
         }
         private static int CalculateDuration(TimeOnly from, TimeOnly to)
         {
-            if (to > from)
+            if (to >= from)
                 return (int)(to - from).TotalMinutes;
 
             var toMidnight = (int)(TimeOnly.MaxValue - from).TotalMinutes + 1;
