@@ -81,18 +81,15 @@ namespace Restaurant.Api.Controllers
         }
 
         [HttpPut("{id}/{isWaiter:bool}")]
-        public async Task<IActionResult> UpdateReservation([FromBody] 
-        UpdateReservationRequest 
-            request, 
-        CancellationToken ct)
+        public async Task<IActionResult> UpdateReservation(
+            [FromBody] UpdateReservationRequest request, 
+            CancellationToken ct)
         {
             
             var actorUserId = User.GetUserId();
             var actorIsWaiter = User.IsWaiter();
 
-            var updatedReservation = await _reservationService.UpdateReservationAsync(actorUserId, actorIsWaiter, 
-                request
-                .ToUpdateDTO(), ct);
+            var updatedReservation = await _reservationService.UpdateReservationAsync(actorUserId, actorIsWaiter, request.ToUpdateDTO(), ct);
 
             if (updatedReservation == null)
             {

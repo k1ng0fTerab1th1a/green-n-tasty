@@ -127,7 +127,7 @@ namespace Restaurant.Core.Services
             var newStart = DateTimeOffset.Parse(dto.StartTime);
             var newEnd   = DateTimeOffset.Parse(dto.EndTime);
 
-            List<string> oldSlots = GenerateSlots(oldStart.UtcDateTime, oldEnd.UtcDateTime);
+            List<string> oldSlots = GenerateSlots(oldStart, oldEnd);
             List<string> newSlots = GenerateSlots(newStart.UtcDateTime, newEnd.UtcDateTime);
 
             bool isTableDifferent = reservation.TableNumber != dto.TableNumber;
@@ -140,12 +140,13 @@ namespace Restaurant.Core.Services
 
             if (table.Capacity < dto.GuestNumber)
                 throw new BusinessException("Amount of guests exceeds the table capacity");
+
             var oldTableKey   = reservation.TableKey; 
             var oldDateString = reservation.StartDateTime[..10];
             // Apply new values to reservation object before passing to repo
             reservation.GuestsCount   = dto.GuestNumber;
-            reservation.StartDateTime = newStart.ToString("O");
-            reservation.EndDateTime   = newEnd.ToString("O");
+            reservation.StartDateTime = newStart.ToString("yyyy-MM-ddTHH:mmzzz");
+            reservation.EndDateTime   = newEnd.ToString("yyyy-MM-ddTHH:mmzzz");
             reservation.UpdatedAt     = DateTime.UtcNow.ToString("O");
 
             if (isTableDifferent)
