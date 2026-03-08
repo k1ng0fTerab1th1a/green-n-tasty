@@ -5,7 +5,6 @@ public class TableWithAvailableSlots
     public required string LocationId { get; set; }
     public required int TableNumber { get; set; }
     public required string LocationAddress { get; set; }
-    public required string LocationTimeZone { get; set; }
     public required int Capacity { get; set; }
 
     public required IList<TimeSlot> AvailableSlots { get; set; }

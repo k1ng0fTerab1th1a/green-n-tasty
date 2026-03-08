@@ -1,7 +1,6 @@
 ﻿using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
-using Microsoft.Extensions.Configuration;
 using Restaurant.Core.Models;
 
 namespace Restaurant.Core.Services;
@@ -9,12 +8,12 @@ namespace Restaurant.Core.Services;
 public class TableService(
     ITableRepository _tableRepository,
     ITableDayRepository _tableDayRepository,
-    IConfiguration _config) : ITableService
+    ILocationRepository _locationRepository) : ITableService
 {
     private const int SLOT_DURATION_MINUTES = 15;
     private const int IGNORE_SLOT_IF_LESS_THAN_MINUTES = 60;
 
-    public async Task<IReadOnlyList<TableWithAvailableSlots>> GetAvailableTablesAsync(
+    public async Task<IList<TableWithAvailableSlots>> GetAvailableTablesAsync(
         DateOnly date,
         TimeOnly? time,
         string? locationId,
@@ -33,119 +32,101 @@ public class TableService(
         if (!tables.Any())
             return new List<TableWithAvailableSlots>();
 
-        string tzId = _config["RestaurantSettings:LocationsTimeZone"] ?? "Asia/Tbilisi"; // TODO: add to locations and tables
-        TimeZoneInfo tz = TimeZoneInfo.FindSystemTimeZoneById(tzId);
+        List<TableWithAvailableSlots> result = new();
 
-        TimeOnly openTime = TimeOnly.Parse(_config["RestaurantSettings:RestaurantsOpenTime"] ?? "08:00");
-        TimeOnly closeTime = TimeOnly.Parse(_config["RestaurantSettings:RestaurantsCloseTime"] ?? "23:30");
+        foreach (var locationTables in tables.GroupBy(t => t.LocationId))
+        {
+            Table first = locationTables.First();
+            var locId = first.LocationId;
 
+            Location location = await _locationRepository.GetByIdAsync(locId, ct) 
+                ?? throw new InvalidDataException($"location with id {locId} not found but was specified in table #{first.TableNumber}");
+
+            DateTime startLocal = date.ToDateTime(TimeOnly.Parse(location.OpenTime));
+            DateTime endLocal = date.ToDateTime(TimeOnly.Parse(location.CloseTime));
+
+            result.AddRange(await GetAvailableSlotsForLocationAsync(
+                locationTables,
+                date,
+                TimeOnly.Parse(location.OpenTime),
+                TimeOnly.Parse(location.CloseTime),
+                time,
+                TimeZoneInfo.FindSystemTimeZoneById(location.TimeZone),
+                ct
+            ));
+        }
+
+        return result;
+    }
+
+    private async Task<IList<TableWithAvailableSlots>> GetAvailableSlotsForLocationAsync(
+        IEnumerable<Table> tables,
+        DateOnly date,
+        TimeOnly openTime,
+        TimeOnly closeTime,
+        TimeOnly? requestedTime,
+        TimeZoneInfo tz,
+        CancellationToken ct)
+    {
         DateTime shiftStartLocal = date.ToDateTime(openTime);
         DateTime shiftEndLocal = date.ToDateTime(closeTime);
 
-        bool isNightShift = closeTime < openTime;
+        bool isNightShift = shiftEndLocal < shiftStartLocal;
         if (isNightShift)
         {
             shiftEndLocal = shiftEndLocal.AddDays(1);
         }
 
-        DateTimeOffset shiftStartOffset = new(shiftStartLocal, tz.GetUtcOffset(shiftStartLocal));
-        DateTimeOffset shiftEndOffset = new(shiftEndLocal, tz.GetUtcOffset(shiftEndLocal));
-
-        DateTime? requestedLocalDt = null;
-        if (time.HasValue)
+        DateTimeOffset? reqTimeOffset = null;
+        if (requestedTime.HasValue)
         {
-            requestedLocalDt = date.ToDateTime(time.Value);
+            DateTime reqTimeLocal = date.ToDateTime(requestedTime.Value);
 
-            if (isNightShift && time.Value < openTime)
+            // WARNING: the code below can lead to a slight misinterpretation: 
+            // e.g. if a shift is from 2026-01-01 14:00 to 2026-01-02 02:00,
+            // and the requested date and time are 2026-01-01 01:00,
+            // reqTimeLocal will become 2026-01-02 01:00.
+            if (isNightShift && reqTimeLocal < shiftStartLocal)
             {
-                requestedLocalDt = requestedLocalDt.Value.AddDays(1);
+                reqTimeLocal = reqTimeLocal.AddDays(1);
             }
-
-            requestedTimeOffset = new(requestedLocalDt.Value, tz.GetUtcOffset(requestedLocalDt.Value)); // TODO: convert for each table using table.LocationTimeZone
+            reqTimeOffset = new(reqTimeLocal, tz.GetUtcOffset(reqTimeLocal));
         }
 
+        string dateStr = shiftStartLocal.ToString("yyyy-MM-dd");
+
+        List<DateTimeOffset> slotsForShift = GenerateSlotsForShift(shiftStartLocal, shiftEndLocal, tz);
         List<TableWithAvailableSlots> result = new();
-        DateTime nowUtc = DateTime.UtcNow;
-        string dateStr = date.ToString("yyyy-MM-dd");
 
         foreach (Table table in tables)
         {
             string tableKey = $"{table.LocationId}#{table.TableNumber}";
-            var tableDay = await _tableDayRepository.GetByTableAndDateAsync(tableKey, dateStr, ct);
-
+            TableDay? tableDay = await _tableDayRepository.GetByTableAndDateAsync(tableKey, dateStr, ct);
             HashSet<string> reserved = tableDay?.ReservedSlots ?? new HashSet<string>();
 
-            // If time is specified, do not process tables where the requested time is reserved
-            if (requestedTimeOffset.HasValue && reserved.Contains(requestedTimeOffset.Value.ToString("yyyy-MM-ddTHH:mm:ssZ")))
+            if (reqTimeOffset.HasValue && reserved.Contains(reqTimeOffset.Value.ToString("yyyy-MM-ddTHH:mmzzz")))
                 continue;
 
-            var availableSlots = new List<TimeSlot>();
-            var slotStartUtc = shiftStartOffset;
-            TimeSlot? currentAvailableSlot = null;
+            List<TimeSlot> availableSlots = GenerateAvailableSlots(slotsForShift, reserved, tz);
 
-            while (slotStartUtc < shiftEndUtc)
+            if (availableSlots.Count != 0)
             {
-                var slotEndUtc = slotStartUtc.AddMinutes(SLOT_DURATION_MINUTES);
-
-                if (slotStartUtc < nowUtc)
+                result.Add(new TableWithAvailableSlots
                 {
-                    slotStartUtc = slotEndUtc;
-                    continue;
-                }
-
-                bool slotIsFree = !reserved.Contains(slotStartUtc.ToString("yyyy-MM-ddTHH:mm:ssZ"));
-
-                if (slotIsFree)
-                {
-                    if (currentAvailableSlot == null)
-                    {
-                        currentAvailableSlot = new TimeSlot
-                        {
-                            StartOffset = slotStartUtc,
-                            EndOffset = slotEndUtc
-                        };
-                    }
-                    else
-                    {
-                        currentAvailableSlot.EndOffset = slotEndUtc;
-                    }
-                }
-                else
-                {
-                    if (currentAvailableSlot != null &&
-                        currentAvailableSlot.IsAtLeastMinutes(IGNORE_SLOT_IF_LESS_THAN_MINUTES))
-                    {
-                        availableSlots.Add(currentAvailableSlot);
-                    }
-                    currentAvailableSlot = null;
-                }
-
-                slotStartUtc = slotEndUtc;
+                    LocationId = table.LocationId,
+                    TableNumber = table.TableNumber,
+                    Capacity = table.Capacity,
+                    LocationAddress = table.LocationAddress,
+                    AvailableSlots = availableSlots
+                });
             }
-
-            if (currentAvailableSlot != null &&
-                currentAvailableSlot.IsAtLeastMinutes(IGNORE_SLOT_IF_LESS_THAN_MINUTES))
-            {
-                availableSlots.Add(currentAvailableSlot);
-                currentAvailableSlot = null;
-            }
-
-            result.Add(new TableWithAvailableSlots
-            {
-                LocationId = table.LocationId,
-                TableNumber = table.TableNumber,
-                Capacity = table.Capacity,
-                LocationAddress = table.LocationAddress,
-                LocationTimeZone = table.LocationTimeZone,
-                AvailableSlots = availableSlots
-            });
         }
 
         return result;
     }
 
     private static List<TimeSlot> GenerateAvailableSlots(
-        IList<DateTimeOffset> allSlots, 
+        IList<DateTimeOffset> allSlots,
         HashSet<string> reserved,
         TimeZoneInfo tz)
     {
@@ -157,7 +138,7 @@ public class TableService(
         {
             if (slotStartOffset < nowOffset)
                 continue;
-            
+
             DateTimeOffset slotEndOffset = slotStartOffset.AddMinutesWithTz(SLOT_DURATION_MINUTES, tz);
 
             bool slotIsFree = !reserved.Contains(slotStartOffset.ToString("yyyy-MM-ddTHH:mmzzz"));
@@ -180,7 +161,7 @@ public class TableService(
             else
             {
                 if (currentAvailableSlot != null &&
-                    currentAvailableSlot.IsAtLeastMinutes(IGNORE_SLOT_IF_LESS_THAN_MINUTES, tz))
+                    currentAvailableSlot.IsAtLeastMinutes(IGNORE_SLOT_IF_LESS_THAN_MINUTES))
                 {
                     availableSlots.Add(currentAvailableSlot);
                 }
@@ -189,20 +170,37 @@ public class TableService(
         }
 
         if (currentAvailableSlot != null &&
-        currentAvailableSlot.IsAtLeastMinutes(IGNORE_SLOT_IF_LESS_THAN_MINUTES, tz))
+        currentAvailableSlot.IsAtLeastMinutes(IGNORE_SLOT_IF_LESS_THAN_MINUTES))
         {
             availableSlots.Add(currentAvailableSlot);
         }
 
         return availableSlots;
     }
+
+    private static List<DateTimeOffset> GenerateSlotsForShift(DateTime startLocal, DateTime endLocal, TimeZoneInfo tz)
+    {
+        List<DateTimeOffset> slots = new();
+
+        DateTimeOffset currentOffset = new(startLocal, tz.GetUtcOffset(startLocal));
+        DateTimeOffset endOffset = new(endLocal, tz.GetUtcOffset(endLocal));
+
+        while (currentOffset < endOffset)
+        {
+            slots.Add(currentOffset);
+
+            currentOffset = currentOffset.AddMinutesWithTz(SLOT_DURATION_MINUTES, tz);
+        }
+
+        return slots;
+    }
 }
 
 static class TimeExtensions
 {
-    internal static bool IsAtLeastMinutes(this TimeSlot timeSlot, int minutes, TimeZoneInfo tz)
+    internal static bool IsAtLeastMinutes(this TimeSlot timeSlot, int minutes)
     {
-        return timeSlot.StartOffset.AddMinutesWithTz(minutes, tz) <= timeSlot.EndOffset;
+        return (timeSlot.EndOffset - timeSlot.StartOffset).TotalMinutes >= minutes;
     }
 
     internal static DateTimeOffset AddMinutesWithTz(this DateTimeOffset dateTimeOffset, int minutes, TimeZoneInfo tz)

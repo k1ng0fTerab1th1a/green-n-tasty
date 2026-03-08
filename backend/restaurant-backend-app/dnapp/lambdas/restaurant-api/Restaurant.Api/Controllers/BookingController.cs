@@ -12,7 +12,7 @@ namespace Restaurant.Api.Controllers;
 public class BookingController(ITableService _tableService) : ControllerBase
 {
     [HttpGet("tables")]
-    public async Task<ApiResponse<IReadOnlyList<TableWithAvailableSlots>>> GetAvailableTables(
+    public async Task<ApiResponse<IList<TableWithAvailableSlots>>> GetAvailableTables(
         [FromQuery] string date, 
         [FromQuery] string? time,
         [FromQuery] string? locationId,
@@ -21,7 +21,7 @@ public class BookingController(ITableService _tableService) : ControllerBase
     {
         if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out var parsedDate))
         {
-            return ApiResponse<IReadOnlyList<TableWithAvailableSlots>>.Fail(StatusCodes.Status400BadRequest, "Date must be in yyyy-MM-dd format.");
+            return ApiResponse<IList<TableWithAvailableSlots>>.Fail(StatusCodes.Status400BadRequest, "Date must be in yyyy-MM-dd format.");
         }
 
         TimeOnly? parsedTime = null;
@@ -34,6 +34,6 @@ public class BookingController(ITableService _tableService) : ControllerBase
         }
 
         var availableTables = await _tableService.GetAvailableTablesAsync(parsedDate, parsedTime, locationId, guests, ct);
-        return ApiResponse<IReadOnlyList<TableWithAvailableSlots>>.Success(StatusCodes.Status200OK, availableTables);
+        return ApiResponse<IList<TableWithAvailableSlots>>.Success(StatusCodes.Status200OK, availableTables);
     }
 }
