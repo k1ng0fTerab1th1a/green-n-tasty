@@ -1,10 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,7 +23,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\dnapp\lambdas\restaurant-api\Restaurant.Api\Restaurant.Api.csproj" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Api/Restaurant.Api.csproj" />
+    <ProjectReference Include="../../../backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Infrastructure/Restaurant.Infrastructure.csproj" />
+    <ProjectReference Include="../../../backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Core/Restaurant.Core.csproj" />
   </ItemGroup>
 
 </Project>
