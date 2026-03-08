@@ -36,6 +36,8 @@ namespace Restaurant.Core.Interfaces.Repositories
             Reservation reservation,
             List<string> newSlots,
             List<string> oldSlots,
+            string oldTableKey,
+            string oldDateString,
             bool isDayDifferent,
             Table? newTable = null,
             CancellationToken ct = default);

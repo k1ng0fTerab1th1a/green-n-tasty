@@ -17,10 +17,11 @@ namespace Restaurant.Api.Controllers
 {
     [ApiController]
     [Route("reservations")]
-    [Authorize]
+    //[Authorize]
     public sealed class ReservationsController : ControllerBase
     {
         private readonly IReservationService _reservationService;
+
         public ReservationsController(IReservationService reservationService)
         {
             _reservationService = reservationService;
@@ -79,9 +80,13 @@ namespace Restaurant.Api.Controllers
             return ApiResponse<ReservationResponse>.Success(StatusCodes.Status201Created, reservationEntity.ToResponse());
         }
 
-        [HttpPut]
-        public async Task<IActionResult> UpdateReservation([FromBody] UpdateReservationRequest request, CancellationToken ct)
+        [HttpPut("{id}/{isWaiter:bool}")]
+        public async Task<IActionResult> UpdateReservation([FromBody] 
+        UpdateReservationRequest 
+            request, 
+        CancellationToken ct)
         {
+            
             var actorUserId = User.GetUserId();
             var actorIsWaiter = User.IsWaiter();
 

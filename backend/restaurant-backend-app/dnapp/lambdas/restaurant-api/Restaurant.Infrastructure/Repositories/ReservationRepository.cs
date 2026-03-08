@@ -233,91 +233,92 @@ namespace Restaurant.Infrastructure.Repositories
             Reservation reservation,
             List<string> newSlots,
             List<string> oldSlots,
+            string oldTableKey,
+            string oldDateString,
             bool isDayDifferent,
             Table? newTable = null,
             CancellationToken ct = default)
         {
-            var oldTableKey = reservation.TableKey;
-            var oldDate     = DateOnly.Parse(reservation.StartDateTime[..10]);
-            var newDate     = DateOnly.Parse(reservation.StartDateTime[..10]);
-            var ttl = new DateTimeOffset(newDate.AddDays(2).ToDateTime(TimeOnly.MinValue)).ToUnixTimeSeconds();
+            var oldDate = DateOnly.Parse(oldDateString);
+            var newDate = DateOnly.Parse(reservation.StartDateTime[..10]);
+            var ttl     = ComputeTtl(newDate);
 
             var reservationItem = _context.ToDocument(reservation).ToAttributeMap();
 
-            // ── CASE 1: Same table, same day ────────────────────────────────────────
-            // Single transaction: swap old slots for new ones + update reservation
             if (!isDayDifferent && newTable == null)
             {
-                var exprValues = newSlots
-                    .Select((s, i) => (Key: $":ns{i}", Value: s))
-                    .ToDictionary(x => x.Key, x => new AttributeValue { S = x.Value });
+                await UpdateSameTableSameDayAsync(
+                    reservation, reservationItem, newSlots, oldSlots,
+                    oldTableKey, oldDate, ttl, ct);
+            }
+            else
+            {
+                var targetTableKey = newTable != null ? reservation.TableKey : oldTableKey;
 
-                exprValues[":newSlots"] = new AttributeValue { SS = newSlots };
-                exprValues[":oldSlots"] = new AttributeValue { SS = oldSlots };
-
-                var conditionExpression = string.Join(" AND ",
-                    newSlots.Select((_, i) => $"NOT contains(reservedSlots, :ns{i})"));
-
-                var transactItems = new List<TransactWriteItem>
-                {
-                    new()
-                    {
-                        Put = new Put
-                        {
-                            TableName           = "Reservations",
-                            Item                = reservationItem,
-                            ConditionExpression = "attribute_exists(id)"
-                        }
-                    },
-                    new()
-                    {
-                        Update = new Update
-                        {
-                            TableName = "TableDays",
-                            Key = new Dictionary<string, AttributeValue>
-                            {
-                                ["tableKey"] = new() { S = oldTableKey },
-                                ["date"]     = new() { S = oldDate.ToString("yyyy-MM-dd") }
-                            },
-                            UpdateExpression          = "DELETE reservedSlots :oldSlots ADD reservedSlots :newSlots",
-                            ConditionExpression       = conditionExpression,
-                            ExpressionAttributeValues = exprValues
-                        }
-                    }
-                };
-
-                try
-                {
-                    await _dynamoDb.TransactWriteItemsAsync(
-                        new TransactWriteItemsRequest { TransactItems = transactItems }, ct);
-
-                    return reservation;
-                }
-                catch (TransactionCanceledException ex)
-                {
-                    throw new BusinessException("Update failed: requested time slots are already taken." + ex);
-                }
+                await UpdateDifferentTableOrDayAsync(
+                    reservationItem, newSlots, oldSlots,
+                    targetTableKey, oldTableKey, newDate, oldDate, ttl, ct);
             }
 
-            // ── CASE 2: Different day or different table ─────────────────────────────
-            // Transaction 1: write new reservation + add new slots to new TableDay
-            // Transaction 2: remove old slots from old TableDay
-            // ── CASE 2: Different day or different table ─────────────────────────────
-            var targetTableKey = newTable != null ? reservation.TableKey : oldTableKey;
+            return reservation;
+        }
+        
+        private async Task UpdateSameTableSameDayAsync(
+            Reservation reservation,
+            Dictionary<string, AttributeValue> reservationItem,
+            List<string> newSlots,
+            List<string> oldSlots,
+            string tableKey,
+            DateOnly date,
+            long ttl,
+            CancellationToken ct)
+        {
+            var slotsToAdd    = newSlots.Except(oldSlots).ToList();
+            var slotsToRemove = oldSlots.Except(newSlots).ToList();
 
-            var newSlotExprValues = newSlots
+            if (slotsToAdd.Any())
+                await AddSlotsWithOverlapCheckAsync(reservationItem, slotsToAdd, tableKey, date, ttl, ct);
+            else
+                await UpdateReservationItemOnlyAsync(reservationItem, ct);
+
+            if (slotsToRemove.Any())
+                await DeleteSlotsAsync(slotsToRemove, tableKey, date, ct);
+        }
+        
+        private async Task UpdateDifferentTableOrDayAsync(
+            Dictionary<string, AttributeValue> reservationItem,
+            List<string> newSlots,
+            List<string> oldSlots,
+            string targetTableKey,
+            string oldTableKey,
+            DateOnly newDate,
+            DateOnly oldDate,
+            long ttl,
+            CancellationToken ct)
+        {
+            await AddSlotsWithOverlapCheckAsync(reservationItem, newSlots, targetTableKey, newDate, ttl, ct);
+            await DeleteSlotsAsync(oldSlots, oldTableKey, oldDate, ct);
+        }
+        
+        private async Task AddSlotsWithOverlapCheckAsync(
+            Dictionary<string, AttributeValue> reservationItem,
+            List<string> slotsToAdd,
+            string tableKey,
+            DateOnly date,
+            long ttl,
+            CancellationToken ct)
+        {
+            var exprValues = slotsToAdd
                 .Select((s, i) => (Key: $":ns{i}", Value: s))
                 .ToDictionary(x => x.Key, x => new AttributeValue { S = x.Value });
 
-            newSlotExprValues[":newSlots"] = new AttributeValue { SS = newSlots };
-            newSlotExprValues[":ttl"]      = new AttributeValue { N = ttl.ToString() };
+            exprValues[":slotsToAdd"] = new AttributeValue { SS = slotsToAdd };
+            exprValues[":ttl"]        = new AttributeValue { N = ttl.ToString() };
 
-            var newSlotCondition = string.Join(" AND ",
-                newSlots.Select((_, i) => $"NOT contains(reservedSlots, :ns{i})"));
+            var overlapCondition = string.Join(" AND ",
+                slotsToAdd.Select((_, i) => $"NOT contains(reservedSlots, :ns{i})"));
 
-            // Transaction 1: write updated reservation + add new slots to new TableDay
-            // SET #ttl = if_not_exists(...) creates the TableDay item if it doesn't exist yet
-            var addTransactItems = new List<TransactWriteItem>
+            var transactItems = new List<TransactWriteItem>
             {
                 new()
                 {
@@ -335,16 +336,13 @@ namespace Restaurant.Infrastructure.Repositories
                         TableName = "TableDays",
                         Key = new Dictionary<string, AttributeValue>
                         {
-                            ["tableKey"] = new() { S = targetTableKey },
-                            ["date"]     = new() { S = newDate.ToString("yyyy-MM-dd") }
+                            ["tableKey"] = new() { S = tableKey },
+                            ["date"]     = new() { S = date.ToString("yyyy-MM-dd") }
                         },
-                        UpdateExpression = "ADD reservedSlots :newSlots SET #ttl = if_not_exists(#ttl, :ttl)",
-                        ExpressionAttributeNames = new Dictionary<string, string>
-                        {
-                            ["#ttl"] = "ttl"
-                        },
-                        ConditionExpression       = newSlotCondition,
-                        ExpressionAttributeValues = newSlotExprValues
+                        UpdateExpression          = "ADD reservedSlots :slotsToAdd SET #ttl = if_not_exists(#ttl, :ttl)",
+                        ExpressionAttributeNames  = new Dictionary<string, string> { ["#ttl"] = "ttl" },
+                        ConditionExpression       = overlapCondition,
+                        ExpressionAttributeValues = exprValues
                     }
                 }
             };
@@ -352,16 +350,42 @@ namespace Restaurant.Infrastructure.Repositories
             try
             {
                 await _dynamoDb.TransactWriteItemsAsync(
-                    new TransactWriteItemsRequest { TransactItems = addTransactItems }, ct);
+                    new TransactWriteItemsRequest { TransactItems = transactItems }, ct);
             }
             catch (TransactionCanceledException ex)
             {
                 throw new BusinessException("Update failed: requested time slots are already taken." + ex);
             }
+        }
 
-            // Transaction 2: remove old slots from old TableDay
-            // Only runs after Transaction 1 succeeds
-            var removeTransactItems = new List<TransactWriteItem>
+        private async Task UpdateReservationItemOnlyAsync(
+            Dictionary<string, AttributeValue> reservationItem,
+            CancellationToken ct)
+        {
+            var transactItems = new List<TransactWriteItem>
+            {
+                new()
+                {
+                    Put = new Put
+                    {
+                        TableName           = "Reservations",
+                        Item                = reservationItem,
+                        ConditionExpression = "attribute_exists(id)"
+                    }
+                }
+            };
+
+            await _dynamoDb.TransactWriteItemsAsync(
+                new TransactWriteItemsRequest { TransactItems = transactItems }, ct);
+        }
+
+        private async Task DeleteSlotsAsync(
+            List<string> slotsToRemove,
+            string tableKey,
+            DateOnly date,
+            CancellationToken ct)
+        {
+            var transactItems = new List<TransactWriteItem>
             {
                 new()
                 {
@@ -370,22 +394,23 @@ namespace Restaurant.Infrastructure.Repositories
                         TableName = "TableDays",
                         Key = new Dictionary<string, AttributeValue>
                         {
-                            ["tableKey"] = new() { S = oldTableKey },
-                            ["date"]     = new() { S = oldDate.ToString("yyyy-MM-dd") }
+                            ["tableKey"] = new() { S = tableKey },
+                            ["date"]     = new() { S = date.ToString("yyyy-MM-dd") }
                         },
-                        UpdateExpression = "DELETE reservedSlots :oldSlots",
+                        UpdateExpression = "DELETE reservedSlots :slotsToRemove",
                         ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                         {
-                            [":oldSlots"] = new AttributeValue { SS = oldSlots }
+                            [":slotsToRemove"] = new AttributeValue { SS = slotsToRemove }
                         }
                     }
                 }
             };
 
             await _dynamoDb.TransactWriteItemsAsync(
-                new TransactWriteItemsRequest { TransactItems = removeTransactItems }, ct);
-
-            return reservation;
+                new TransactWriteItemsRequest { TransactItems = transactItems }, ct);
         }
+
+        private static long ComputeTtl(DateOnly date) =>
+            new DateTimeOffset(date.AddDays(2).ToDateTime(TimeOnly.MinValue)).ToUnixTimeSeconds();
     }
 }

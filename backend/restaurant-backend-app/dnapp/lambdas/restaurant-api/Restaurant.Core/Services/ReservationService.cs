@@ -140,7 +140,8 @@ namespace Restaurant.Core.Services
 
             if (table.Capacity < dto.GuestNumber)
                 throw new BusinessException("Amount of guests exceeds the table capacity");
-
+            var oldTableKey   = reservation.TableKey; 
+            var oldDateString = reservation.StartDateTime[..10];
             // Apply new values to reservation object before passing to repo
             reservation.GuestsCount   = dto.GuestNumber;
             reservation.StartDateTime = newStart.ToString("O");
@@ -153,7 +154,9 @@ namespace Restaurant.Core.Services
                 reservation.TableKey    = $"{reservation.LocationId}#{dto.TableNumber}";
             }
 
-            return await _repo.UpdateReservationAsync(reservation, newSlots, oldSlots, isDayDifferent,
+            return await _repo.UpdateReservationAsync(reservation, newSlots, oldSlots, oldTableKey, 
+                oldDateString, 
+                isDayDifferent,
                 isTableDifferent ? table : null, ct);
         }
 
