@@ -4,7 +4,7 @@ namespace Restaurant.Core.Interfaces.Services;
 
 public interface ITableService
 {
-    Task<IReadOnlyList<TableWithAvailableSlots>> GetAvailableTablesAsync(
+    Task<IList<TableWithAvailableSlots>> GetAvailableTablesAsync(
         DateOnly date,
         TimeOnly? time,
         string? locationId,
