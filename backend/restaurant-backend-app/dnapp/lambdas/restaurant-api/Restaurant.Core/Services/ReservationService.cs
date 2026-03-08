@@ -118,17 +118,24 @@ namespace Restaurant.Core.Services
             if (reservation.Status != ReservationStatus.Reserved)
                 throw new BusinessException("Only reserved reservations can be updated.");
 
+            var location = await _locationRepo.GetByIdAsync(reservation.LocationId, ct)
+                           ?? throw new BusinessException("Location not found.");
+            
             var oldStart = DateTimeOffset.Parse(reservation.StartDateTime);
             var oldEnd   = DateTimeOffset.Parse(reservation.EndDateTime);
 
             if ((oldStart - DateTimeOffset.UtcNow).TotalMinutes < 30)
                 throw new BusinessException("Reservation cannot be updated less than 30 minutes before it starts.");
+            
+            ValidateReservationTime(dto.TimeFrom, dto.TimeTo, dto.Date, location);
 
-            var newStart = DateTimeOffset.Parse(dto.StartTime);
-            var newEnd   = DateTimeOffset.Parse(dto.EndTime);
+            var endDate = dto.TimeTo < dto.TimeFrom ? dto.Date.AddDays(1) : dto.Date;
+            var newStart = ToDateTimeOffset(dto.Date, dto.TimeFrom, location.TimeZone);
+            var newEnd = ToDateTimeOffset(endDate, dto.TimeTo, location.TimeZone);
+            
 
             List<string> oldSlots = GenerateSlots(oldStart, oldEnd);
-            List<string> newSlots = GenerateSlots(newStart.UtcDateTime, newEnd.UtcDateTime);
+            List<string> newSlots = GenerateSlots(newStart, newEnd);
 
             bool isTableDifferent = reservation.TableNumber != dto.TableNumber;
             bool isDayDifferent   = newStart.Date != oldStart.Date;
@@ -142,7 +149,7 @@ namespace Restaurant.Core.Services
                 throw new BusinessException("Amount of guests exceeds the table capacity");
 
             var oldTableKey   = reservation.TableKey; 
-            var oldDateString = reservation.StartDateTime[..10];
+            var oldDateString = reservation.StartDateTime;
             // Apply new values to reservation object before passing to repo
             reservation.GuestsCount   = dto.GuestNumber;
             reservation.StartDateTime = newStart.ToString("yyyy-MM-ddTHH:mmzzz");

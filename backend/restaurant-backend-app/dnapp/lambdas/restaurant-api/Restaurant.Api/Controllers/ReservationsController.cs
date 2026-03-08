@@ -80,7 +80,7 @@ namespace Restaurant.Api.Controllers
             return ApiResponse<ReservationResponse>.Success(StatusCodes.Status201Created, reservationEntity.ToResponse());
         }
 
-        [HttpPut("{id}/{isWaiter:bool}")]
+        [HttpPut]
         public async Task<IActionResult> UpdateReservation(
             [FromBody] UpdateReservationRequest request, 
             CancellationToken ct)

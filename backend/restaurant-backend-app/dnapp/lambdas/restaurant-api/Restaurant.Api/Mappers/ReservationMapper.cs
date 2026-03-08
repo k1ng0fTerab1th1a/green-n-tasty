@@ -31,8 +31,9 @@ namespace Restaurant.Api.Mappers
             x.Id,
             x.GuestNumber,
             x.TableNumber,
-            x.StartTime,
-            x.EndTime
+            DateOnly.Parse(x.Date),
+            TimeOnly.Parse(x.TimeFrom),
+            TimeOnly.Parse(x.TimeTo)
         );
     }
 }
