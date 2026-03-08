@@ -240,6 +240,7 @@ namespace Restaurant.Infrastructure.Repositories
             var oldTableKey = reservation.TableKey;
             var oldDate     = DateOnly.Parse(reservation.StartDateTime[..10]);
             var newDate     = DateOnly.Parse(reservation.StartDateTime[..10]);
+            var ttl = new DateTimeOffset(newDate.AddDays(2).ToDateTime(TimeOnly.MinValue)).ToUnixTimeSeconds();
 
             var reservationItem = _context.ToDocument(reservation).ToAttributeMap();
 
@@ -301,6 +302,7 @@ namespace Restaurant.Infrastructure.Repositories
             // ── CASE 2: Different day or different table ─────────────────────────────
             // Transaction 1: write new reservation + add new slots to new TableDay
             // Transaction 2: remove old slots from old TableDay
+            // ── CASE 2: Different day or different table ─────────────────────────────
             var targetTableKey = newTable != null ? reservation.TableKey : oldTableKey;
 
             var newSlotExprValues = newSlots
@@ -308,13 +310,15 @@ namespace Restaurant.Infrastructure.Repositories
                 .ToDictionary(x => x.Key, x => new AttributeValue { S = x.Value });
 
             newSlotExprValues[":newSlots"] = new AttributeValue { SS = newSlots };
+            newSlotExprValues[":ttl"]      = new AttributeValue { N = ttl.ToString() };
 
             var newSlotCondition = string.Join(" AND ",
                 newSlots.Select((_, i) => $"NOT contains(reservedSlots, :ns{i})"));
 
+            // Transaction 1: write updated reservation + add new slots to new TableDay
+            // SET #ttl = if_not_exists(...) creates the TableDay item if it doesn't exist yet
             var addTransactItems = new List<TransactWriteItem>
             {
-                // Write updated reservation
                 new()
                 {
                     Put = new Put
@@ -324,7 +328,6 @@ namespace Restaurant.Infrastructure.Repositories
                         ConditionExpression = "attribute_exists(id)"
                     }
                 },
-                // Add new slots to new TableDay
                 new()
                 {
                     Update = new Update
@@ -335,7 +338,11 @@ namespace Restaurant.Infrastructure.Repositories
                             ["tableKey"] = new() { S = targetTableKey },
                             ["date"]     = new() { S = newDate.ToString("yyyy-MM-dd") }
                         },
-                        UpdateExpression          = "ADD reservedSlots :newSlots",
+                        UpdateExpression = "ADD reservedSlots :newSlots SET #ttl = if_not_exists(#ttl, :ttl)",
+                        ExpressionAttributeNames = new Dictionary<string, string>
+                        {
+                            ["#ttl"] = "ttl"
+                        },
                         ConditionExpression       = newSlotCondition,
                         ExpressionAttributeValues = newSlotExprValues
                     }
@@ -352,8 +359,8 @@ namespace Restaurant.Infrastructure.Repositories
                 throw new BusinessException("Update failed: requested time slots are already taken." + ex);
             }
 
-            // Transaction 2: clean up old slots from old TableDay
-            // Runs only after Transaction 1 succeeds — old slots are safe to remove
+            // Transaction 2: remove old slots from old TableDay
+            // Only runs after Transaction 1 succeeds
             var removeTransactItems = new List<TransactWriteItem>
             {
                 new()
