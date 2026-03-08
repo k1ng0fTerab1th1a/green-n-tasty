@@ -26,5 +26,14 @@ namespace Restaurant.Api.Mappers
             TimeOnly.Parse(x.TimeTo),
             x.GuestsCount
         );
+
+        public static UpdateReservationDTO ToUpdateDTO(this UpdateReservationRequest x) => new(
+            x.Id,
+            x.GuestNumber,
+            x.TableNumber,
+            DateOnly.Parse(x.Date),
+            TimeOnly.Parse(x.TimeFrom),
+            TimeOnly.Parse(x.TimeTo)
+        );
     }
 }

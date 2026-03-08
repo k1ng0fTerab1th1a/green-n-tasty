@@ -7,6 +7,7 @@ using Restaurant.Api.Contracts.Responses;
 using Restaurant.Api.Extensions;
 using Restaurant.Api.Mappers;
 using Restaurant.Api.Models;
+using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
@@ -16,10 +17,11 @@ namespace Restaurant.Api.Controllers
 {
     [ApiController]
     [Route("reservations")]
-    [Authorize]
+    //[Authorize]
     public sealed class ReservationsController : ControllerBase
     {
         private readonly IReservationService _reservationService;
+
         public ReservationsController(IReservationService reservationService)
         {
             _reservationService = reservationService;
@@ -58,7 +60,13 @@ namespace Restaurant.Api.Controllers
             var actorUserId = User.GetUserId();
             var actorIsWaiter = User.IsWaiter();
             var result = await _reservationService.CancelReservation(id, actorUserId, actorIsWaiter, ct);
-            return ApiResponse<object>.Success(StatusCodes.Status200OK, null, "Reservation cancelled successfully.");
+            if (result)
+            {
+                return ApiResponse<object>.Success(StatusCodes.Status200OK, null, "Reservation cancelled successfully.");
+            }
+
+            return ApiResponse<object>.Fail(StatusCodes.Status500InternalServerError,
+                "During reservation cancellation something went wrong");
         }
 
         [HttpPost("client")]
@@ -70,6 +78,25 @@ namespace Restaurant.Api.Controllers
                 return ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Failed to create reservation.");
 
             return ApiResponse<ReservationResponse>.Success(StatusCodes.Status201Created, reservationEntity.ToResponse());
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> UpdateReservation(
+            [FromBody] UpdateReservationRequest request, 
+            CancellationToken ct)
+        {
+            
+            var actorUserId = User.GetUserId();
+            var actorIsWaiter = User.IsWaiter();
+
+            var updatedReservation = await _reservationService.UpdateReservationAsync(actorUserId, actorIsWaiter, request.ToUpdateDTO(), ct);
+
+            if (updatedReservation == null)
+            {
+                return ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Failed to update reservation.");
+            }
+
+            return ApiResponse<ReservationResponse>.Success(StatusCodes.Status200OK, updatedReservation.ToResponse());
         }
     }
 }

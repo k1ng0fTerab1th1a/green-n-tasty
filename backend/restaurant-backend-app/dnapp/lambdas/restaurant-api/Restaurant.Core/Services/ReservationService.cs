@@ -13,12 +13,14 @@ namespace Restaurant.Core.Services
         private readonly IReservationRepository _repo;
         private readonly IWaiterScheduleRepository _waiterScheduleRepo;
         private readonly ILocationRepository _locationRepo;
+        private readonly ITableRepository _tableRepository;
 
-        public ReservationService(IReservationRepository repo, IWaiterScheduleRepository waiterScheduleRepo, ILocationRepository locationRepo)
+        public ReservationService(IReservationRepository repo, IWaiterScheduleRepository waiterScheduleRepo, ILocationRepository locationRepo, ITableRepository tableRepository)
         {
             _repo = repo;
             _waiterScheduleRepo = waiterScheduleRepo;
             _locationRepo = locationRepo;
+            _tableRepository = tableRepository;
         }
 
         public async Task<IReadOnlyList<Reservation>> GetMyAsync(string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
@@ -106,6 +108,55 @@ namespace Restaurant.Core.Services
             return reservation;
         }
 
+        public async Task<Reservation?> UpdateReservationAsync(string actorUserId, bool isActorWaiter, 
+            UpdateReservationDTO dto,
+            CancellationToken ct = default)
+        {
+            var reservation = await GetByIdAsync(dto.Id, actorUserId, isActorWaiter, ct)
+                              ?? throw new ArgumentNullException("reservation", "Reservation does not exist");
+
+            if (reservation.Status != ReservationStatus.Reserved)
+                throw new BusinessException("Only reserved reservations can be updated.");
+
+            var location = await _locationRepo.GetByIdAsync(reservation.LocationId, ct)
+                           ?? throw new BusinessException("Location not found.");
+            
+            var oldStart = DateTimeOffset.Parse(reservation.StartDateTime);
+            var oldEnd   = DateTimeOffset.Parse(reservation.EndDateTime);
+
+            if ((oldStart - DateTimeOffset.UtcNow).TotalMinutes < 30)
+                throw new BusinessException("Reservation cannot be updated less than 30 minutes before it starts.");
+            
+            ValidateReservationTime(dto.TimeFrom, dto.TimeTo, dto.Date, location);
+
+            var endDate = dto.TimeTo < dto.TimeFrom ? dto.Date.AddDays(1) : dto.Date;
+            var newStart = ToDateTimeOffset(dto.Date, dto.TimeFrom, location.TimeZone);
+            var newEnd = ToDateTimeOffset(endDate, dto.TimeTo, location.TimeZone);
+            
+
+            List<string> oldSlots = GenerateSlots(oldStart, oldEnd);
+            List<string> newSlots = GenerateSlots(newStart, newEnd);
+
+            var oldTableKey = reservation.TableKey;
+
+            var table = await _tableRepository.GetByLocationAndTableNumberAsync(
+                reservation.LocationId, dto.TableNumber, ct)
+                ?? throw new BusinessException("Table not found.");
+
+            if (table.Capacity < dto.GuestNumber)
+                throw new BusinessException("Amount of guests exceeds the table capacity.");
+
+            reservation.GuestsCount = dto.GuestNumber;
+            reservation.StartDateTime = newStart.ToString("yyyy-MM-ddTHH:mmzzz");
+            reservation.EndDateTime = newEnd.ToString("yyyy-MM-ddTHH:mmzzz");
+            reservation.UpdatedAt = DateTime.UtcNow.ToString("O");
+
+            reservation.TableNumber = dto.TableNumber;
+            reservation.TableKey = $"{reservation.LocationId}#{dto.TableNumber}";
+
+            return await _repo.UpdateReservationAsync(reservation, newSlots, oldSlots, oldTableKey, oldStart, ct);
+        }
+
         private static void ValidateReservationTime(TimeOnly from, TimeOnly to, DateOnly date, Location location)
         {
             var openTime = TimeOnly.Parse(location.OpenTime);
@@ -141,7 +192,7 @@ namespace Restaurant.Core.Services
         }
         private static int CalculateDuration(TimeOnly from, TimeOnly to)
         {
-            if (to > from)
+            if (to >= from)
                 return (int)(to - from).TotalMinutes;
 
             var toMidnight = (int)(TimeOnly.MaxValue - from).TotalMinutes + 1;

@@ -14,5 +14,8 @@ namespace Restaurant.Core.Interfaces.Services
         Task<IReadOnlyList<Reservation>> GetMyAsync(string actorUserId, bool actorIsWaiter, CancellationToken ct = default);
         Task<bool> CancelReservation(string reservationId, string userId, bool isWaiter, CancellationToken ct = default);
         Task<Reservation> CreateForClientAsync(string customerId, CreateReservationDTO dto, CancellationToken ct = default);
+
+        Task<Reservation?> UpdateReservationAsync(string actorUserId, bool isActorWaiter, UpdateReservationDTO dto,
+            CancellationToken ct = default);
     }
 }
