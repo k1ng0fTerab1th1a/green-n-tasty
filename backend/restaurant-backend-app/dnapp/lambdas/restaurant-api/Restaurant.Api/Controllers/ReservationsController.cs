@@ -1,13 +1,16 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
+using Amazon.DynamoDBv2.DataModel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Restaurant.Api.Contracts.Requests;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Api.Extensions;
+using Restaurant.Api.Mappers;
 using Restaurant.Api.Models;
-using Restaurant.Api.Models.Mappers;
 using Restaurant.Core.Interfaces;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
+using Restaurant.Infrastructure.Services;
 
 namespace Restaurant.Api.Controllers
 {
@@ -17,7 +20,6 @@ namespace Restaurant.Api.Controllers
     public sealed class ReservationsController : ControllerBase
     {
         private readonly IReservationService _reservationService;
-
         public ReservationsController(IReservationService reservationService)
         {
             _reservationService = reservationService;
@@ -48,6 +50,26 @@ namespace Restaurant.Api.Controllers
                 return ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Reservation not found.");
 
             return ApiResponse<ReservationResponse>.Success(StatusCodes.Status200OK, entity.ToResponse());
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(string id, CancellationToken ct)
+        {
+            var actorUserId = User.GetUserId();
+            var actorIsWaiter = User.IsWaiter();
+            var result = await _reservationService.CancelReservation(id, actorUserId, actorIsWaiter, ct);
+            return ApiResponse<object>.Success(StatusCodes.Status200OK, null, "Reservation cancelled successfully.");
+        }
+
+        [HttpPost("client")]
+        public async Task<IActionResult> CreateForClient([FromBody] CreateReservationRequest request, CancellationToken ct)
+        {
+            var customerId = User.GetUserId();
+            var reservationEntity = await _reservationService.CreateForClientAsync(customerId, request.ToCreateDTO(), ct);
+            if (reservationEntity is null)
+                return ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Failed to create reservation.");
+
+            return ApiResponse<ReservationResponse>.Success(StatusCodes.Status201Created, reservationEntity.ToResponse());
         }
     }
 }

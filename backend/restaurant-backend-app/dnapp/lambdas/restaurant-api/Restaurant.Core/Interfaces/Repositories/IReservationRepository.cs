@@ -22,11 +22,14 @@ namespace Restaurant.Core.Interfaces.Repositories
             string? startFromIso = null,
             string? startToIso = null,
             CancellationToken ct = default);
-
+        Task<bool> CreateWithSlotsAsync(Reservation reservation, DateOnly date, List<string> slots, CancellationToken ct = default);
         Task<IReadOnlyList<Reservation>> QueryByTableAsync(
             string tableKey,
             string startFromIso,
             string startToIso,
             CancellationToken ct);
+
+        public Task<bool> CancelReservationAsync(Reservation reservation, List<string> slots,
+            CancellationToken ct = default);
     }
 }
