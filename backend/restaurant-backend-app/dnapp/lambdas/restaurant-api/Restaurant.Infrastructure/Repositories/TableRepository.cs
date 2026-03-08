@@ -26,4 +26,9 @@ public class TableRepository : ITableRepository
 
         return await search.GetRemainingAsync(ct);
     }
+
+    public async Task<Table?> GetByLocationAndTableNumberAsync(string locationId, int tableNumber, CancellationToken ct)
+    {
+        return await _context.LoadAsync<Table>(locationId, tableNumber, ct);
+    }
 }

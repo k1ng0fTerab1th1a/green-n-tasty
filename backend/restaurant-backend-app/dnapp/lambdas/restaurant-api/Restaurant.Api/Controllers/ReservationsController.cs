@@ -95,7 +95,6 @@ namespace Restaurant.Api.Controllers
             }
 
             return ApiResponse<ReservationResponse>.Success(StatusCodes.Status200OK, updatedReservation.ToResponse());
-
         }
     }
 }

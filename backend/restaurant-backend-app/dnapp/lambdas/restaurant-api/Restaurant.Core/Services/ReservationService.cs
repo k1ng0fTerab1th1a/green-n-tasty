@@ -13,12 +13,14 @@ namespace Restaurant.Core.Services
         private readonly IReservationRepository _repo;
         private readonly IWaiterScheduleRepository _waiterScheduleRepo;
         private readonly ILocationRepository _locationRepo;
+        private readonly ITableRepository _tableRepository;
 
-        public ReservationService(IReservationRepository repo, IWaiterScheduleRepository waiterScheduleRepo, ILocationRepository locationRepo)
+        public ReservationService(IReservationRepository repo, IWaiterScheduleRepository waiterScheduleRepo, ILocationRepository locationRepo, ITableRepository tableRepository)
         {
             _repo = repo;
             _waiterScheduleRepo = waiterScheduleRepo;
             _locationRepo = locationRepo;
+            _tableRepository = tableRepository;
         }
 
         public async Task<IReadOnlyList<Reservation>> GetMyAsync(string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
@@ -110,7 +112,7 @@ namespace Restaurant.Core.Services
             UpdateReservationDTO dto,
             CancellationToken ct = default)
         {
-            var reservation = await GetByIdAsync(reservationId, userId, isWaiter, ct) 
+            var reservation = await GetByIdAsync(dto.Id, actorUserId, isActorWaiter, ct) 
                               ?? throw new ArgumentNullException("reservation", "Reservation does not exist");
 
             if (reservation.Status != ReservationStatus.Reserved)
@@ -120,7 +122,48 @@ namespace Restaurant.Core.Services
             var end = DateTimeOffset.Parse(reservation.EndDateTime);
 
             if ((start - DateTimeOffset.UtcNow).TotalMinutes < 30)
-                throw new BusinessException("Reservation cannot be updated less than 30 minutes before it starts."); 
+                throw new BusinessException("Reservation cannot be updated less than 30 minutes before it starts.");
+
+            var oldStart = DateTimeOffset.Parse(reservation.StartDateTime);
+            var oldEnd = DateTimeOffset.Parse(reservation.EndDateTime);
+            List<string> slots = GenerateSlots(start, end);
+            
+            Table? table = null;
+            bool isTableDifferent = reservation.TableNumber != dto.TableNumber;
+            if (isTableDifferent)
+            {
+                table = await _tableRepository.GetByLocationAndTableNumberAsync(reservation.LocationId, dto
+                    .TableNumber, ct);
+            }
+            else
+            {
+                table = await _tableRepository.GetByLocationAndTableNumberAsync(reservation.LocationId, reservation
+                    .TableNumber, ct);
+            }
+            
+            if (table == null)
+                throw new ArgumentNullException("dto", "This table does not exist");
+
+            if (table.Capacity < dto.GuestNumber)
+                throw new BusinessException("Amount of guests exceeds the table capacity");
+
+            bool isDayDifferent = start.Date != oldStart.Date;
+            Reservation? updatedReservation = null;
+            if (isTableDifferent)
+            {
+                updatedReservation = await _repo.UpdateReservationAsync(reservation, slots, dto.GuestNumber,
+                    isDayDifferent, table);
+            }
+            else
+            {
+                updatedReservation = await _repo.UpdateReservationAsync(reservation, slots, dto.GuestNumber,
+                    isDayDifferent);
+            }
+            
+            return updatedReservation;
+            // Two options:
+            // option 1 - if they are just moved within one day than nothing bad, just replace the time slots
+            // option 2 - if they are on different days then add slots for new ones and delete for old ones
         }
 
         private static void ValidateReservationTime(TimeOnly from, TimeOnly to, DateOnly date, Location location)

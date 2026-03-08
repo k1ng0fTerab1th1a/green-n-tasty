@@ -4,11 +4,6 @@ using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 
 namespace Restaurant.Infrastructure.Repositories
@@ -230,6 +225,21 @@ namespace Restaurant.Infrastructure.Repositories
             catch (TransactionCanceledException)
             {
                 return false;
+            }
+        }
+
+        public async Task<Reservation?> UpdateReservationAsync(Reservation reservation, List<string> slots, int
+            guestCapacity, bool dayDifferent, Table? table = null)
+        {
+            // With new tableday creation
+            if (dayDifferent || table != null)
+            {
+                
+            }
+            // edit the old tableday
+            else
+            {
+                
             }
         }
     }

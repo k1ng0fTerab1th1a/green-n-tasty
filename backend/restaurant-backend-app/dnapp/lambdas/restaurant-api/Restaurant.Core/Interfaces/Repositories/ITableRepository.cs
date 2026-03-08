@@ -4,4 +4,5 @@ public interface ITableRepository
 {
     Task<IReadOnlyList<Table>> GetAllAsync(CancellationToken ct);
     Task<IReadOnlyList<Table>> GetByLocationIdAsync(string locationId, CancellationToken ct);
+    Task<Table?> GetByLocationAndTableNumberAsync(string locationId, int tableNumber, CancellationToken ct);
 }
