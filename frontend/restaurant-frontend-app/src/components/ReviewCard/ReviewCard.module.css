@@ -72,7 +72,6 @@
     color: var(--neutral-400);
 }
 
-/* stars */
 .stars {
     display: inline-flex;
     gap: 3px;
@@ -94,7 +93,6 @@
     color: var(--neutral-200);
 }
 
-/* text */
 .text {
     margin: 0;
     font-size: 14px;

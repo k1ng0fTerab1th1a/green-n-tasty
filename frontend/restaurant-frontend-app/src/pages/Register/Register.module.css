@@ -1,0 +1,47 @@
+.auth-hero-accent {
+    color: var(--green-200);
+}
+
+.register-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 10px;
+}
+
+.register-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.register-actions {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.register-footer {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.register-link {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 16px;
+    color: var(--blue-400);
+    text-decoration: none;
+}
+
+.register-link:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 560px) {
+    .register-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}

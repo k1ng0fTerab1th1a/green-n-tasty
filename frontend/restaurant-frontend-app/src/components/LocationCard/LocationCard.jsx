@@ -1,19 +1,8 @@
 import styles from "./LocationCard.module.css";
 
-import pinIcon from "../../assets/icons/pin.svg"; // підстав свій svg
+import pinIcon from "../../assets/icons/pin.svg";
 
-/**
- * LocationCard
- *
- * Props:
- * - title?: string (default "Locations" — якщо треба зверху на сторінці, краще НЕ тут)
- * - imageSrc: string
- * - address: string
- * - tables: number | string
- * - occupancy: number | string (0..100)
- * - onClick?: () => void
- * - className?: string
- */
+
 export default function LocationCard({
                                          imageSrc,
                                          address,

@@ -27,8 +27,6 @@
     opacity: 1;
 }
 
-/* ===== Types ===== */
-
 .success {
     background: #E6F4EA;
     border: 1px solid var(--green-200);
@@ -43,8 +41,6 @@
     background: #E7F0FF;
     border: 1px solid var(--blue-400);
 }
-
-/* ===== Icon ===== */
 
 .icon {
     flex-shrink: 0;
@@ -62,8 +58,6 @@
     width: 24px;
     height: 24px;
 }
-
-/* ===== Text ===== */
 
 .text {
     flex: 1;
@@ -85,8 +79,6 @@
     line-height: 18px;
     color: var(--neutral-600);
 }
-
-/* ===== Close ===== */
 
 .close {
     background: transparent;

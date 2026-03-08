@@ -14,10 +14,9 @@
     transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-/* typography for buttons */
 .text {
     font-size: 14px;
-    font-weight: 700; /* Button bold */
+    font-weight: 700;
     line-height: 24px;
 }
 
@@ -27,34 +26,27 @@
     justify-content: center;
 }
 
-/* widths */
 .fullWidth {
     width: 100%;
 }
 
-/* ------------------ SIZES ------------------ */
-/* Primary XL (Extra Large) */
 .size_xl {
     height: 56px;
     min-width: 160px;
     padding: 0 22px;
 }
 
-/* Large */
 .size_lg {
     height: 40px;
     min-width: 137px;
 }
 
-/* Small */
 .size_sm {
     height: 40px;
     min-width: 120px;
     padding: 0 16px;
 }
 
-/* ------------------ VARIANTS ------------------ */
-/* PRIMARY: green filled */
 .variant_primary {
     background: var(--green-200);
     color: var(--neutral-0);
@@ -65,17 +57,15 @@
 }
 
 .variant_primary:active:not(:disabled) {
-    background: var(--green-400); /* pressed */
+    background: var(--green-400);
 }
 
-/* disabled primary */
 .variant_primary:disabled {
     background: var(--neutral-400);
     color: var(--neutral-0);
     cursor: not-allowed;
 }
 
-/* SECONDARY: outline green */
 .variant_secondary {
     background: transparent;
     color: var(--green-200);
@@ -97,7 +87,6 @@
     cursor: not-allowed;
 }
 
-/* TERTIARY: text button */
 .variant_tertiary {
     background: transparent;
     color: var(--green-200);

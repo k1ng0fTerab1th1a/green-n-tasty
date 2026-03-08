@@ -4,5 +4,5 @@ namespace Restaurant.Core.Interfaces.Repositories;
 
 public interface ITableDayRepository
 {
-    Task<TableDay?> GetByTableAndDateAsync(string tableId, string date, CancellationToken ct);
+    Task<TableDay?> GetByTableAndDateAsync(string tableKey, string date, CancellationToken ct);
 }

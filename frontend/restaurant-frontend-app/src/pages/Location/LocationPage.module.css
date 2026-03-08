@@ -1,0 +1,200 @@
+.breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 16px;
+    color: var(--neutral-600);
+}
+
+.sep {
+    color: var(--neutral-400);
+}
+
+.crumbActive {
+    color: var(--text);
+}
+
+.top {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 28px;
+    align-items: start;
+}
+
+.info {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.title {
+    margin: 0;
+    font-size: 48px;
+    font-weight: 500;
+    line-height: 48px;
+    color: var(--green-200);
+}
+
+.meta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.address {
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 16px;
+    color: var(--text);
+}
+
+.rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ratingValue {
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 16px;
+    color: var(--text);
+}
+
+.desc {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.desc p {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 16px;
+    color: var(--neutral-600);
+}
+
+.cta {
+    width: 220px;
+    margin-top: 6px;
+}
+
+.photoWrap {
+    border-radius: 24px;
+    overflow: hidden;
+    background: var(--neutral-0);
+    border: 1px solid var(--neutral-200);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+}
+
+.photo {
+    width: 100%;
+    height: 260px;
+    object-fit: cover;
+    display: block;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.sectionTitle {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 32px;
+    color: var(--text);
+}
+
+.gridDishes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 22px;
+}
+
+.reviewsHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.sortRow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sortLabel {
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 16px;
+    color: var(--neutral-600);
+}
+
+.tabs {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+}
+
+.gridReviews {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+}
+
+.pagination {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+}
+
+@media (max-width: 1200px) {
+    .top {
+        grid-template-columns: 1fr;
+    }
+
+    .photo {
+        height: 240px;
+    }
+
+    .gridDishes {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .gridReviews {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 760px) {
+    .page {
+        padding: 16px 16px 40px;
+    }
+
+    .title {
+        font-size: 36px;
+        line-height: 36px;
+    }
+
+    .cta {
+        width: 100%;
+    }
+
+    .reviewsHeader {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .gridDishes,
+    .gridReviews {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,34 +1,6 @@
 import styles from "./ReservationCard.module.css";
 import { Button, Dropdown } from "../index.js";
 
-/**
- * ReservationCard
- *
- * Props:
- * - role: "customer" | "waiter"
- *
- * Common:
- * - location: string
- * - date: string
- * - timeRange: string   (e.g. "10:30 a.m. – 11:30 a.m.")
- * - guests: number | string
- * - status: "reserved" | "in_progress" | "finished" | "canceled"
- *
- * Pre-order:
- * - preOrderCount?: number (if > 0 shows "Pre-order: X dishes")
- * - onPreOrder?: () => void (button)
- *
- * Customer actions:
- * - onCancel?: () => void
- * - onEdit?: () => void
- * - onFeedback?: () => void   (Leave feedback / View-Update feedback)
- *
- * Waiter fields:
- * - customerName?: string
- * - tableValue?: string|number|null
- * - tableOptions?: Array<{value,label}>
- * - onTableChange?: (val) => void
- */
 export default function ReservationCard({
                                             role = "customer",
 
@@ -54,7 +26,6 @@ export default function ReservationCard({
 
     const badge = getStatusBadge(status);
 
-    // Customer: which main action button?
     const customerAction = (() => {
         if (status === "in_progress") return { label: "Leave Feedback", onClick: onFeedback, variant: "primary" };
         if (status === "finished") return { label: "View / Update feedback", onClick: onFeedback, variant: "primary" };
@@ -62,8 +33,8 @@ export default function ReservationCard({
     })();
 
     const showBottomRow = role === "customer"
-        ? status === "reserved" // cancel/edit + maybe preorder
-        : status !== "canceled"; // waiter: cancel/edit always except canceled
+        ? status === "reserved"
+        : status !== "canceled";
 
     return (
         <div className={styles.card}>
@@ -138,8 +109,6 @@ export default function ReservationCard({
     );
 }
 
-/* ===== helpers ===== */
-
 function getStatusBadge(status) {
     switch (status) {
         case "reserved":
@@ -154,10 +123,6 @@ function getStatusBadge(status) {
     }
 }
 
-/**
- * InfoRow: поки робимо як текст + зелена "іконка-точка" (в тебе будуть svg — легко заміниш)
- * Якщо хочеш — я одразу зроблю з import svg.
- */
 function InfoRow({ icon, text }) {
     return (
         <div className={styles.infoRow}>
