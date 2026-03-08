@@ -106,6 +106,23 @@ namespace Restaurant.Core.Services
             return reservation;
         }
 
+        public async Task<Reservation?> UpdateReservationAsync(string actorUserId, bool isActorWaiter, 
+            UpdateReservationDTO dto,
+            CancellationToken ct = default)
+        {
+            var reservation = await GetByIdAsync(reservationId, userId, isWaiter, ct) 
+                              ?? throw new ArgumentNullException("reservation", "Reservation does not exist");
+
+            if (reservation.Status != ReservationStatus.Reserved)
+                throw new BusinessException("Only reserved reservations can be updated.");
+
+            var start = DateTimeOffset.Parse(reservation.StartDateTime);
+            var end = DateTimeOffset.Parse(reservation.EndDateTime);
+
+            if ((start - DateTimeOffset.UtcNow).TotalMinutes < 30)
+                throw new BusinessException("Reservation cannot be updated less than 30 minutes before it starts."); 
+        }
+
         private static void ValidateReservationTime(TimeOnly from, TimeOnly to, DateOnly date, Location location)
         {
             var openTime = TimeOnly.Parse(location.OpenTime);
