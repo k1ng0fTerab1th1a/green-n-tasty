@@ -98,10 +98,14 @@ public class TableService(
         List<DateTimeOffset> slotsForShift = GenerateSlotsForShift(shiftStartLocal, shiftEndLocal, tz);
         List<TableWithAvailableSlots> result = new();
 
+        var tableKeys = tables.Select(t => $"{t.LocationId}#{t.TableNumber}").ToList();
+        IReadOnlyDictionary<string, TableDay> locationTableDays = 
+            await _tableDayRepository.GetManyByTablesAndDateAsync(tableKeys, dateStr, ct);
+
         foreach (Table table in tables)
         {
             string tableKey = $"{table.LocationId}#{table.TableNumber}";
-            TableDay? tableDay = await _tableDayRepository.GetByTableAndDateAsync(tableKey, dateStr, ct);
+            TableDay? tableDay = locationTableDays.GetValueOrDefault(tableKey);
             HashSet<string> reserved = tableDay?.ReservedSlots ?? new HashSet<string>();
 
             if (reqTimeOffset.HasValue && reserved.Contains(reqTimeOffset.Value.ToString("yyyy-MM-ddTHH:mmzzz")))
