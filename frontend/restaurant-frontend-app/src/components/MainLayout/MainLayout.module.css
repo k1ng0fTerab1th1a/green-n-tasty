@@ -1,14 +1,20 @@
-.page {
+.layout {
+    min-height: 100vh;
+    background: var(--neutral-100);
+}
+
+.main {
     padding: 60px 40px;
     display: flex;
     flex-direction: column;
-    gap: 26px;
+    gap: 64px;
     background: var(--neutral-100);
     min-height: calc(100vh - 70px);
 }
 
 @media (max-width: 760px) {
-    .page {
+    .main {
         padding: 16px 16px 40px;
+        gap: 32px;
     }
 }

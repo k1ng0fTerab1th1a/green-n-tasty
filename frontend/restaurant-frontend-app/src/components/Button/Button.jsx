@@ -8,6 +8,7 @@ export default function Button({
                                    rightIcon,
                                    className = "",
                                    children,
+                                   type = "button",
                                    ...props
                                }) {
     const cls = [
@@ -21,10 +22,14 @@ export default function Button({
         .join(" ");
 
     return (
-        <button className={cls} {...props}>
-            {leftIcon ? <span className={styles.icon}>{leftIcon}</span> : null}
-            <span className={styles.text}>{children}</span>
-            {rightIcon ? <span className={styles.icon}>{rightIcon}</span> : null}
+        <button type={type} className={cls} {...props}>
+            {leftIcon && <span className={styles.icon}>{leftIcon}</span>}
+
+            <span className={`${styles.text} button-text`}>
+                {children}
+            </span>
+
+            {rightIcon && <span className={styles.icon}>{rightIcon}</span>}
         </button>
     );
 }

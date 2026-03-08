@@ -1,41 +1,109 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DishCard, LocationCard, MainHero, MainLayout } from "../../components/index.js";
+
+import { getPopularDishes } from "../../services/dishes";
+import { getLocations } from "../../services/locations";
 
 import styles from "./MainPage.module.css";
 
 import heroImg from "../../assets/images/main-hero.jpg";
-import dish1 from "../../assets/images/main-hero.jpg";
-import dish2 from "../../assets/images/main-hero.jpg";
-import dish3 from "../../assets/images/main-hero.jpg";
-import dish4 from "../../assets/images/main-hero.jpg";
+import fallbackDishImage from "../../assets/images/main-hero.jpg";
+import fallbackLocationImage from "../../assets/images/main-hero.jpg";
 
-import loc1 from "../../assets/images/main-hero.jpg";
-import loc2 from "../../assets/images/main-hero.jpg";
-import loc3 from "../../assets/images/main-hero.jpg";
+function parsePrice(value) {
+    if (value == null) return 0;
+
+    const num = String(value).replace(/[^\d.,-]/g, "").replace(",", ".");
+    const parsed = Number(num);
+
+    return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function parseWeight(value) {
+    if (value == null) return "";
+
+    const num = String(value).replace(/[^\d.,-]/g, "").replace(",", ".");
+    const parsed = Number(num);
+
+    return Number.isNaN(parsed) ? String(value) : parsed;
+}
+
+function parseNumber(value) {
+    if (value == null) return 0;
+
+    const parsed = Number(String(value).replace(/[^\d.-]/g, ""));
+    return Number.isNaN(parsed) ? 0 : parsed;
+}
 
 export default function MainPage() {
     const navigate = useNavigate();
-    const defaultLocationId = 1;
 
-    const popularDishes = useMemo(
-        () => [
-            { id: 1, name: "Fresh Strawberry Mint Salad", price: 17, weight: 430, imageSrc: dish1 },
-            { id: 2, name: "Avocado Pine Nut Bowl", price: 17, weight: 430, imageSrc: dish2 },
-            { id: 3, name: "Roasted Sweet Potato & Lentil Salad", price: 17, weight: 430, imageSrc: dish3 },
-            { id: 4, name: "Spring Salad", price: 17, weight: 430, imageSrc: dish4 },
-        ],
-        []
-    );
+    const [popularDishes, setPopularDishes] = useState([]);
+    const [locations, setLocations] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [pageError, setPageError] = useState("");
 
-    const locations = useMemo(
-        () => [
-            { id: 1, address: "48 Rustaveli Avenue", tables: 10, occupancy: 90, imageSrc: loc1 },
-            { id: 2, address: "14 Baratashvili Street", tables: 16, occupancy: 78, imageSrc: loc2 },
-            { id: 3, address: "9 Abashidze Street", tables: 20, occupancy: 99, imageSrc: loc3 },
-        ],
-        []
-    );
+    useEffect(() => {
+        let isMounted = true;
+
+        async function loadMainPage() {
+            try {
+                setLoading(true);
+                setPageError("");
+
+                const [dishesData, locationsData] = await Promise.all([
+                    getPopularDishes(),
+                    getLocations(),
+                ]);
+
+                if (!isMounted) return;
+
+                const normalizedDishes = Array.isArray(dishesData)
+                    ? dishesData.map((dish, index) => ({
+                        id: dish.id || `${dish.name}-${index}`,
+                        name: dish.name || "Unnamed dish",
+                        price: parsePrice(dish.price),
+                        weight: parseWeight(dish.weight),
+                        imageSrc: dish.imageUrl || fallbackDishImage,
+                        available: true,
+                    }))
+                    : [];
+
+                const normalizedLocations = Array.isArray(locationsData)
+                    ? locationsData.map((location, index) => ({
+                        id: location.id || String(index),
+                        address: location.address || "Unknown address",
+                        tables: parseNumber(location.totalCapacity),
+                        occupancy: parseNumber(location.averageOccupancy),
+                        imageSrc: location.imageUrl || fallbackLocationImage,
+                    }))
+                    : [];
+
+                setPopularDishes(normalizedDishes);
+                setLocations(normalizedLocations);
+            } catch (err) {
+                console.error("Failed to load main page data:", err);
+
+                if (!isMounted) return;
+                setPageError("Failed to load data. Please try again later.");
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        }
+
+        loadMainPage();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const defaultLocationId = useMemo(() => {
+        return locations[0]?.id || "1";
+    }, [locations]);
 
     const hero = (
         <MainHero
@@ -50,40 +118,52 @@ export default function MainPage() {
     );
 
     return (
-        <MainLayout hero={hero} headerProps={{ isAuth: false, role: "customer" }}>
+        <MainLayout hero={hero}>
             <section className={styles.section}>
                 <h2 className={styles.sectionTitle}>Most Popular Dishes</h2>
 
-                <div className={styles.gridDishes}>
-                    {popularDishes.map((d) => (
-                        <DishCard
-                            key={d.id}
-                            name={d.name}
-                            price={d.price}
-                            weight={d.weight}
-                            imageSrc={d.imageSrc}
-                            available
-                            onPreOrder={() => navigate(`/locations/${defaultLocationId}`)}
-                        />
-                    ))}
-                </div>
+                {loading ? (
+                    <div className={styles.stateMessage}>Loading dishes...</div>
+                ) : pageError ? (
+                    <div className={styles.stateMessageError}>{pageError}</div>
+                ) : (
+                    <div className={styles.gridDishes}>
+                        {popularDishes.map((d) => (
+                            <DishCard
+                                key={d.id}
+                                name={d.name}
+                                price={d.price}
+                                weight={d.weight}
+                                imageSrc={d.imageSrc}
+                                available={d.available}
+                                onPreOrder={() => navigate(`/locations/${defaultLocationId}`)}
+                            />
+                        ))}
+                    </div>
+                )}
             </section>
 
             <section className={styles.section}>
                 <h2 className={styles.sectionTitle}>Locations</h2>
 
-                <div className={styles.gridLocations}>
-                    {locations.map((l) => (
-                        <LocationCard
-                            key={l.id}
-                            imageSrc={l.imageSrc}
-                            address={l.address}
-                            tables={l.tables}
-                            occupancy={l.occupancy}
-                            onClick={() => navigate(`/locations/${l.id}`)}
-                        />
-                    ))}
-                </div>
+                {loading ? (
+                    <div className={styles.stateMessage}>Loading locations...</div>
+                ) : pageError ? (
+                    <div className={styles.stateMessageError}>{pageError}</div>
+                ) : (
+                    <div className={styles.gridLocations}>
+                        {locations.map((l) => (
+                            <LocationCard
+                                key={l.id}
+                                imageSrc={l.imageSrc}
+                                address={l.address}
+                                tables={l.tables}
+                                occupancy={l.occupancy}
+                                onClick={() => navigate(`/locations/${l.id}`)}
+                            />
+                        ))}
+                    </div>
+                )}
             </section>
         </MainLayout>
     );

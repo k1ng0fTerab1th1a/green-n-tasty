@@ -1,0 +1,144 @@
+.card {
+    max-width: 774px;
+    min-width: 548px;
+    background: var(--neutral-0);
+    border: 1px solid var(--neutral-200);
+    border-radius: 24px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+    padding: 16px;
+}
+
+.cardInner {
+    display: grid;
+    grid-template-columns: 148px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.avatarColumn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding-top: 2px;
+}
+
+.avatarWrap {
+    width: 156px;
+    height: 156px;
+    border-radius: 999px;
+    background: #9a9a9a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.avatarIcon {
+    width: 82px;
+    height: 82px;
+    opacity: 0.95;
+}
+
+.uploadBtn {
+    min-width: auto !important;
+    padding: 0 !important;
+}
+
+.formColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding-top: 4px;
+}
+
+.profileMeta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.profileName {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 24px;
+    color: var(--text);
+}
+
+.profileEmail {
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 16px;
+    color: var(--neutral-600);
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+}
+
+.placeholder {
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--neutral-600);
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 24px;
+}
+
+.passwordForm {
+    width: 100%;
+    max-width: 770px;
+    margin: 0 auto;
+
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.passwordForm > * {
+    width: 100%;
+}
+
+@media (max-width: 900px) {
+    .card {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 760px) {
+    .card {
+        padding: 16px;
+        border-radius: 18px;
+    }
+
+    .cardInner {
+        grid-template-columns: 1fr;
+    }
+
+    .avatarColumn {
+        align-items: flex-start;
+    }
+
+    .formGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .actions {
+        justify-content: stretch;
+    }
+
+    .actions :global(button) {
+        width: 100%;
+    }
+}

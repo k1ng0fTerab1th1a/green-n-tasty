@@ -206,6 +206,7 @@ export default function Header({
                                         <ProfileDropdown
                                             name={userName}
                                             email={userEmail}
+                                            role={role}
                                             onProfile={goProfile}
                                             onSignOut={handleSignOut}
                                         />

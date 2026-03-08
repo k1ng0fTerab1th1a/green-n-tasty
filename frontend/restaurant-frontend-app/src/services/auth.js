@@ -12,8 +12,9 @@ export async function signIn(payload) {
 }
 
 export async function refreshTokens(refreshToken) {
-    const res = await api.post("/auth/refresh-token", { refreshToken });
-    return res.data;
+    return api.post("/auth/refresh-token", {
+        refreshToken
+    });
 }
 
 export async function signOut(refreshToken) {

@@ -39,3 +39,17 @@
         grid-template-columns: 1fr;
     }
 }
+
+.stateMessage {
+    font-size: 16px;
+    line-height: 24px;
+    color: #6b7280;
+    padding: 20px 0;
+}
+
+.stateMessageError {
+    font-size: 16px;
+    line-height: 24px;
+    color: #dc2626;
+    padding: 20px 0;
+}

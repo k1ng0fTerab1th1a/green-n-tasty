@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
         isAuth: false,
         username: "",
         role: "",
+        email: "",
     });
 
     useEffect(() => {
@@ -19,6 +20,7 @@ export function AuthProvider({ children }) {
                 isAuth: true,
                 username: session.username || "",
                 role: session.role || "",
+                email: session.email || "",
             });
         }
     }, []);
@@ -26,13 +28,20 @@ export function AuthProvider({ children }) {
     const value = useMemo(() => ({
         auth,
 
-        signInSuccess: ({ idToken, refreshToken, username, role }) => {
-            tokenStorage.setSession({ idToken, refreshToken, username, role });
+        signInSuccess: ({ idToken, refreshToken, username, role, email }) => {
+            tokenStorage.setSession({
+                idToken,
+                refreshToken,
+                username,
+                role,
+                email,
+            });
 
             setAuth({
                 isAuth: true,
                 username: username || "",
                 role: role || "",
+                email: email || "",
             });
         },
 
@@ -51,6 +60,7 @@ export function AuthProvider({ children }) {
                     isAuth: false,
                     username: "",
                     role: "",
+                    email: "",
                 });
             }
         },
