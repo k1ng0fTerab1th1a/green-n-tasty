@@ -32,7 +32,12 @@ namespace Restaurant.Core.Interfaces.Repositories
         Task<bool> CancelReservationAsync(Reservation reservation, List<string> slots,
             CancellationToken ct = default);
 
-        Task<Reservation?> UpdateReservationAsync(Reservation reservation, List<string> slots, int
-            guestCapacity, bool dayDifferent, Table? table = null);
+        Task<Reservation?> UpdateReservationAsync(
+            Reservation reservation,
+            List<string> newSlots,
+            List<string> oldSlots,
+            bool isDayDifferent,
+            Table? newTable = null,
+            CancellationToken ct = default);
     }
 }
