@@ -105,7 +105,7 @@ export default function Login() {
                 return;
             }
 
-            const { idToken, refreshToken, username, role } = res.data;
+            const { idToken, refreshToken, username, role, email } = res.data;
 
             if (!idToken || !refreshToken) {
                 setStatus("server_error");
@@ -113,10 +113,13 @@ export default function Login() {
                 return;
             }
 
-            signInSuccess({ idToken, refreshToken, username, role });
-
-            setStatus("idle");
-            navigate("/main", { replace: true });
+            signInSuccess({
+                idToken,
+                refreshToken,
+                username,
+                role,
+                email: email || form.email.trim(),
+            });
 
             setStatus("idle");
             navigate("/main", { replace: true });

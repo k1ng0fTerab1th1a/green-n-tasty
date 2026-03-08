@@ -13,7 +13,7 @@ export default function MainLayout({ hero = null, children }) {
                 isAuth={auth.isAuth}
                 role={auth.role}
                 userName={auth.username}
-                userEmail=""
+                userEmail={auth.email}
                 onSignIn={() => navigate("/login")}
                 onProfileClick={() => navigate("/profile")}
                 onCartClick={() => navigate("/cart")}
