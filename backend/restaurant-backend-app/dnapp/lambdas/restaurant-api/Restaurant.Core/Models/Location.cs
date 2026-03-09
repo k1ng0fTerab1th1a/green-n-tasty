@@ -6,12 +6,7 @@ namespace Restaurant.Core.Models;
 public class Location
 {
     [DynamoDBHashKey("id")]
-    [DynamoDBGlobalSecondaryIndexRangeKey("entityType-index")]
     public string Id { get; set; } = null!;
-
-    [DynamoDBProperty("entityType")]
-    [DynamoDBGlobalSecondaryIndexHashKey("entityType-index")]
-    public string EntityType { get; set; } = "LOCATION";
 
     [DynamoDBProperty("address")]
     public string Address { get; set; } = null!;

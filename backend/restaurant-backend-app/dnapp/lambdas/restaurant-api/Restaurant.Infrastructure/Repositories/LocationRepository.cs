@@ -6,8 +6,6 @@ namespace Restaurant.Infrastructure.Repositories;
 
 public sealed class LocationRepository : ILocationRepository
 {
-    private const string EntityTypeIndexName = "entityType-index";
-    private const string LocationEntityType = "LOCATION";
 
     private readonly IDynamoDBContext _context;
 
@@ -18,12 +16,8 @@ public sealed class LocationRepository : ILocationRepository
 
     public async Task<IReadOnlyList<Location>> GetLocationsAsync(CancellationToken cancellationToken = default)
     {
-        var op = new DynamoDBOperationConfig { IndexName = EntityTypeIndexName };
-
-        var search = _context.QueryAsync<Location>(LocationEntityType, op);
-        var items = await search.GetRemainingAsync();
-
-        return items;
+        var search = _context.ScanAsync<Location>(new List<ScanCondition>());
+        return await search.GetRemainingAsync(cancellationToken);
     }
 
     public Task<IReadOnlyList<Location>> GetLocationOptionsAsync(CancellationToken cancellationToken = default)
