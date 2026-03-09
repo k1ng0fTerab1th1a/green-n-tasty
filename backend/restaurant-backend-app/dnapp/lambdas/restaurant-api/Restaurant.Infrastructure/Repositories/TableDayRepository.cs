@@ -17,8 +17,8 @@ public class TableDayRepository(IDynamoDBContext _context) : ITableDayRepository
     }
 
     public async Task<IReadOnlyDictionary<string, TableDay>> GetManyByTablesAndDateAsync(
-        IEnumerable<string> tableKeys, 
-        string date, 
+        IEnumerable<string> tableKeys,
+        string date,
         CancellationToken ct)
     {
         if (tableKeys == null || !tableKeys.Any() || string.IsNullOrWhiteSpace(date))

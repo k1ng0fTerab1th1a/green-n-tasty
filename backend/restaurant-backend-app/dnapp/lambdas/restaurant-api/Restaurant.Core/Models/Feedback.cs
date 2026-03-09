@@ -1,5 +1,7 @@
 using Amazon.DynamoDBv2.DataModel;
 
+namespace Restaurant.Core.Models;
+
 public enum FeedbackType
 {
     Waiter,

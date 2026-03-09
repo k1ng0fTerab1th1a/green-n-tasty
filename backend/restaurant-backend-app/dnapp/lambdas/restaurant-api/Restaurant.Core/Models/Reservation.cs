@@ -29,8 +29,8 @@ public sealed class Reservation
 
     [DynamoDBProperty("startDateTime")]
     [DynamoDBGlobalSecondaryIndexRangeKey(
-        "customerId-start-index", 
-        "tableKey-start-index", 
+        "customerId-start-index",
+        "tableKey-start-index",
         "waiterId-start-index")]
     public string StartDateTime { get; set; } = null!;
 

@@ -39,7 +39,7 @@ public class TableService(
             Table first = locationTables.First();
             var locId = first.LocationId;
 
-            Location location = await _locationRepository.GetByIdAsync(locId, ct) 
+            Location location = await _locationRepository.GetByIdAsync(locId, ct)
                 ?? throw new InvalidDataException($"location with id {locId} not found but was specified in table #{first.TableNumber}");
 
             DateTime startLocal = date.ToDateTime(TimeOnly.Parse(location.OpenTime));
@@ -99,7 +99,7 @@ public class TableService(
         List<TableWithAvailableSlots> result = new();
 
         var tableKeys = tables.Select(t => $"{t.LocationId}#{t.TableNumber}").ToList();
-        IReadOnlyDictionary<string, TableDay> locationTableDays = 
+        IReadOnlyDictionary<string, TableDay> locationTableDays =
             await _tableDayRepository.GetManyByTablesAndDateAsync(tableKeys, dateStr, ct);
 
         foreach (Table table in tables)

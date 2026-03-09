@@ -1,8 +1,6 @@
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
-using Amazon.DynamoDBv2.DocumentModel;
 using Microsoft.Extensions.DependencyInjection;
-using Restaurant.Core.Models;
 
 namespace Restaurant.Infrastructure.Services;
 

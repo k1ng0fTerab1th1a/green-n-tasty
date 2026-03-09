@@ -1,5 +1,6 @@
 ﻿using Amazon.DynamoDBv2.DataModel;
 using Restaurant.Core.Interfaces.Repositories;
+using Restaurant.Core.Models;
 
 namespace Restaurant.Infrastructure.Repositories;
 

@@ -1,4 +1,4 @@
-﻿namespace Restaurant.Core.ServiceDTOs;
+﻿namespace Restaurant.Core.DTOs;
 
 public class FeedbackPaginatedDto
 {

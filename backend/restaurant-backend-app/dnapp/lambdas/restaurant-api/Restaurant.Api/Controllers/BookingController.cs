@@ -13,7 +13,7 @@ public class BookingController(ITableService _tableService) : ControllerBase
 {
     [HttpGet("tables")]
     public async Task<ApiResponse<IList<TableWithAvailableSlots>>> GetAvailableTables(
-        [FromQuery] string date, 
+        [FromQuery] string date,
         [FromQuery] string? time,
         [FromQuery] string? locationId,
         [FromQuery] int? guests,

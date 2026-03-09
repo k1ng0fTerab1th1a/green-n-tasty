@@ -1,5 +1,7 @@
 using Amazon.DynamoDBv2.DataModel;
 
+namespace Restaurant.Core.Models;
+
 [DynamoDBTable("Tables")]
 public class Table
 {

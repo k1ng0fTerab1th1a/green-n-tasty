@@ -1,4 +1,6 @@
-﻿namespace Restaurant.Core.ServiceDTOs;
+﻿using Restaurant.Core.Models;
+
+namespace Restaurant.Core.DTOs;
 
 public class FeedbackPaginatedDBResponseDto
 {

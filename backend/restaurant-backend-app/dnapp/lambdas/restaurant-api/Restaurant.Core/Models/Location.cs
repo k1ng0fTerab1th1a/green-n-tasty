@@ -1,5 +1,7 @@
 using Amazon.DynamoDBv2.DataModel;
 
+namespace Restaurant.Core.Models;
+
 [DynamoDBTable("Locations")]
 public class Location
 {

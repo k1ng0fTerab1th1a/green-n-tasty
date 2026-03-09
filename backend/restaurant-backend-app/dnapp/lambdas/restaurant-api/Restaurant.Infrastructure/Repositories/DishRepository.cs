@@ -2,36 +2,35 @@
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 
-namespace Restaurant.Infrastructure.Repositories
+namespace Restaurant.Infrastructure.Repositories;
+
+public class DishRepository(IDynamoDBContext _context) : IDishRepository
 {
-    public class DishRepository(IDynamoDBContext _context) : IDishRepository
+    public async Task<IReadOnlyList<Dish>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
     {
-        public async Task<IReadOnlyList<Dish>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
+        var config = new DynamoDBOperationConfig
         {
-            var config = new DynamoDBOperationConfig
-            {
-                IndexName = "PopularDishesIndex"
-            };
+            IndexName = "PopularDishesIndex"
+        };
 
-            var asyncSearch = _context.QueryAsync<Dish>("true", config);
+        var asyncSearch = _context.QueryAsync<Dish>("true", config);
 
-            var results = await asyncSearch.GetRemainingAsync(cancellationToken);
+        var results = await asyncSearch.GetRemainingAsync(cancellationToken);
 
-            return results;
-        }
+        return results;
+    }
 
-        public async Task<IReadOnlyList<Dish>> GetSpecialityDishesByLocationIdAsync(string locationId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Dish>> GetSpecialityDishesByLocationIdAsync(string locationId, CancellationToken cancellationToken)
+    {
+        var config = new DynamoDBOperationConfig
         {
-            var config = new DynamoDBOperationConfig
-            {
-                IndexName = "SpecialityIndex"
-            };
+            IndexName = "SpecialityIndex"
+        };
 
-            var asyncSearch = _context.QueryAsync<Dish>(locationId, config);
+        var asyncSearch = _context.QueryAsync<Dish>(locationId, config);
 
-            var results = await asyncSearch.GetRemainingAsync(cancellationToken);
+        var results = await asyncSearch.GetRemainingAsync(cancellationToken);
 
-            return results;
-        }
+        return results;
     }
 }

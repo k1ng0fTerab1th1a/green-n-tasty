@@ -2,7 +2,7 @@
 
 public sealed record UpdateReservationDTO
 {
-    public UpdateReservationDTO(string Id, int GuestNumber, int TableNumber, DateOnly Date, TimeOnly TimeFrom, 
+    public UpdateReservationDTO(string Id, int GuestNumber, int TableNumber, DateOnly Date, TimeOnly TimeFrom,
         TimeOnly TimeTo)
     {
         this.Id = Id;

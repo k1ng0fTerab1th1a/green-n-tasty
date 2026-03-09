@@ -1,4 +1,4 @@
-﻿using Restaurant.Core.ServiceDTOs;
+﻿using Restaurant.Core.DTOs;
 
 namespace Restaurant.Core.Interfaces.Repositories;
 
