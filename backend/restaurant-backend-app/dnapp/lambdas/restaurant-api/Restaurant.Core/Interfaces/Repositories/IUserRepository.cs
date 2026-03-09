@@ -1,4 +1,6 @@
-﻿namespace Restaurant.Core.Interfaces.Repositories;
+﻿using Restaurant.Core.Models;
+
+namespace Restaurant.Core.Interfaces.Repositories;
 
 public interface IUserRepository
 {

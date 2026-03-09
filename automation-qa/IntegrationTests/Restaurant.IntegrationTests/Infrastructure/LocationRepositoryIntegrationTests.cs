@@ -1,178 +1,173 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Amazon.DynamoDBv2;
+﻿using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.Model;
 using Amazon.Runtime;
 using FluentAssertions;
+using Restaurant.Core.Models;
 using Restaurant.Infrastructure.Repositories;
 
-namespace Restaurant.Infrastructure.IntegrationTests
+namespace Restaurant.Infrastructure.IntegrationTests;
+
+public sealed class LocationRepositoryIntegrationTests
 {
-    public sealed class LocationRepositoryIntegrationTests
+    private static Task<IAmazonDynamoDB> CreateClientAsync()
     {
-        private static Task<IAmazonDynamoDB> CreateClientAsync()
+        var endpoint = Environment.GetEnvironmentVariable("DYNAMODB_ENDPOINT") ?? "http://localhost:8000";
+
+        var config = new AmazonDynamoDBConfig
         {
-            var endpoint = Environment.GetEnvironmentVariable("DYNAMODB_ENDPOINT") ?? "http://localhost:8000";
+            ServiceURL = endpoint,
+            UseHttp = true
+        };
 
-            var config = new AmazonDynamoDBConfig
-            {
-                ServiceURL = endpoint,
-                UseHttp = true
-            };
+        IAmazonDynamoDB client = new AmazonDynamoDBClient(new BasicAWSCredentials("test", "test"), config);
+        return Task.FromResult(client);
+    }
 
-            IAmazonDynamoDB client = new AmazonDynamoDBClient(new BasicAWSCredentials("test", "test"), config);
-            return Task.FromResult(client);
-        }
+    private static async Task EnsureLocationsTableAsync(IAmazonDynamoDB client)
+    {
+        const string tableName = "Locations";
 
-        private static async Task EnsureLocationsTableAsync(IAmazonDynamoDB client)
+        var existing = await client.ListTablesAsync();
+        if (existing.TableNames.Contains(tableName))
+            return;
+
+        var request = new CreateTableRequest
         {
-            const string tableName = "Locations";
-
-            var existing = await client.ListTablesAsync();
-            if (existing.TableNames.Contains(tableName))
-                return;
-
-            var request = new CreateTableRequest
+            TableName = tableName,
+            AttributeDefinitions = new List<AttributeDefinition>
             {
-                TableName = tableName,
-                AttributeDefinitions = new List<AttributeDefinition>
+                new("id", ScalarAttributeType.S),
+                new("entityType", ScalarAttributeType.S)
+            },
+            KeySchema = new List<KeySchemaElement>
+            {
+                new("id", KeyType.HASH)
+            },
+            ProvisionedThroughput = new ProvisionedThroughput(5, 5),
+            GlobalSecondaryIndexes = new List<GlobalSecondaryIndex>
+            {
+                new()
                 {
-                    new("id", ScalarAttributeType.S),
-                    new("entityType", ScalarAttributeType.S)
-                },
-                KeySchema = new List<KeySchemaElement>
-                {
-                    new("id", KeyType.HASH)
-                },
-                ProvisionedThroughput = new ProvisionedThroughput(5, 5),
-                GlobalSecondaryIndexes = new List<GlobalSecondaryIndex>
-                {
-                    new()
+                    IndexName = "entityType-index",
+                    KeySchema = new List<KeySchemaElement>
                     {
-                        IndexName = "entityType-index",
-                        KeySchema = new List<KeySchemaElement>
-                        {
-                            new("entityType", KeyType.HASH),
-                            new("id", KeyType.RANGE)
-                        },
-                        Projection = new Projection { ProjectionType = ProjectionType.ALL },
-                        ProvisionedThroughput = new ProvisionedThroughput(5, 5)
-                    }
+                        new("entityType", KeyType.HASH),
+                        new("id", KeyType.RANGE)
+                    },
+                    Projection = new Projection { ProjectionType = ProjectionType.ALL },
+                    ProvisionedThroughput = new ProvisionedThroughput(5, 5)
                 }
-            };
-
-            await client.CreateTableAsync(request);
-
-            while (true)
-            {
-                var desc = await client.DescribeTableAsync(tableName);
-                if (desc.Table.TableStatus == TableStatus.ACTIVE)
-                    break;
-
-                await Task.Delay(500);
             }
-        }
+        };
 
-        [Fact]
-        public async Task GetLocationsAsync_ShouldReturnInsertedLocation()
+        await client.CreateTableAsync(request);
+
+        while (true)
         {
-            using var client = await CreateClientAsync();
-            await EnsureLocationsTableAsync(client);
+            var desc = await client.DescribeTableAsync(tableName);
+            if (desc.Table.TableStatus == TableStatus.ACTIVE)
+                break;
 
-            var ctx = new DynamoDBContext(client);
-            var repo = new LocationRepository(ctx);
-
-            var id = Guid.NewGuid().ToString("N");
-
-            await ctx.SaveAsync(new Location
-            {
-                Id = id,
-                EntityType = "LOCATION",
-                Address = "Berlin, Test str 1",
-                Description = "Test",
-                TotalCapacity = 10,
-                AverageOccupancy = 0.5,
-                ImageUrl = "http://img",
-                Rating = 4.2
-            });
-
-            var items = await repo.GetLocationsAsync();
-
-            items.Should().Contain(x => x.Id == id);
+            await Task.Delay(500);
         }
+    }
 
-        [Fact]
-        public async Task GetLocationOptionsAsync_ShouldReturnInsertedLocation()
+    [Fact]
+    public async Task GetLocationsAsync_ShouldReturnInsertedLocation()
+    {
+        using var client = await CreateClientAsync();
+        await EnsureLocationsTableAsync(client);
+
+        var ctx = new DynamoDBContext(client);
+        var repo = new LocationRepository(ctx);
+
+        var id = Guid.NewGuid().ToString("N");
+
+        await ctx.SaveAsync(new Location
         {
-            using var client = await CreateClientAsync();
-            await EnsureLocationsTableAsync(client);
+            Id = id,
+            EntityType = "LOCATION",
+            Address = "Berlin, Test str 1",
+            Description = "Test",
+            TotalCapacity = 10,
+            AverageOccupancy = 0.5,
+            ImageUrl = "http://img",
+            Rating = 4.2
+        });
 
-            var ctx = new DynamoDBContext(client);
-            var repo = new LocationRepository(ctx);
+        var items = await repo.GetLocationsAsync();
 
-            var id = Guid.NewGuid().ToString("N");
+        items.Should().Contain(x => x.Id == id);
+    }
 
-            await ctx.SaveAsync(new Location
-            {
-                Id = id,
-                EntityType = "LOCATION",
-                Address = "Hamburg, Test str 2",
-                Description = "Test",
-                TotalCapacity = 20,
-                AverageOccupancy = 0.7,
-                ImageUrl = "http://img2",
-                Rating = 4.8
-            });
+    [Fact]
+    public async Task GetLocationOptionsAsync_ShouldReturnInsertedLocation()
+    {
+        using var client = await CreateClientAsync();
+        await EnsureLocationsTableAsync(client);
 
-            var items = await repo.GetLocationOptionsAsync();
+        var ctx = new DynamoDBContext(client);
+        var repo = new LocationRepository(ctx);
 
-            items.Should().Contain(x => x.Id == id && x.Address == "Hamburg, Test str 2");
-        }
+        var id = Guid.NewGuid().ToString("N");
 
-        [Fact]
-        public async Task GetLocationsAsync_ShouldReturnOnlyLocationEntities()
+        await ctx.SaveAsync(new Location
         {
-            using var client = await CreateClientAsync();
-            await EnsureLocationsTableAsync(client);
+            Id = id,
+            EntityType = "LOCATION",
+            Address = "Hamburg, Test str 2",
+            Description = "Test",
+            TotalCapacity = 20,
+            AverageOccupancy = 0.7,
+            ImageUrl = "http://img2",
+            Rating = 4.8
+        });
 
-            var ctx = new DynamoDBContext(client);
-            var repo = new LocationRepository(ctx);
+        var items = await repo.GetLocationOptionsAsync();
 
-            var locationId = Guid.NewGuid().ToString("N");
-            var otherEntityId = Guid.NewGuid().ToString("N");
+        items.Should().Contain(x => x.Id == id && x.Address == "Hamburg, Test str 2");
+    }
 
-            await ctx.SaveAsync(new Location
-            {
-                Id = locationId,
-                EntityType = "LOCATION",
-                Address = "Real location",
-                Description = "Visible",
-                TotalCapacity = 30,
-                AverageOccupancy = 0.3,
-                ImageUrl = "http://img/location",
-                Rating = 4.0
-            });
+    [Fact]
+    public async Task GetLocationsAsync_ShouldReturnOnlyLocationEntities()
+    {
+        using var client = await CreateClientAsync();
+        await EnsureLocationsTableAsync(client);
 
-            await ctx.SaveAsync(new Location
-            {
-                Id = otherEntityId,
-                EntityType = "NOT_LOCATION",
-                Address = "Should be filtered out",
-                Description = "Hidden",
-                TotalCapacity = 999,
-                AverageOccupancy = 1.0,
-                ImageUrl = "http://img/other",
-                Rating = 1.0
-            });
+        var ctx = new DynamoDBContext(client);
+        var repo = new LocationRepository(ctx);
 
-            var items = await repo.GetLocationsAsync();
+        var locationId = Guid.NewGuid().ToString("N");
+        var otherEntityId = Guid.NewGuid().ToString("N");
 
-            items.Should().Contain(x => x.Id == locationId);
-            items.Should().NotContain(x => x.Id == otherEntityId);
-        }
+        await ctx.SaveAsync(new Location
+        {
+            Id = locationId,
+            EntityType = "LOCATION",
+            Address = "Real location",
+            Description = "Visible",
+            TotalCapacity = 30,
+            AverageOccupancy = 0.3,
+            ImageUrl = "http://img/location",
+            Rating = 4.0
+        });
+
+        await ctx.SaveAsync(new Location
+        {
+            Id = otherEntityId,
+            EntityType = "NOT_LOCATION",
+            Address = "Should be filtered out",
+            Description = "Hidden",
+            TotalCapacity = 999,
+            AverageOccupancy = 1.0,
+            ImageUrl = "http://img/other",
+            Rating = 1.0
+        });
+
+        var items = await repo.GetLocationsAsync();
+
+        items.Should().Contain(x => x.Id == locationId);
+        items.Should().NotContain(x => x.Id == otherEntityId);
     }
 }

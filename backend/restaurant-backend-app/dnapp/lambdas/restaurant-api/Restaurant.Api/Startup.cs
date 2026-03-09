@@ -8,129 +8,128 @@ using Restaurant.Core.Services;
 using Restaurant.Infrastructure.Repositories;
 using Restaurant.Infrastructure.Services;
 
-namespace Restaurant.Api
+namespace Restaurant.Api;
+
+public class Startup
 {
-    public class Startup
+    private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _env;
+
+    public Startup(IConfiguration configuration, IWebHostEnvironment env)
     {
-        private readonly IConfiguration _configuration;
-        private readonly IWebHostEnvironment _env;
+        _configuration = configuration;
+        _env = env;
+    }
 
-        public Startup(IConfiguration configuration, IWebHostEnvironment env)
-        {
-            _configuration = configuration;
-            _env = env;
-        }
+    public void ConfigureServices(IServiceCollection services)
+    {
+        var region = Environment.GetEnvironmentVariable("COGNITO_REGION") ?? _configuration["Cognito:Region"];
+        var userPoolId = Environment.GetEnvironmentVariable("COGNITO_USER_POOL_ID") ?? _configuration["Cognito:UserPoolId"];
+        var cognitoIssuer = $"https://cognito-idp.{region}.amazonaws.com/{userPoolId}";
 
-        public void ConfigureServices(IServiceCollection services)
-        {
-            var region = Environment.GetEnvironmentVariable("COGNITO_REGION") ?? _configuration["Cognito:Region"];
-            var userPoolId = Environment.GetEnvironmentVariable("COGNITO_USER_POOL_ID") ?? _configuration["Cognito:UserPoolId"];
-            var cognitoIssuer = $"https://cognito-idp.{region}.amazonaws.com/{userPoolId}";
-
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
-                {
-                    options.Authority = cognitoIssuer;
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuerSigningKey = true,
-                        ValidateIssuer = true,
-                        ValidIssuer = cognitoIssuer,
-                        ValidateLifetime = true,
-                        ValidateAudience = false
-                    };
-                });
-
-            services.AddExceptionHandler<Middlewares.GlobalExceptionHandler>();
-            services.AddProblemDetails();
-
-            // --- РЕЄСТРАЦІЇ DEPENDENCY INJECTION ---
-            services.AddDynamoDb();
-            services.AddSingleton<IAmazonCognitoIdentityProvider, AmazonCognitoIdentityProviderClient>();
-
-            services.AddScoped<ICognitoService, CognitoService>();
-            services.AddScoped<IAuthService, AuthService>();
-            services.AddScoped<IDishService, DishService>();
-            services.AddScoped<IFeedbackService, FeedbackService>();
-            services.AddScoped<ILocationService, LocationService>();
-            services.AddScoped<IReservationService, ReservationService>();
-            services.AddScoped<ITableService, TableService>();
-
-            services.AddScoped<IUserRepository, UserRepository>();
-            services.AddScoped<IWaiterListRepository, WaiterListRepository>();
-            services.AddScoped<IDishRepository, DishRepository>();
-            services.AddScoped<IFeedbackRepository, FeedbackRepository>();
-            services.AddScoped<ILocationRepository, LocationRepository>();
-            services.AddScoped<ITableRepository, TableRepository>();
-            services.AddScoped<ITableDayRepository, TableDayRepository>();
-            services.AddScoped<IReservationRepository, ReservationRepository>();
-            services.AddScoped<IWaiterScheduleRepository, WaiterScheduleRepository>();
-
-
-            services.AddAuthorization();
-            services.AddCors(options =>
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
             {
-                options.AddPolicy("AllowAll", builder =>
+                options.Authority = cognitoIssuer;
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    builder.AllowAnyOrigin()
-                           .AllowAnyMethod()
-                           .AllowAnyHeader();
-                });
+                    ValidateIssuerSigningKey = true,
+                    ValidateIssuer = true,
+                    ValidIssuer = cognitoIssuer,
+                    ValidateLifetime = true,
+                    ValidateAudience = false
+                };
             });
-            services.AddControllers();
 
-            if (_env.IsDevelopment())
+        services.AddExceptionHandler<Middlewares.GlobalExceptionHandler>();
+        services.AddProblemDetails();
+
+        // --- РЕЄСТРАЦІЇ DEPENDENCY INJECTION ---
+        services.AddDynamoDb();
+        services.AddSingleton<IAmazonCognitoIdentityProvider, AmazonCognitoIdentityProviderClient>();
+
+        services.AddScoped<ICognitoService, CognitoService>();
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IDishService, DishService>();
+        services.AddScoped<IFeedbackService, FeedbackService>();
+        services.AddScoped<ILocationService, LocationService>();
+        services.AddScoped<IReservationService, ReservationService>();
+        services.AddScoped<ITableService, TableService>();
+
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IWaiterListRepository, WaiterListRepository>();
+        services.AddScoped<IDishRepository, DishRepository>();
+        services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+        services.AddScoped<ILocationRepository, LocationRepository>();
+        services.AddScoped<ITableRepository, TableRepository>();
+        services.AddScoped<ITableDayRepository, TableDayRepository>();
+        services.AddScoped<IReservationRepository, ReservationRepository>();
+        services.AddScoped<IWaiterScheduleRepository, WaiterScheduleRepository>();
+
+
+        services.AddAuthorization();
+        services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", builder =>
             {
-                services.AddEndpointsApiExplorer();
-                services.AddSwaggerGen(c =>
-                {
-                    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-                    {
-                        Name = "Authorization",
-                        Type = SecuritySchemeType.Http,
-                        Scheme = "Bearer",
-                        BearerFormat = "JWT",
-                        In = ParameterLocation.Header,
-                    });
+                builder.AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader();
+            });
+        });
+        services.AddControllers();
 
-                    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+        if (_env.IsDevelopment())
+        {
+            services.AddEndpointsApiExplorer();
+            services.AddSwaggerGen(c =>
+            {
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
                     {
+                        new OpenApiSecurityScheme
                         {
-                            new OpenApiSecurityScheme
+                            Reference = new OpenApiReference
                             {
-                                Reference = new OpenApiReference
-                                {
-                                    Type = ReferenceType.SecurityScheme,
-                                    Id = "Bearer"
-                                }
-                            },
-                            Array.Empty<string>()
-                        }
-                    });
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
                 });
-            }
-        }
-
-        public void Configure(IApplicationBuilder app)
-        {
-            if (_env.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-
-            app.UseExceptionHandler();
-            app.UseRouting();
-
-            app.UseCors("AllowAll");
-
-            app.UseAuthentication();
-            app.UseAuthorization();
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
             });
         }
+    }
+
+    public void Configure(IApplicationBuilder app)
+    {
+        if (_env.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+
+        app.UseExceptionHandler();
+        app.UseRouting();
+
+        app.UseCors("AllowAll");
+
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapControllers();
+        });
     }
 }

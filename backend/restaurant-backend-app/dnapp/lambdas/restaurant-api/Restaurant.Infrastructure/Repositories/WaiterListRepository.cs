@@ -1,5 +1,4 @@
 ﻿using Amazon.DynamoDBv2.DataModel;
-using Amazon.DynamoDBv2.DocumentModel;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 
@@ -12,7 +11,7 @@ public class WaiterListRepository : IWaiterListRepository
     public WaiterListRepository(IDynamoDBContext context)
     {
         _context = context;
-    
+
     }
     public async Task<bool> ContainsAsync(string email)
     {

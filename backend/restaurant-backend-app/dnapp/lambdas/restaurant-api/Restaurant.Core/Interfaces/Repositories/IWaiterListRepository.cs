@@ -1,6 +1,4 @@
-﻿using Restaurant.Core.Models;
-
-namespace Restaurant.Core.Interfaces.Repositories;
+﻿namespace Restaurant.Core.Interfaces.Repositories;
 
 public interface IWaiterListRepository
 {

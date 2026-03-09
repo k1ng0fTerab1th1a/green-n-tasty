@@ -1,15 +1,15 @@
-﻿using System.Text;
-using Amazon.DynamoDBv2;
+﻿using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
+using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Repositories;
-using Restaurant.Core.ServiceDTOs;
-using Restaurant.Core.Services;
+using Restaurant.Core.Models;
+using System.Text;
 
 namespace Restaurant.Infrastructure.Repositories;
 
-public class FeedbackRepository(IDynamoDBContext context, 
+public class FeedbackRepository(IDynamoDBContext context,
     IAmazonDynamoDB client) : IFeedbackRepository
 {
     public async Task SaveAsync(Feedback feedback)

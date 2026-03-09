@@ -1,4 +1,4 @@
-﻿namespace Restaurant.Api.Models;
+﻿namespace Restaurant.Core.SharedModels;
 
 public class PaginatedResult<T>
 {

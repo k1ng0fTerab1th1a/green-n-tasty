@@ -1,11 +1,8 @@
-﻿using System;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
-using System.IdentityModel.Tokens.Jwt;
-using Restaurant.Core.Interfaces.Repositories;
+﻿using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
+using Restaurant.Core.Models;
 using Restaurant.Core.SharedModels;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace Restaurant.Core.Services;
 
@@ -25,7 +22,7 @@ public class AuthService : IAuthService
     public async Task SignUpAsync(string email, string password, string firstName, string lastName)
     {
         var role = "CUSTOMER";
-        if(await IsWaiter(email)) role = "WAITER";
+        if (await IsWaiter(email)) role = "WAITER";
 
         var userId = await _cognitoService.SignUpAsync(email, password, firstName, lastName, role);
 
