@@ -7,11 +7,12 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
+using Restaurant.Api;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
 
-namespace Restaurant.Api.Tests;
+namespace Restaurant.IntegrationTests.Api;
 
 public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
