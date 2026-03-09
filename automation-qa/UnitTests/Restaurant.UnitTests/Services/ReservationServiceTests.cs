@@ -4,7 +4,7 @@ using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 using Restaurant.Core.Services;
 
-namespace Restaurant.Core.Tests;
+namespace Restaurant.UnitTests.Services;
 
 public sealed class ReservationServiceTests
 {

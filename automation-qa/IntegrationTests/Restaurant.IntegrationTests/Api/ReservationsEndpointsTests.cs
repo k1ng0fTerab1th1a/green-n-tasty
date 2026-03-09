@@ -1,8 +1,9 @@
 ﻿using FluentAssertions;
+using Restaurant.Api.Tests;
 using System.Net;
 using System.Text.Json;
 
-namespace Restaurant.Api.Tests;
+namespace Restaurant.IntegrationTests.Api;
 
 public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicationFactory>
 {

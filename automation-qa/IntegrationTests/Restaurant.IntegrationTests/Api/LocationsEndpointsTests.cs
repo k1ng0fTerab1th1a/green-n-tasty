@@ -1,10 +1,11 @@
 ﻿using FluentAssertions;
+using Restaurant.Api.Tests;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Models;
 using System.Net;
 using System.Text.Json;
 
-namespace Restaurant.Api.Tests;
+namespace Restaurant.IntegrationTests.Api;
 
 public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplicationFactory>
 {
