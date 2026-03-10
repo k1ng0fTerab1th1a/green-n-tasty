@@ -119,52 +119,54 @@ export default function MainPage() {
 
     return (
         <MainLayout hero={hero}>
-            <section className={styles.section}>
-                <h2 className={styles.sectionTitle}>Most Popular Dishes</h2>
+            <div className={styles.container}>
+                <section className={styles.section}>
+                    <h2 className={styles.sectionTitle}>Most Popular Dishes</h2>
 
-                {loading ? (
-                    <div className={styles.stateMessage}>Loading dishes...</div>
-                ) : pageError ? (
-                    <div className={styles.stateMessageError}>{pageError}</div>
-                ) : (
-                    <div className={styles.gridDishes}>
-                        {popularDishes.map((d) => (
-                            <DishCard
-                                key={d.id}
-                                name={d.name}
-                                price={d.price}
-                                weight={d.weight}
-                                imageSrc={d.imageSrc}
-                                available={d.available}
-                                onPreOrder={() => navigate(`/locations/${defaultLocationId}`)}
-                            />
-                        ))}
-                    </div>
-                )}
-            </section>
+                    {loading ? (
+                        <div className={styles.stateMessage}>Loading dishes...</div>
+                    ) : pageError ? (
+                        <div className={styles.stateMessageError}>{pageError}</div>
+                    ) : (
+                        <div className={styles.gridDishes}>
+                            {popularDishes.map((d) => (
+                                <DishCard
+                                    key={d.id}
+                                    name={d.name}
+                                    price={d.price}
+                                    weight={d.weight}
+                                    imageSrc={d.imageSrc}
+                                    available={d.available}
+                                    onPreOrder={() => navigate(`/locations/${defaultLocationId}`)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </section>
 
-            <section className={styles.section}>
-                <h2 className={styles.sectionTitle}>Locations</h2>
+                <section className={styles.section}>
+                    <h2 className={styles.sectionTitle}>Locations</h2>
 
-                {loading ? (
-                    <div className={styles.stateMessage}>Loading locations...</div>
-                ) : pageError ? (
-                    <div className={styles.stateMessageError}>{pageError}</div>
-                ) : (
-                    <div className={styles.gridLocations}>
-                        {locations.map((l) => (
-                            <LocationCard
-                                key={l.id}
-                                imageSrc={l.imageSrc}
-                                address={l.address}
-                                tables={l.tables}
-                                occupancy={l.occupancy}
-                                onClick={() => navigate(`/locations/${l.id}`)}
-                            />
-                        ))}
-                    </div>
-                )}
-            </section>
+                    {loading ? (
+                        <div className={styles.stateMessage}>Loading locations...</div>
+                    ) : pageError ? (
+                        <div className={styles.stateMessageError}>{pageError}</div>
+                    ) : (
+                        <div className={styles.gridLocations}>
+                            {locations.map((l) => (
+                                <LocationCard
+                                    key={l.id}
+                                    imageSrc={l.imageSrc}
+                                    address={l.address}
+                                    tables={l.tables}
+                                    occupancy={l.occupancy}
+                                    onClick={() => navigate(`/locations/${l.id}`)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </section>
+            </div>
         </MainLayout>
     );
 }

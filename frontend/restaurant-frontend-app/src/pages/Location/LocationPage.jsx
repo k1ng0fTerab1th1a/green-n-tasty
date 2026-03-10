@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -10,111 +10,239 @@ import {
     Tab,
     Star,
     NavigationLink,
-    MainLayout
+    MainLayout,
 } from "../../components/index.js";
+
+import {
+    getLocationById,
+    getLocationFeedbacks,
+    getLocationSpecialityDishes,
+} from "../../services/locations";
 
 import styles from "./LocationPage.module.css";
 
-import heroImg from "../../assets/images/main-hero.jpg";
-import dish1 from "../../assets/images/main-hero.jpg";
-import dish2 from "../../assets/images/main-hero.jpg";
-import dish3 from "../../assets/images/main-hero.jpg";
-import dish4 from "../../assets/images/main-hero.jpg";
+import fallbackImage from "../../assets/images/main-hero.jpg";
+
+function parsePrice(value) {
+    if (value == null) return 0;
+
+    const num = String(value).replace(/[^\d.,-]/g, "").replace(",", ".");
+    const parsed = Number(num);
+
+    return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function parseWeight(value) {
+    if (value == null) return "";
+
+    const num = String(value).replace(/[^\d.,-]/g, "").replace(",", ".");
+    const parsed = Number(num);
+
+    return Number.isNaN(parsed) ? String(value) : parsed;
+}
+
+function parseRating(value) {
+    if (value == null) return 0;
+
+    const parsed = Number(String(value).replace(/[^\d.,-]/g, "").replace(",", "."));
+    return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function mapReviewDate(value) {
+    if (!value) return "";
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+
+    return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    });
+}
 
 export default function LocationPage() {
     const navigate = useNavigate();
     const { locationId } = useParams();
 
     const [activeTab, setActiveTab] = useState("service");
-    const [sortBy, setSortBy] = useState("Top rated first");
+    const [sortBy, setSortBy] = useState("top-rated");
     const [page, setPage] = useState(1);
 
-    const location = useMemo(
-        () => ({
-            id: Number(locationId) || 1,
-            name: "Green & Tasty",
-            address: "48 Rustaveli Avenue",
-            rating: 4.73,
-            imageSrc: heroImg,
-            description: [
-                "Located on bustling Rustaveli Avenue, this branch offers a modern, yet cozy atmosphere.",
-                "Known for our fresh, locally sourced dishes, we focus on health and sustainability, blending Georgian cuisine with a modern twist.",
-                "With extensive seasonal specials, it’s perfect for casual lunches and intimate dinners.",
-            ],
-        }),
-        [locationId]
-    );
+    const [location, setLocation] = useState(null);
+    const [dishes, setDishes] = useState([]);
+    const [reviews, setReviews] = useState([]);
 
-    const dishes = useMemo(
+    const [loading, setLoading] = useState(true);
+    const [pageError, setPageError] = useState("");
+
+    const sortOptions = useMemo(
         () => [
-            { id: 1, name: "Fresh Strawberry Mint Salad", price: 17, weight: 430, imageSrc: dish1, available: true },
-            { id: 2, name: "Avocado Pine Nut Bowl", price: 17, weight: 430, imageSrc: dish2, available: true },
-            { id: 3, name: "Roasted Sweet Potato & Lentil Salad", price: 17, weight: 430, imageSrc: dish3, available: true },
-            { id: 4, name: "Spring Salad", price: 17, weight: 430, imageSrc: dish4, available: true },
+            { label: "Top rated first", value: "top-rated" },
+            { label: "Low rated first", value: "low-rated" },
+            { label: "Newest first", value: "newest" },
+            { label: "Oldest first", value: "oldest" },
         ],
         []
     );
 
-    const reviews = useMemo(
-        () => [
-            {
-                id: 1,
-                author: "David",
-                date: "Aug 29, 2024",
-                rating: 5,
-                text:
-                    "Absolutely loved this restaurant! The outdoor terrace was perfect for a relaxing evening, and the menu had so many fresh, healthy options. Definitely coming back soon!",
-                avatarSrc: null,
-                anonymous: false,
-            },
-            {
-                id: 2,
-                author: "User 1765",
-                date: "Aug 29, 2024",
-                rating: 5,
-                text:
-                    "The best dining experience I’ve had in Tbilisi. The vegan options were fantastic, and the service was very attentive.",
-                avatarSrc: null,
-                anonymous: true,
-            },
-            {
-                id: 3,
-                author: "Giorgi",
-                date: "Aug 29, 2024",
-                rating: 4,
-                text:
-                    "Great location and cozy atmosphere. The seasonal menu is excellent. Highly recommend the specials.",
-                avatarSrc: null,
-                anonymous: false,
-            },
-            {
-                id: 4,
-                author: "Anna",
-                date: "Aug 29, 2024",
-                rating: 5,
-                text:
-                    "Loved the attention to details. Fresh ingredients and modern Georgian flavors. Amazing!",
-                avatarSrc: "https://i.pravatar.cc/80?img=47",
-                anonymous: false,
-            },
-        ],
-        []
-    );
+    useEffect(() => {
+        let isMounted = true;
 
-    const sortItems = useMemo(() => ["Top rated first", "Low rated first", "Newest first", "Oldest first"], []);
-    const totalPages = 3;
+        async function loadPage() {
+            try {
+                setLoading(true);
+                setPageError("");
+
+                const [locationData, dishesData, feedbacksData] = await Promise.all([
+                    getLocationById(locationId),
+                    getLocationSpecialityDishes(locationId),
+                    getLocationFeedbacks(locationId, activeTab),
+                ])
+
+                if (!isMounted) return;
+
+                const normalizedLocation = locationData
+                    ? {
+                        id: locationData.id,
+                        name: locationData.name || "Green & Tasty",
+                        address: locationData.address || "Unknown address",
+                        rating: parseRating(
+                            locationData.rating ??
+                            locationData.averageRating ??
+                            locationData.avgRating
+                        ),
+                        imageSrc: locationData.imageUrl || fallbackImage,
+                        description: Array.isArray(locationData.description)
+                            ? locationData.description
+                            : locationData.description
+                                ? [locationData.description]
+                                : [],
+                    }
+                    : null;
+
+                const normalizedDishes = Array.isArray(dishesData)
+                    ? dishesData.map((dish, index) => ({
+                        id: dish.id || `${dish.name || "dish"}-${index}`,
+                        name: dish.name || "Unnamed dish",
+                        price: parsePrice(dish.price),
+                        weight: parseWeight(dish.weight),
+                        imageSrc: dish.imageUrl || fallbackImage,
+                        available: dish.available ?? true,
+                    }))
+                    : [];
+
+                const normalizedReviews = Array.isArray(feedbacksData)
+                    ? feedbacksData.map((item, index) => ({
+                        id: item.id || `review-${index}`,
+                        name:
+                            item.authorName ||
+                            item.userName ||
+                            item.author ||
+                            `User ${index + 1}`,
+                        date: mapReviewDate(
+                            item.createdAt || item.date || item.updatedAt
+                        ),
+                        rating: parseRating(item.rating),
+                        text: item.text || item.comment || "",
+                        avatarSrc: item.avatarUrl || null,
+                        anonymous: Boolean(item.anonymous),
+                        category:
+                            item.category ||
+                            item.type ||
+                            (index % 2 === 0 ? "service" : "cuisine"),
+                    }))
+                    : [];
+
+                setLocation(normalizedLocation);
+                setDishes(normalizedDishes);
+                setReviews(normalizedReviews);
+            } catch (err) {
+                console.error("Failed to load location page:", err);
+
+                if (!isMounted) return;
+                setPageError("Failed to load location data. Please try again later.");
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        }
+
+        loadPage();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [locationId, activeTab]);
+
+    const filteredReviews = useMemo(() => {
+        const tabFiltered = reviews.filter((review) => {
+            if (!review.category) return true;
+            return review.category === activeTab;
+        });
+
+        const sorted = [...tabFiltered];
+
+        if (sortBy === "top-rated") {
+            sorted.sort((a, b) => b.rating - a.rating);
+        } else if (sortBy === "low-rated") {
+            sorted.sort((a, b) => a.rating - b.rating);
+        } else if (sortBy === "newest") {
+            sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
+        } else if (sortBy === "oldest") {
+            sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
+        }
+
+        return sorted;
+    }, [reviews, activeTab, sortBy]);
+
+    const reviewsPerPage = 4;
+    const totalPages = Math.max(1, Math.ceil(filteredReviews.length / reviewsPerPage));
+
+    const paginatedReviews = useMemo(() => {
+        const start = (page - 1) * reviewsPerPage;
+        return filteredReviews.slice(start, start + reviewsPerPage);
+    }, [filteredReviews, page]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [activeTab, sortBy]);
+
+    if (loading) {
+        return (
+            <MainLayout>
+                <div className={styles.stateMessage}>Loading location...</div>
+            </MainLayout>
+        );
+    }
+
+    if (pageError) {
+        return (
+            <MainLayout>
+                <div className={styles.stateMessageError}>{pageError}</div>
+            </MainLayout>
+        );
+    }
+
+    if (!location) {
+        return (
+            <MainLayout>
+                <div className={styles.stateMessageError}>Location not found.</div>
+            </MainLayout>
+        );
+    }
 
     return (
-        <MainLayout headerProps={{ isAuth: false, role: "customer" }}>
+        <MainLayout>
             <div className={styles.breadcrumbs}>
-                <NavigationLink to="/" variant="link" className={styles.crumb}>
+                <NavigationLink to="/main" className={styles.crumb}>
                     Main page
                 </NavigationLink>
                 <span className={styles.sep}>›</span>
-                <span className={styles.crumbActive}>Location {location.address}</span>
+                <span className={styles.crumbActive}>{location.address}</span>
             </div>
 
-            {/* TOP BLOCK */}
             <section className={styles.top}>
                 <div className={styles.info}>
                     <h1 className={styles.title}>{location.name}</h1>
@@ -129,8 +257,8 @@ export default function LocationPage() {
                     </div>
 
                     <div className={styles.desc}>
-                        {location.description.map((t, i) => (
-                            <p key={i}>{t}</p>
+                        {location.description.map((text, index) => (
+                            <p key={index}>{text}</p>
                         ))}
                     </div>
 
@@ -145,37 +273,44 @@ export default function LocationPage() {
                 </div>
 
                 <div className={styles.photoWrap}>
-                    <img className={styles.photo} src={location.imageSrc} alt="" />
+                    <img className={styles.photo} src={location.imageSrc} alt={location.name} />
                 </div>
             </section>
 
-            {/* DISHES */}
             <section className={styles.section}>
                 <h2 className={styles.sectionTitle}>Specialty Dishes</h2>
 
-                <div className={styles.gridDishes}>
-                    {dishes.map((d) => (
-                        <DishCard
-                            key={d.id}
-                            name={d.name}
-                            price={d.price}
-                            weight={d.weight}
-                            imageSrc={d.imageSrc}
-                            available={d.available}
-                            onPreOrder={() => console.log("preorder", d.id)}
-                        />
-                    ))}
-                </div>
+                {dishes.length === 0 ? (
+                    <div className={styles.stateMessage}>No specialty dishes yet.</div>
+                ) : (
+                    <div className={styles.gridDishes}>
+                        {dishes.map((dish) => (
+                            <DishCard
+                                key={dish.id}
+                                name={dish.name}
+                                price={dish.price}
+                                weight={dish.weight}
+                                imageSrc={dish.imageSrc}
+                                available={dish.available}
+                                onPreOrder={() => console.log("preorder", dish.id)}
+                            />
+                        ))}
+                    </div>
+                )}
             </section>
 
-            {/* REVIEWS */}
             <section className={styles.section}>
                 <div className={styles.reviewsHeader}>
                     <h2 className={styles.sectionTitle}>Customer Reviews</h2>
 
                     <div className={styles.sortRow}>
                         <span className={styles.sortLabel}>Sort by</span>
-                        <Dropdown value={sortBy} items={sortItems} onChange={setSortBy} size="sm" />
+                        <Dropdown
+                            value={sortBy}
+                            options={sortOptions}
+                            onChange={setSortBy}
+                            placeholder="Choose sorting"
+                        />
                     </div>
                 </div>
 
@@ -188,23 +323,33 @@ export default function LocationPage() {
                     </Tab>
                 </div>
 
-                <div className={styles.gridReviews}>
-                    {reviews.map((r) => (
-                        <ReviewCard
-                            key={r.id}
-                            name={r.author}
-                            date={r.date}
-                            rating={r.rating}
-                            text={r.text}
-                            avatarSrc={r.avatarSrc}
-                            anonymous={r.anonymous}
-                        />
-                    ))}
-                </div>
+                {paginatedReviews.length === 0 ? (
+                    <div className={styles.stateMessage}>No reviews yet.</div>
+                ) : (
+                    <>
+                        <div className={styles.gridReviews}>
+                            {paginatedReviews.map((review) => (
+                                <ReviewCard
+                                    key={review.id}
+                                    name={review.name}
+                                    date={review.date}
+                                    rating={review.rating}
+                                    text={review.text}
+                                    avatarSrc={review.avatarSrc}
+                                    anonymous={review.anonymous}
+                                />
+                            ))}
+                        </div>
 
-                <div className={styles.pagination}>
-                    <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-                </div>
+                        <div className={styles.pagination}>
+                            <Pagination
+                                page={page}
+                                totalPages={totalPages}
+                                onChange={setPage}
+                            />
+                        </div>
+                    </>
+                )}
             </section>
         </MainLayout>
     );

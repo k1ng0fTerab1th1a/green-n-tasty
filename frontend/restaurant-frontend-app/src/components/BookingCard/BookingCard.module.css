@@ -1,0 +1,75 @@
+.card {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    background: var(--neutral-0); /* */
+    border-radius: var(--radius-lg); /* */
+    border: 1px solid var(--neutral-200); /* */
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.infoRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.icon {
+    width: 18px;
+    height: 18px;
+}
+
+.details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Статуси (Бейджі) з variables.css */
+.badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.reserved {
+    background-color: var(--warning-bg); /* */
+    color: var(--orange-400); /* */
+}
+
+.inprogress {
+    background-color: var(--blue-100); /* */
+    color: var(--blue-400); /* */
+}
+
+.finished {
+    background-color: var(--success-bg); /* */
+    color: var(--green-200); /* */
+}
+
+.canceled {
+    background-color: var(--danger-bg); /* */
+    color: var(--danger); /* */
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 16px;
+    margin-top: auto;
+}
+
+/* Корекція для кнопки Cancel (tertiary), щоб вона була чорною як на фото */
+.cancelBtn {
+    color: var(--neutral-900) !important; /* */
+}
+
+.editBtn {
+    min-width: 100px;
+}

@@ -1,70 +1,104 @@
-.hero {
-    margin: -60px -40px 0;
-    padding: 15px 32px;
-    min-height: 82px;
-    display: flex;
-    align-items: center;
-    background:
-            linear-gradient(
-                    115deg,
-                    rgba(255, 255, 255, 0.08) 18%,
-                    rgba(140, 255, 128, 0.55) 42%,
-                    rgba(255, 255, 255, 0.1) 52%,
-                    rgba(255, 255, 255, 0) 60%
-            ),
-            linear-gradient(90deg, #5e9d74 0%, #4f8d6a 100%);
+.page {
+    background: var(--neutral-100);
+    min-height: 100vh;
 }
 
-.pageTitle {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 500;
-    line-height: 32px;
-    color: var(--neutral-0);
+.container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 60px 40px;
 }
 
 .content {
     display: grid;
-    grid-template-columns: 220px minmax(0, 1fr);
-    gap: 36px;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 40px;
     align-items: start;
 }
 
 .sidebar {
-    padding-top: 8px;
+    display: flex;
+    justify-content: flex-start;
 }
 
 .tabs {
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 12px;
+    width: 100%;
     align-items: flex-start;
 }
 
+.tab {
+    text-align: left;
+    width: auto;
+    white-space: nowrap;
+}
+
 .main {
-    min-width: 0;
+    width: 100%;
 }
 
 .mainInner {
+    padding: 40px;
     width: 100%;
-    display: flex;
-    justify-content: center;
+    max-width: 800px;
+    margin: 0;
+    box-sizing: border-box;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
+    .container {
+        padding: 40px 24px;
+    }
+
     .content {
         grid-template-columns: 1fr;
-        gap: 24px;
+        gap: 32px;
     }
 
     .tabs {
-        gap: 16px;
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--neutral-200);
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tabs::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .tabs::-webkit-scrollbar-thumb {
+        background: var(--neutral-200);
+        border-radius: 10px;
+    }
+
+    .mainInner {
+        max-width: 100%;
     }
 }
 
-@media (max-width: 760px) {
-    .hero {
-        margin: -26px -16px 0;
-        padding: 18px 16px;
+@media (max-width: 768px) {
+    .container {
+        padding: 24px 16px;
+    }
+
+    .mainInner {
+        padding: 24px 16px;
+    }
+
+    .content {
+        gap: 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .tabs {
+        gap: 8px;
+    }
+
+    .pageTitle {
+        font-size: 20px;
     }
 }

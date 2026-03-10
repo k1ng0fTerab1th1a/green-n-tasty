@@ -1,0 +1,34 @@
+.page {
+    background: var(--neutral-100);
+    min-height: 100vh;
+}
+
+/* Контейнер для карток з відступом від банера */
+.contentContainer {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 40px 40px 60px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+}
+
+/* Адаптивність для сітки карток */
+@media (max-width: 1200px) {
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .contentContainer {
+        padding: 24px 20px 40px;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}

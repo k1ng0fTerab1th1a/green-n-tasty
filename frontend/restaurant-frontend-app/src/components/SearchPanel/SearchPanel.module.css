@@ -1,0 +1,155 @@
+.searchPanel {
+    width: 100%;
+}
+
+.row {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+    flex-wrap: wrap;
+}
+
+.col {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+}
+
+.colAction {
+    flex: 0 0 auto;
+    display: flex;
+}
+
+.dropdownWrap {
+    width: 100%;
+    display: flex;
+}
+
+.dropdownWrap :global(.control) {
+    height: 56px;
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--neutral-200);
+    background: #fff;
+    padding: 0 16px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+}
+
+.dropdownWrap :global(.value),
+.dropdownWrap :global(.placeholder) {
+    font-size: 16px;
+    font-weight: 400;
+}
+
+.guestsField {
+    height: 56px;
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--neutral-200);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    box-sizing: border-box;
+}
+
+.guestsInfo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.icon {
+    width: 20px;
+    height: 20px;
+}
+
+.label {
+    font-size: 16px;
+    color: var(--text);
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.minus, .plus {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #00ad0c;
+    border-radius: 6px;
+    background: transparent;
+    color: #00ad0c;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: background 0.2s;
+}
+
+.minus:hover, .plus:hover {
+    background: #f0fdf4;
+}
+
+.count {
+    font-size: 16px;
+    font-weight: 500;
+    min-width: 12px;
+    text-align: center;
+}
+
+.submitBtn {
+    height: 56px;
+    width: 100%;
+    padding: 0 32px;
+    background: #00ad0c !important;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 16px;
+    border: none;
+    color: #fff;
+    white-space: nowrap;
+    cursor: pointer;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.submitBtn:hover {
+    filter: brightness(1.1);
+}
+
+@media (max-width: 1400px) {
+    .row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .colAction {
+        grid-column: span 3;
+    }
+}
+
+@media (max-width: 900px) {
+    .row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .colAction {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 600px) {
+    .row {
+        grid-template-columns: 1fr;
+    }
+    .colAction {
+        grid-column: span 1;
+    }
+}

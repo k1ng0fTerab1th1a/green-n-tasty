@@ -16,23 +16,25 @@ export default function MainHero({
         >
             <div className={styles.overlay} />
 
-            <div className={styles.content}>
-                <div className={styles.title}>{title}</div>
+            <div className={styles.container}>
+                <div className={styles.content}>
+                    <h1 className={`${styles.title} h1`}>{title}</h1>
 
-                <div className={styles.text}>
-                    {desc.map((t, i) => (
-                        <p key={i}>{t}</p>
-                    ))}
+                    <div className={styles.text}>
+                        {desc.map((t, i) => (
+                            <p key={i} className="body">{t}</p>
+                        ))}
+                    </div>
+
+                    <Button
+                        variant="primary"
+                        size="xl"
+                        onClick={onViewMenu}
+                        className={styles.btn}
+                    >
+                        View Menu
+                    </Button>
                 </div>
-
-                <Button
-                    variant="primary"
-                    size="lg"
-                    onClick={onViewMenu}
-                    className={styles.btn}
-                >
-                    View Menu
-                </Button>
             </div>
         </section>
     );

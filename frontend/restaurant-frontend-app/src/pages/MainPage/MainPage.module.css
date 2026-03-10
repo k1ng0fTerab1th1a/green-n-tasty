@@ -1,55 +1,73 @@
+.container {
+    max-width: 1780px;
+    margin: 0 auto;
+    padding: 60px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 60px;
+}
+
 .section {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 24px;
 }
 
 .sectionTitle {
-    font-size: 18px;
+    font-size: 32px;
     font-weight: 500;
-    line-height: 32px;
-    color: var(--text);
+    line-height: 40px;
+    color: var(--neutral-900);
     margin: 0;
 }
 
 .gridDishes {
     display: grid;
-    grid-template-columns: repeat(4, minmax(240px, 1fr));
-    gap: 22px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
 }
 
 .gridLocations {
     display: grid;
-    grid-template-columns: repeat(3, minmax(260px, 1fr));
-    gap: 22px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
 }
 
 @media (max-width: 1200px) {
-    .gridDishes {
-        grid-template-columns: repeat(2, minmax(240px, 1fr));
+    .container {
+        padding: 40px 24px;
+        gap: 40px;
     }
+
+    .gridDishes {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
     .gridLocations {
-        grid-template-columns: repeat(2, minmax(260px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
+    .gridDishes {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .sectionTitle {
+        font-size: 24px;
+    }
+
     .gridDishes,
     .gridLocations {
         grid-template-columns: 1fr;
     }
 }
 
-.stateMessage {
-    font-size: 16px;
-    line-height: 24px;
-    color: #6b7280;
-    padding: 20px 0;
-}
-
+.stateMessage,
 .stateMessageError {
-    font-size: 16px;
-    line-height: 24px;
-    color: #dc2626;
-    padding: 20px 0;
+    text-align: center;
+    font-size: 18px;
+    padding: 40px 0;
 }
