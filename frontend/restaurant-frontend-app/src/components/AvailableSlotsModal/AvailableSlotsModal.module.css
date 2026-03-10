@@ -1,0 +1,42 @@
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.slotButton {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 5px;
+    padding: 10px 10px;
+
+    background: var(--neutral-0);
+    border: 1px solid var(--green-200);
+    border-radius: var(--radius-sm);
+
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--neutral-900);
+
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.slotButton:hover {
+    background: var(--green-100);
+}
+
+.icon {
+    width: 20px;
+    height: 20px;
+}
+
+@media (max-width: 480px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}

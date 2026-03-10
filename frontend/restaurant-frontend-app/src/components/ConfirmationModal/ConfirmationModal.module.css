@@ -1,0 +1,39 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    line-height: 1.6;
+}
+
+.content strong {
+    font-weight: 500;
+}
+
+.actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.cancelBtn {
+    background: transparent !important;
+    border: 1px solid var(--green-200) !important;
+    color: var(--green-200) !important;
+}
+
+.editBtn {
+    background-color: var(--green-200) !important;
+}
+
+@media (max-width: 480px) {
+    .actions {
+        grid-template-columns: 1fr;
+    }
+}

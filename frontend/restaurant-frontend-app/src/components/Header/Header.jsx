@@ -24,6 +24,7 @@ export default function Header({
     const navigate = useNavigate();
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Стан для мобільного меню
     const menuWrapRef = useRef(null);
 
     useEffect(() => {
@@ -55,7 +56,7 @@ export default function Header({
         if (!isAuth) {
             return [
                 { to: "/main", label: "Main page", end: true },
-                { to: "/book", label: "Book a Table" },
+                { to: "/search", label: "Book a Table" },
             ];
         }
 
@@ -77,7 +78,7 @@ export default function Header({
 
         return [
             { to: "/main", label: "Main page", end: true },
-            { to: "/book", label: "Book a Table" },
+            { to: "/search", label: "Book a Table" },
             { to: "/reservations", label: "Reservations" },
         ];
     }, [isAuth, normalizedRole]);
@@ -87,28 +88,23 @@ export default function Header({
             onSignIn();
             return;
         }
-
         navigate("/login");
     };
 
     const goProfile = () => {
         setIsMenuOpen(false);
-
         if (onProfileClick) {
             onProfileClick();
             return;
         }
-
         navigate("/profile");
     };
 
     const handleSignOut = async () => {
         setIsMenuOpen(false);
-
         if (onSignOut) {
             await onSignOut();
         }
-
         navigate("/main", { replace: true });
     };
 
@@ -117,7 +113,6 @@ export default function Header({
             onCartClick();
             return;
         }
-
         navigate("/cart");
     };
 
@@ -126,11 +121,11 @@ export default function Header({
             onBellClick();
             return;
         }
-
         navigate("/notifications");
     };
 
     const toggleProfileMenu = () => setIsMenuOpen((prev) => !prev);
+    const toggleMobileMenu = () => setIsMobileMenuOpen((prev) => !prev);
 
     const showBell = isAuth && normalizedRole === "WAITER";
     const showCart = isAuth && normalizedRole === "CUSTOMER";
@@ -138,6 +133,7 @@ export default function Header({
     return (
         <header className={styles.header}>
             <div className={styles.inner}>
+                {/* Логотип */}
                 <button
                     type="button"
                     className={styles.brand}
@@ -152,14 +148,32 @@ export default function Header({
                     </span>
                 </button>
 
-                <nav className={styles.nav} aria-label="Primary navigation">
+                {/* Бургер для мобілки */}
+                <button
+                    className={styles.burger}
+                    onClick={toggleMobileMenu}
+                    aria-label="Toggle menu"
+                >
+                    <div className={`${styles.burgerLine} ${isMobileMenuOpen ? styles.line1 : ""}`}></div>
+                    <div className={`${styles.burgerLine} ${isMobileMenuOpen ? styles.line2 : ""}`}></div>
+                    <div className={`${styles.burgerLine} ${isMobileMenuOpen ? styles.line3 : ""}`}></div>
+                </button>
+
+                {/* Навігація */}
+                <nav className={`${styles.nav} ${isMobileMenuOpen ? styles.navActive : ""}`} aria-label="Primary navigation">
                     {links.map((l) => (
-                        <NavigationLink key={l.to} to={l.to} end={!!l.end}>
+                        <NavigationLink
+                            key={l.to}
+                            to={l.to}
+                            end={!!l.end}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
                             {l.label}
                         </NavigationLink>
                     ))}
                 </nav>
 
+                {/* Права частина */}
                 <div className={styles.right}>
                     {!isAuth ? (
                         <Button variant="secondary" size="lg" onClick={handleSignIn}>

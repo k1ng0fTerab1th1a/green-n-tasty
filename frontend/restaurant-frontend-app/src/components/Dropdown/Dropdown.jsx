@@ -15,6 +15,10 @@ export default function Dropdown({
                                      hint = "",
                                      disabled = false,
                                      className = "",
+                                     controlClassName = "",
+                                     valueClassName = "",
+                                     menuClassName = "",
+                                     itemClassName = "",
                                  }) {
     const [open, setOpen] = useState(false);
     const [activeIndex, setActiveIndex] = useState(-1);
@@ -27,7 +31,6 @@ export default function Dropdown({
         [options, value]
     );
 
-    // close on outside click
     useEffect(() => {
         if (!open) return;
 
@@ -40,7 +43,6 @@ export default function Dropdown({
         return () => document.removeEventListener("mousedown", onDoc);
     }, [open]);
 
-    // when open -> set active to selected
     useEffect(() => {
         if (!open) return;
         const idx = options.findIndex((o) => o.value === value && !o.disabled);
@@ -107,6 +109,7 @@ export default function Dropdown({
                 type="button"
                 className={[
                     styles.control,
+                    controlClassName,
                     open ? styles.active : "",
                     hasError ? styles.error : "",
                     disabled ? styles.disabled : "",
@@ -118,21 +121,27 @@ export default function Dropdown({
             >
                 {leftIcon ? (
                     <span className={styles.leftIcon}>
-            {typeof leftIcon === "string" ? <img src={leftIcon} alt="" /> : leftIcon}
-          </span>
+                        {typeof leftIcon === "string" ? <img src={leftIcon} alt="" /> : leftIcon}
+                    </span>
                 ) : null}
 
-                <span className={`${styles.value} ${!hasValue ? styles.placeholder : ""}`}>
-          {hasValue ? selected.label : placeholder}
-        </span>
+                <span
+                    className={[
+                        styles.value,
+                        valueClassName,
+                        !hasValue ? styles.placeholder : "",
+                    ].join(" ")}
+                >
+                    {hasValue ? selected.label : placeholder}
+                </span>
 
                 <span className={styles.chevron}>
-          <img src={open ? chevronUp : chevronDown} alt="" />
-        </span>
+                    <img src={open ? chevronUp : chevronDown} alt="" />
+                </span>
             </button>
 
             {open ? (
-                <div className={styles.menu} role="listbox" tabIndex={-1}>
+                <div className={`${styles.menu} ${menuClassName}`} role="listbox" tabIndex={-1}>
                     {options.map((opt, idx) => {
                         const isSelected = value === opt.value;
                         const isActive = idx === activeIndex;
@@ -143,6 +152,7 @@ export default function Dropdown({
                                 type="button"
                                 className={[
                                     styles.item,
+                                    itemClassName,
                                     isSelected ? styles.itemSelected : "",
                                     isActive ? styles.itemActive : "",
                                     opt.disabled ? styles.itemDisabled : "",
@@ -159,14 +169,15 @@ export default function Dropdown({
                 </div>
             ) : null}
 
-            <div className={`${styles.hint} ${hasError ? styles.hintError : ""}`}>
-                {hasError ? error : hint}
-            </div>
+            {hint ? (
+                <div className={`${styles.hint} ${hasError ? styles.hintError : ""}`}>
+                    {hint}
+                </div>
+            ) : null}
         </div>
     );
 }
 
-/* helpers */
 function firstEnabledIndex(options) {
     return options.findIndex((o) => !o.disabled);
 }

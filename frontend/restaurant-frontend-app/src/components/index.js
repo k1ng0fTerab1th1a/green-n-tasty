@@ -20,3 +20,12 @@ export { default as LocationCard } from "./LocationCard/LocationCard";
 export { default as MainHero } from "./MainHero/MainHero";
 export { default as MainLayout } from "./MainLayout/MainLayout";
 export { default as ProfileLayout } from "./ProfileLayout/ProfileLayout.jsx";
+export { default as SearchPanel } from "./SearchPanel/SearchPanel";
+export { default as TableCard } from "./TableCard/TableCard";
+export { default as Modal } from "./Modal/Modal";
+export { default as BookingCard } from "./BookingCard/BookingCard";
+export { default as FeedbackModal } from "./FeedbackModal/FeedbackModal";
+export { default as AvailableSlotsModal } from "./AvailableSlotsModal/AvailableSlotsModal";
+export { default as ConfirmationModal } from "./ConfirmationModal/ConfirmationModal";
+export { default as ReservationForm } from "./ReservationForm/ReservationForm";
+export { default as PageBanner } from "./PageBanner/PageBanner"
