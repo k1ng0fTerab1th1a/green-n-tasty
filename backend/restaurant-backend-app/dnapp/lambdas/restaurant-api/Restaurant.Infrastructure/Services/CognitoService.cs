@@ -29,27 +29,30 @@ public class CognitoService : ICognitoService
     {
         try
         {
-            var response = await _client.SignUpAsync(new SignUpRequest
+            var createResponse = await _client.AdminCreateUserAsync(new AdminCreateUserRequest
             {
-                ClientId = _clientId,
+                UserPoolId = _userPoolId,
                 Username = email,
-                Password = password,
+                MessageAction = MessageActionType.SUPPRESS,
                 UserAttributes = new List<AttributeType>
             {
                 new() { Name = "email", Value = email },
                 new() { Name = "given_name", Value = firstName },
                 new() { Name = "family_name", Value = lastName },
-                new() { Name = "custom:role", Value = role }
+                new() { Name = "custom:role", Value = role },
+                new() { Name = "email_verified", Value = "true" }
             }
             });
 
-            await _client.AdminConfirmSignUpAsync(new AdminConfirmSignUpRequest
+            await _client.AdminSetUserPasswordAsync(new AdminSetUserPasswordRequest
             {
                 UserPoolId = _userPoolId,
-                Username = email
+                Username = email,
+                Password = password,
+                Permanent = true
             });
 
-            return response.UserSub;
+            return createResponse.User.Username;
         }
         catch (UsernameExistsException)
         {

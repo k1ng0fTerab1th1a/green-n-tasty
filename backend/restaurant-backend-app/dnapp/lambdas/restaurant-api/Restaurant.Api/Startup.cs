@@ -46,7 +46,15 @@ public class Startup
 
         // --- РЕЄСТРАЦІЇ DEPENDENCY INJECTION ---
         services.AddDynamoDb();
-        services.AddSingleton<IAmazonCognitoIdentityProvider, AmazonCognitoIdentityProviderClient>();
+        services.AddSingleton<IAmazonCognitoIdentityProvider>(sp =>
+        {
+            var config = new AmazonCognitoIdentityProviderConfig
+            {
+                MaxErrorRetry = 0
+            };
+
+            return new AmazonCognitoIdentityProviderClient(config);
+        });
 
         services.AddScoped<ICognitoService, CognitoService>();
         services.AddScoped<IAuthService, AuthService>();
