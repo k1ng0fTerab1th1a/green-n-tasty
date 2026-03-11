@@ -26,7 +26,6 @@ public class Dish
     [DynamoDBProperty("imageUrl")]
     public string? ImageUrl { get; set; }
 
-
     [DynamoDBProperty("weight")]
     public int? Weight { get; set; }
 

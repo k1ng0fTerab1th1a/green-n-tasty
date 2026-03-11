@@ -26,7 +26,6 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
         _factory.LocationService.Locations.Add(new Location
         {
             Id = "loc-42",
-            EntityType = "LOCATION",
             Address = "Berlin, Test str 1",
             Description = "Panoramic hall",
             TotalCapacity = 120,
@@ -80,7 +79,6 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
         _factory.LocationService.Options.Add(new Location
         {
             Id = "loc-10",
-            EntityType = "LOCATION",
             Address = "Main street 10",
             Description = "Ignored here",
             TotalCapacity = 50,

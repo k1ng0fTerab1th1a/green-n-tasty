@@ -11,6 +11,7 @@ using Restaurant.Api;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
+using Restaurant.Core.SharedModels;
 
 namespace Restaurant.IntegrationTests.Api;
 
@@ -20,6 +21,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public FakeLocationService LocationService { get; } = new();
     public FakeFeedbackService FeedbackService { get; } = new();
     public FakeDishService DishService { get; } = new();
+    public FakeAuthService AuthService { get; } = new();
+    public FakeCognitoService CognitoService { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -55,7 +58,114 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IDishService>();
             services.AddSingleton<IDishService>(DishService);
+
+            services.RemoveAll<IAuthService>();
+            services.AddSingleton<IAuthService>(AuthService);
+
+            services.RemoveAll<ICognitoService>();
+            services.AddSingleton<ICognitoService>(CognitoService);
         });
+    }
+
+    public sealed class FakeAuthService : IAuthService
+    {
+        public AuthResult SignInResponse { get; set; } = new("id-token", "refresh-token", "John Doe", "CUSTOMER");
+
+        public Exception? SignUpException { get; set; }
+        public Exception? SignInException { get; set; }
+
+        public string? LastSignUpEmail { get; private set; }
+        public string? LastSignUpPassword { get; private set; }
+        public string? LastSignUpFirstName { get; private set; }
+        public string? LastSignUpLastName { get; private set; }
+        public string? LastSignInEmail { get; private set; }
+        public string? LastSignInPassword { get; private set; }
+
+        public void Reset()
+        {
+            SignInResponse = new AuthResult("id-token", "refresh-token", "John Doe", "CUSTOMER");
+            SignUpException = null;
+            SignInException = null;
+            LastSignUpEmail = null;
+            LastSignUpPassword = null;
+            LastSignUpFirstName = null;
+            LastSignUpLastName = null;
+            LastSignInEmail = null;
+            LastSignInPassword = null;
+        }
+
+        public Task SignUpAsync(string email, string password, string firstName, string lastName)
+        {
+            LastSignUpEmail = email;
+            LastSignUpPassword = password;
+            LastSignUpFirstName = firstName;
+            LastSignUpLastName = lastName;
+
+            if (SignUpException is not null)
+                throw SignUpException;
+
+            return Task.CompletedTask;
+        }
+
+        public Task<AuthResult> SignInAsync(string email, string password)
+        {
+            LastSignInEmail = email;
+            LastSignInPassword = password;
+
+            if (SignInException is not null)
+                throw SignInException;
+
+            return Task.FromResult(SignInResponse);
+        }
+    }
+
+    public sealed class FakeCognitoService : ICognitoService
+    {
+        public string RefreshTokenResponse { get; set; } = "new-access-token";
+        public Exception? RefreshTokenException { get; set; }
+        public Exception? SignOutException { get; set; }
+        public string? LastRefreshTokenInput { get; private set; }
+        public string? LastSignOutRefreshToken { get; private set; }
+
+        public void Reset()
+        {
+            RefreshTokenResponse = "new-access-token";
+            RefreshTokenException = null;
+            SignOutException = null;
+            LastRefreshTokenInput = null;
+            LastSignOutRefreshToken = null;
+        }
+
+        public string GetUserPoolId() => "test-pool";
+
+        public Task<string> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER")
+            => throw new NotImplementedException();
+
+        public Task<(string IdToken, string RefreshToken)> SignInAsync(string email, string password)
+            => throw new NotImplementedException();
+
+        public Task DeleteUserAsync(string email)
+            => throw new NotImplementedException();
+
+        public Task<string> RefreshTokenAsync(string refreshToken)
+        {
+            LastRefreshTokenInput = refreshToken;
+
+            if (RefreshTokenException is not null)
+                throw RefreshTokenException;
+
+            return Task.FromResult(RefreshTokenResponse);
+        }
+
+        public Task SignOutAsync(string refreshToken)
+        {
+            LastSignOutRefreshToken = refreshToken;
+
+            if (SignOutException is not null)
+                throw SignOutException;
+
+            return Task.CompletedTask;
+        }
     }
 
     public sealed class FakeReservationService : IReservationService
@@ -165,7 +275,6 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             var item = new Location
             {
                 Id = "loc-1",
-                EntityType = "LOCATION",
                 Address = "Main street 1",
                 Description = "Test location",
                 TotalCapacity = 120,
@@ -179,7 +288,6 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             Options.Add(new Location
             {
                 Id = item.Id,
-                EntityType = item.EntityType,
                 Address = item.Address,
                 Description = item.Description,
                 TotalCapacity = item.TotalCapacity,

@@ -24,6 +24,7 @@ public class GlobalExceptionHandler : IExceptionHandler
             AuthException ex => (StatusCodes.Status400BadRequest, ex.Message),
             UnauthorizedAccessException ex => (StatusCodes.Status403Forbidden, ex.Message),
             SlotUnavailableException ex => (StatusCodes.Status409Conflict, ex.Message),
+            BusinessException ex => (StatusCodes.Status400BadRequest, ex.Message),
 
             _ => (StatusCodes.Status500InternalServerError, exception.Message)
         };
