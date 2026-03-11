@@ -19,6 +19,7 @@ export default function Dropdown({
                                      valueClassName = "",
                                      menuClassName = "",
                                      itemClassName = "",
+                                     onClear,
                                  }) {
     const [open, setOpen] = useState(false);
     const [activeIndex, setActiveIndex] = useState(-1);
@@ -30,6 +31,11 @@ export default function Dropdown({
         () => options.find((o) => o.value === value) || null,
         [options, value]
     );
+
+    const handleClear = (e) => {
+        e.stopPropagation();
+        onChange?.(null);
+    };
 
     useEffect(() => {
         if (!open) return;
@@ -116,27 +122,26 @@ export default function Dropdown({
                 ].join(" ")}
                 onClick={toggle}
                 onKeyDown={onKeyDown}
-                aria-haspopup="listbox"
-                aria-expanded={open}
             >
-                {leftIcon ? (
+                {leftIcon && (
                     <span className={styles.leftIcon}>
                         {typeof leftIcon === "string" ? <img src={leftIcon} alt="" /> : leftIcon}
                     </span>
-                ) : null}
+                )}
 
-                <span
-                    className={[
-                        styles.value,
-                        valueClassName,
-                        !hasValue ? styles.placeholder : "",
-                    ].join(" ")}
-                >
+                <span className={[styles.value, !hasValue ? styles.placeholder : ""].join(" ")}>
                     {hasValue ? selected.label : placeholder}
                 </span>
 
                 <span className={styles.chevron}>
-                    <img src={open ? chevronUp : chevronDown} alt="" />
+                    {/* Логіка: якщо є значення і ми не в стані disabled — показуємо хрестик */}
+                    {hasValue && !disabled ? (
+                        <span className={styles.clearBtn} onClick={handleClear} title="Clear filter">
+                            ✕
+                        </span>
+                    ) : (
+                        <img src={open ? chevronUp : chevronDown} alt="" />
+                    )}
                 </span>
             </button>
 

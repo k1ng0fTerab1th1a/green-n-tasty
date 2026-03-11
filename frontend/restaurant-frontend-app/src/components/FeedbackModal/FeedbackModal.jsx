@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Modal, Tab, Star, Button } from "../index.js";
-import styles from "./FeedbackModal.module.css"; // Перевірте цей імпорт
+import styles from "./FeedbackModal.module.css";
 
 export default function FeedbackModal({
                                           isOpen,

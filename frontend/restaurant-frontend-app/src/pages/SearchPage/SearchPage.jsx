@@ -1,108 +1,84 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
     MainLayout,
     TableCard,
     SearchPanel,
+    NavigationLink,
+    ReservationForm
 } from "../../components/index.js";
 import styles from "./SearchPage.module.css";
-
+import { getAvailableTables } from "../../services/bookings";
+import { getLocations } from "../../services/locations";
 import heroImage from "../../assets/images/main-hero.jpg";
 
-const mockLocations = [
-    { id: "loc-1", address: "48 Rustaveli Avenue" },
-    { id: "loc-2", address: "14 Baratashvili Street" },
-    { id: "loc-3", address: "9 Abashidze Street" },
-];
-
-const mockTables = [
-    {
-        id: 1,
-        location: "48 Rustaveli Avenue",
-        tableNumber: 1,
-        capacity: 4,
-        image: heroImage,
-        date: "Oct 14, 2024",
-        slots: [
-            "10:30 a.m. - 12:00 p.m",
-            "12:15 p.m. - 1:45 p.m",
-            "2:00 p.m. - 3:30 p.m",
-            "3:45 p.m. - 5:15 p.m",
-            "5:30 p.m. - 7:00 p.m",
-        ],
-    },
-    {
-        id: 2,
-        location: "48 Rustaveli Avenue",
-        tableNumber: 2,
-        capacity: 4,
-        image: heroImage,
-        date: "Oct 14, 2024",
-        slots: [
-            "10:30 a.m. - 12:00 p.m",
-            "12:15 p.m. - 1:45 p.m",
-            "2:00 p.m. - 3:30 p.m",
-            "3:45 p.m. - 5:15 p.m",
-            "5:30 p.m. - 7:00 p.m",
-        ],
-    },
-    {
-        id: 3,
-        location: "48 Rustaveli Avenue",
-        tableNumber: 3,
-        capacity: 4,
-        image: heroImage,
-        date: "Oct 14, 2024",
-        slots: [
-            "10:30 a.m. - 12:00 p.m",
-            "12:15 p.m. - 1:45 p.m",
-            "2:00 p.m. - 3:30 p.m",
-            "3:45 p.m. - 5:15 p.m",
-            "5:30 p.m. - 7:00 p.m",
-        ],
-    },
-    {
-        id: 4,
-        location: "48 Rustaveli Avenue",
-        tableNumber: 4,
-        capacity: 4,
-        image: heroImage,
-        date: "Oct 14, 2024",
-        slots: [
-            "10:30 a.m. - 12:00 p.m",
-            "12:15 p.m. - 1:45 p.m",
-            "2:00 p.m. - 3:30 p.m",
-            "3:45 p.m. - 5:15 p.m",
-            "5:30 p.m. - 7:00 p.m",
-        ],
-    },
-];
-
 export default function SearchPage() {
+    const [locations, setLocations] = useState([]);
+    const [tables, setTables] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [pageError, setPageError] = useState("");
+
+    const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
+    const [selectedTable, setSelectedTable] = useState(null);
+    const [activeSlot, setActiveSlot] = useState("");
+
     const [filters, setFilters] = useState({
-        locationId: "loc-1",
-        date: "",
+        locationId: "",
+        date: new Date().toISOString().split('T')[0],
         time: "",
         guests: 1,
     });
 
-    const filteredTables = useMemo(() => {
-        return mockTables.filter((table) => {
-            const selectedLocationAddress = mockLocations.find(
-                (location) => location.id === filters.locationId
-            )?.address;
+    useEffect(() => {
+        let isMounted = true;
+        async function fetchInitialData() {
+            try {
+                const locationsData = await getLocations();
+                if (!isMounted) return;
+                setLocations(locationsData || []);
+                fetchAvailableTables(filters);
+            } catch (err) {
+                console.error("Failed to fetch locations:", err);
+            }
+        }
+        fetchInitialData();
+        return () => { isMounted = false; };
+    }, []);
 
-            const matchesLocation =
-                !filters.locationId || table.location === selectedLocationAddress;
-
-            const matchesGuests =
-                !filters.guests || table.capacity >= filters.guests;
-
-            return matchesLocation && matchesGuests;
-        });
-    }, [filters]);
+    const fetchAvailableTables = async (searchParams) => {
+        try {
+            setLoading(true);
+            setPageError("");
+            const response = await getAvailableTables(searchParams);
+            setTables(Array.isArray(response.data) ? response.data : []);
+        } catch (err) {
+            setPageError("Failed to load tables. Please try again.");
+            setTables([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleSearch = (data) => {
         setFilters(data);
+        fetchAvailableTables(data);
+    };
+
+    const handleReservationSuccess = () => {
+        alert("Стіл успішно заброньовано!");
+        setIsReservationModalOpen(false);
+        fetchAvailableTables(filters);
+    };
+
+    const formatTime = (isoString) => {
+        if (!isoString) return "";
+        const date = new Date(isoString);
+        if (isNaN(date.getTime())) return "";
+        return new Intl.DateTimeFormat("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+            timeZone: "Asia/Tbilisi"
+        }).format(date).toLowerCase();
     };
 
     const hero = (
@@ -119,16 +95,18 @@ export default function SearchPage() {
 
                     <div className={styles.searchPanelWrap}>
                         <SearchPanel
-                            locations={mockLocations}
+                            locations={locations}
                             dates={[
-                                { value: "2026-03-10", label: "Oct 14, 2024" },
-                                { value: "2026-03-11", label: "Oct 15, 2024" },
-                                { value: "2026-03-12", label: "Oct 16, 2024" },
+                                { value: new Date().toISOString().split('T')[0], label: "Today" },
+                                { value: "2026-03-12", label: "Mar 12, 2026" },
+                                { value: "2026-03-13", label: "Mar 13, 2026" },
                             ]}
                             times={[
                                 { value: "10:30", label: "10:30 a.m." },
                                 { value: "12:15", label: "12:15 p.m." },
-                                { value: "14:00", label: "2:00 p.m." },
+                                { value: "13:00", label: "1:00 p.m." },
+                                { value: "14:45", label: "2:45 p.m." },
+                                { value: "17:30", label: "5:30 p.m." },
                             ]}
                             selectedLocation={filters.locationId}
                             selectedDate={filters.date}
@@ -160,20 +138,26 @@ export default function SearchPage() {
                 <section className={styles.resultsSection}>
                     <div className={styles.resultsHeader}>
                         <h2 className={styles.resultsTitle}>
-                            {filteredTables.length} tables available
+                            {loading ? "Searching..." : `${tables.length} tables available`}
                         </h2>
                     </div>
 
                     <div className={styles.resultsGrid}>
-                        {filteredTables.map((table) => (
+                        {tables.map((table) => (
                             <TableCard
-                                key={table.id}
-                                image={table.image}
-                                location={table.location}
+                                key={`${table.locationId}-${table.tableNumber}`}
+                                id={table.id}
+                                locationId={table.locationId}
+                                image={heroImage}
+                                location={table.locationAddress}
                                 tableNumber={table.tableNumber}
                                 capacity={table.capacity}
-                                date={table.date}
-                                slots={table.slots}
+                                date={filters.date}
+                                slots={table.availableSlots?.map(slot => {
+                                    const start = formatTime(slot.startOffset);
+                                    const end = formatTime(slot.endOffset);
+                                    return `${start} - ${end}`;
+                                }) || []}
                             />
                         ))}
                     </div>

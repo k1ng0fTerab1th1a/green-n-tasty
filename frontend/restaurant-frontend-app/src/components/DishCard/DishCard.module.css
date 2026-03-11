@@ -15,7 +15,6 @@
     box-shadow: 0 12px 26px rgba(0, 0, 0, 0.08);
 }
 
-/*  Image  */
 .imageWrap {
     width: 180px;
     height: 180px;
@@ -32,7 +31,6 @@
     display: block;
 }
 
-/* Body */
 .body {
     display: flex;
     flex-direction: column;
@@ -67,15 +65,22 @@
 }
 
 .cta {
-    margin-top: 10px;
+    max-height: 0;
     opacity: 0;
-    transform: translateY(6px);
+    overflow: hidden;
+    transform: translateY(10px);
+    transition:
+            max-height 0.2s ease,
+            opacity 0.2s ease,
+            transform 0.2s ease,
+            margin-top 0.2s ease;
     pointer-events: none;
-    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .card.available:hover .cta {
+    max-height: 50px;
     opacity: 1;
+    margin-top: 10px;
     transform: translateY(0);
     pointer-events: auto;
 }

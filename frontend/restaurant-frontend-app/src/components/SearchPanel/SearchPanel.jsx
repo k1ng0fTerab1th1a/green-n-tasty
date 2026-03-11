@@ -6,11 +6,10 @@ import locationIcon from "../../assets/icons/pin_bl.svg";
 import calendarIcon from "../../assets/icons/calendar_bl.svg";
 import timeIcon from "../../assets/icons/clock_bl.svg";
 import guestsIcon from "../../assets/icons/people_bl.svg";
+import chevronDownIcon from "../../assets/icons/chevron-down.svg";
 
 export default function SearchPanel({
                                         locations = [],
-                                        dates = [],
-                                        times = [],
                                         selectedLocation = "",
                                         selectedDate = "",
                                         selectedTime = "",
@@ -38,9 +37,12 @@ export default function SearchPanel({
         onSubmit?.({ locationId: selectedLocation, date: selectedDate, time: selectedTime, guests });
     };
 
+    const getTodayDate = () => new Date().toISOString().split('T')[0];
+
     return (
         <form className={`${styles.searchPanel} ${className}`} onSubmit={handleSubmit}>
             <div className={styles.row}>
+                {/* Location */}
                 <div className={styles.col}>
                     <Dropdown
                         value={selectedLocation}
@@ -52,28 +54,61 @@ export default function SearchPanel({
                     />
                 </div>
 
+                {/* Date */}
                 <div className={styles.col}>
-                    <Dropdown
-                        value={selectedDate}
-                        onChange={onDateChange}
-                        options={dates}
-                        placeholder="Date"
-                        leftIcon={<img src={calendarIcon} alt="" />}
-                        className={styles.dropdownWrap}
-                    />
+                    <div className={styles.inputField}>
+                        <img src={calendarIcon} alt="" className={styles.fieldIcon} />
+                        <div className={styles.nativeInputWrap}>
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => onDateChange(e.target.value)}
+                                className={styles.nativeInput}
+                                min={getTodayDate()}
+                            />
+                        </div>
+                        {/* Якщо вибрана дата не є сьогоднішньою, показуємо кнопку скидання до сьогодні */}
+                        {selectedDate && selectedDate !== getTodayDate() ? (
+                            <button
+                                type="button"
+                                className={styles.clearBtn}
+                                onClick={() => onDateChange(getTodayDate())}
+                            >
+                                ✕
+                            </button>
+                        ) : (
+                            <img src={chevronDownIcon} alt="" className={styles.chevronIcon} />
+                        )}
+                    </div>
                 </div>
 
+                {/* Time */}
                 <div className={styles.col}>
-                    <Dropdown
-                        value={selectedTime}
-                        onChange={onTimeChange}
-                        options={times}
-                        placeholder="Time"
-                        leftIcon={<img src={timeIcon} alt="" />}
-                        className={styles.dropdownWrap}
-                    />
+                    <div className={styles.inputField}>
+                        <img src={timeIcon} alt="" className={styles.fieldIcon} />
+                        <div className={styles.nativeInputWrap}>
+                            <input
+                                type="time"
+                                value={selectedTime}
+                                onChange={(e) => onTimeChange(e.target.value)}
+                                className={styles.nativeInput}
+                            />
+                        </div>
+                        {selectedTime ? (
+                            <button
+                                type="button"
+                                className={styles.clearBtn}
+                                onClick={() => onTimeChange("")}
+                            >
+                                ✕
+                            </button>
+                        ) : (
+                            <img src={chevronDownIcon} alt="" className={styles.chevronIcon} />
+                        )}
+                    </div>
                 </div>
 
+                {/* Guests */}
                 <div className={styles.col}>
                     <div className={styles.guestsField}>
                         <div className={styles.guestsInfo}>

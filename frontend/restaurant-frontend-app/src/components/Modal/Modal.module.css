@@ -23,7 +23,7 @@
     box-shadow: var(--shadow-sm);
     box-sizing: border-box;
     max-height: 90vh;
-    overflow-y: auto;
+    overflow: visible !important;
 }
 
 .closeButton {

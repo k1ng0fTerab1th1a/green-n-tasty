@@ -127,6 +127,8 @@ export default function MainPage() {
                         <div className={styles.stateMessage}>Loading dishes...</div>
                     ) : pageError ? (
                         <div className={styles.stateMessageError}>{pageError}</div>
+                    ) : popularDishes.length === 0 ? (
+                        <div className={styles.stateMessage}>No popular dishes found.</div>
                     ) : (
                         <div className={styles.gridDishes}>
                             {popularDishes.map((d) => (
@@ -151,6 +153,8 @@ export default function MainPage() {
                         <div className={styles.stateMessage}>Loading locations...</div>
                     ) : pageError ? (
                         <div className={styles.stateMessageError}>{pageError}</div>
+                    ) : locations.length === 0 ? (
+                        <div className={styles.stateMessage}>No locations available.</div>
                     ) : (
                         <div className={styles.gridLocations}>
                             {locations.map((l) => (

@@ -5,6 +5,8 @@
     display: flex;
     flex-direction: column;
     gap: 60px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .section {
@@ -23,24 +25,26 @@
 
 .gridDishes {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 24px;
 }
 
 .gridLocations {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 24px;
+}
+
+@media (max-width: 1400px) {
+    .gridDishes {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
 @media (max-width: 1200px) {
     .container {
         padding: 40px 24px;
         gap: 40px;
-    }
-
-    .gridDishes {
-        grid-template-columns: repeat(3, 1fr);
     }
 
     .gridLocations {

@@ -21,13 +21,9 @@
     align-items: center;
 }
 
-/* width */
-
 .fullWidth {
     width: 100%;
 }
-
-/* sizes */
 
 .size_xl {
     height: 56px;
@@ -43,8 +39,6 @@
     height: 32px;
     padding: 0 20px;
 }
-
-/* PRIMARY */
 
 .variant_primary {
     background: var(--green-200);
@@ -69,8 +63,6 @@
     cursor: not-allowed;
 }
 
-/* SECONDARY */
-
 .variant_secondary {
     background: var(--neutral-0);
     border-color: var(--green-200);
@@ -93,8 +85,6 @@
     color: var(--neutral-400);
     cursor: not-allowed;
 }
-
-/* TERTIARY */
 
 .variant_tertiary {
     background: transparent;

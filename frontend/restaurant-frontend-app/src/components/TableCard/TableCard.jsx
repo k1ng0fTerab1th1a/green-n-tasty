@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AvailableSlotsModal, ReservationForm, ConfirmationModal} from "../index.js";
+import { AvailableSlotsModal, ReservationForm, ConfirmationModal } from "../index.js";
 import styles from "./TableCard.module.css";
 
 import locationIcon from "../../assets/icons/pin.svg";
@@ -7,6 +7,8 @@ import clockIcon from "../../assets/icons/clock.svg";
 import plusIcon from "../../assets/icons/plus.svg";
 
 export default function TableCard({
+                                      id,
+                                      locationId,
                                       image,
                                       location,
                                       tableNumber,
@@ -16,8 +18,10 @@ export default function TableCard({
                                   }) {
     const [isSlotsModalOpen, setIsSlotsModalOpen] = useState(false);
     const [isReserveModalOpen, setIsReserveModalOpen] = useState(false);
-    const [selectedSlot, setSelectedSlot] = useState(null);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+    const [selectedSlot, setSelectedSlot] = useState(null);
+    const [finalReservationData, setFinalReservationData] = useState(null);
 
     const handleSlotClick = (slot) => {
         setSelectedSlot(slot);
@@ -25,7 +29,8 @@ export default function TableCard({
         setIsReserveModalOpen(true);
     };
 
-    const handleFinalSubmit = () => {
+    const handleReservationSuccess = (data) => {
+        setFinalReservationData(data);
         setIsReserveModalOpen(false);
         setIsConfirmModalOpen(true);
     };
@@ -65,10 +70,12 @@ export default function TableCard({
                         </button>
                     ))}
 
-                    <button className={styles.showAll} onClick={() => setIsSlotsModalOpen(true)}>
-                        <img src={plusIcon} alt="" className={styles.iconPlus} />
-                        Show all
-                    </button>
+                    {slots.length > 1 && (
+                        <button className={styles.showAll} onClick={() => setIsSlotsModalOpen(true)}>
+                            <img src={plusIcon} alt="" className={styles.iconPlus} />
+                            Show all
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -83,10 +90,16 @@ export default function TableCard({
             <ReservationForm
                 isOpen={isReserveModalOpen}
                 onClose={() => setIsReserveModalOpen(false)}
-                onSuccess={handleFinalSubmit}
+                onSuccess={handleReservationSuccess}
                 selectedSlot={selectedSlot}
-                allSlots={slots}
-                tableInfo={{ location, tableNumber, date, capacity, image }}
+                tableInfo={{
+                    id,
+                    locationId,
+                    tableNumber,
+                    location,
+                    date,
+                    capacity
+                }}
             />
 
             <ConfirmationModal
@@ -94,10 +107,10 @@ export default function TableCard({
                 onClose={() => setIsConfirmModalOpen(false)}
                 reservationData={{
                     restaurantName: "Green & Tasty",
-                    guests: 10,
+                    guests: finalReservationData?.guestsCount || 0,
                     date: date,
-                    timeFrom: selectedSlot?.split(" - ")[0] || "",
-                    timeTo: selectedSlot?.split(" - ")[1] || "",
+                    timeFrom: finalReservationData?.timeFrom || "",
+                    timeTo: finalReservationData?.timeTo || "",
                     tableNumber: tableNumber,
                     address: location
                 }}

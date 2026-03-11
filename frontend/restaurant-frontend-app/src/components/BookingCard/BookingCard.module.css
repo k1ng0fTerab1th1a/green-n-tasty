@@ -3,9 +3,9 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
-    background: var(--neutral-0); /* */
-    border-radius: var(--radius-lg); /* */
-    border: 1px solid var(--neutral-200); /* */
+    background: var(--neutral-0);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--neutral-200);
 }
 
 .header {
@@ -31,30 +31,29 @@
     gap: 12px;
 }
 
-/* Статуси (Бейджі) з variables.css */
 .badge {
     padding: 4px 12px;
     border-radius: 20px;
 }
 
 .reserved {
-    background-color: var(--warning-bg); /* */
-    color: var(--orange-400); /* */
+    background-color: var(--warning-bg);
+    color: var(--orange-400);
 }
 
 .inprogress {
-    background-color: var(--blue-100); /* */
-    color: var(--blue-400); /* */
+    background-color: var(--blue-100);
+    color: var(--blue-400);
 }
 
 .finished {
-    background-color: var(--success-bg); /* */
-    color: var(--green-200); /* */
+    background-color: var(--success-bg);
+    color: var(--green-200);
 }
 
 .canceled {
-    background-color: var(--danger-bg); /* */
-    color: var(--danger); /* */
+    background-color: var(--danger-bg);
+    color: var(--danger);
 }
 
 .actions {
@@ -65,9 +64,8 @@
     margin-top: auto;
 }
 
-/* Корекція для кнопки Cancel (tertiary), щоб вона була чорною як на фото */
 .cancelBtn {
-    color: var(--neutral-900) !important; /* */
+    color: var(--neutral-900) !important;
 }
 
 .editBtn {

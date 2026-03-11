@@ -153,3 +153,83 @@
         grid-column: span 1;
     }
 }
+
+.inputField {
+    height: 56px;
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--neutral-200);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+    box-sizing: border-box;
+    position: relative;
+    cursor: pointer;
+}
+
+.fieldIcon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.nativeInputWrap {
+    flex: 1;
+    display: flex;
+}
+
+.nativeInput {
+    border: none;
+    outline: none;
+    width: 100%;
+    height: 100%;
+    font-size: 16px;
+    font-family: inherit;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    position: absolute;
+    inset: 0;
+    padding: 0 44px 0 46px;
+    box-sizing: border-box;
+}
+
+.nativeInput::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    background: none;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+}
+
+.clearBtn {
+    position: relative;
+    z-index: 2;
+    background: none;
+    border: none;
+    color: var(--neutral-400);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    transition: color 0.2s;
+}
+
+.clearBtn:hover {
+    color: var(--red-400);
+}
+
+.chevronIcon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-left: auto;
+    z-index: 1;
+}

@@ -3,11 +3,11 @@ import {
     BookingCard,
     MainLayout,
     FeedbackModal,
-    PageBanner // Імпортуємо наш новий компонент
+    PageBanner
 } from "../../components/index.js";
 import styles from "./ReservationsPage.module.css";
 
-// Мокові дані бронювань
+
 const mockReservations = [
     { id: 1, address: "48 Rustaveli Avenue", date: "Oct 14, 2024", time: "12:15 p.m. - 1:45 p.m.", guests: 10, status: "Reserved" },
     { id: 2, address: "14 Baratashvili Street", date: "Oct 16, 2024", time: "10:30 a.m. - 12:00 p.m.", guests: 10, status: "Reserved" },
@@ -26,7 +26,6 @@ export default function ReservationsPage() {
     const [currentResId, setCurrentResId] = useState(null);
     const [feedbacks, setFeedbacks] = useState({});
 
-    // Формуємо ім'я для банера, як на макеті
     const welcomeTitle = "Hello, Jonson Doe (Customer)";
 
     const handleOpenFeedback = (id) => {
@@ -37,10 +36,8 @@ export default function ReservationsPage() {
     return (
         <MainLayout>
             <div className={styles.page}>
-                {/* Використовуємо універсальний банер замість heroBanner */}
                 <PageBanner title={welcomeTitle} />
 
-                {/* Контент у контейнері згідно з системними відступами */}
                 <div className={styles.contentContainer}>
                     <div className={styles.grid}>
                         {mockReservations.map((res) => (

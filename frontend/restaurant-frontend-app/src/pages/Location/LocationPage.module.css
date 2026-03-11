@@ -1,11 +1,21 @@
+.container {
+    max-width: 1780px;
+    margin: 0 auto;
+    padding: 32px 40px 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 64px;
+    width: 100%;
+}
+
 .breadcrumbs {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
+    margin-bottom: -24px;
+}
 
-    font-size: 12px;
-    font-weight: 300;
-    line-height: 16px;
+.crumb {
     color: var(--neutral-600);
 }
 
@@ -14,187 +24,139 @@
 }
 
 .crumbActive {
-    color: var(--text);
+    color: var(--neutral-900);
 }
 
 .top {
     display: grid;
-    grid-template-columns: 360px 1fr;
-    gap: 28px;
-    align-items: start;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 80px;
+    align-items: flex-start;
 }
 
 .info {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 32px;
 }
 
 .title {
-    margin: 0;
-    font-size: 48px;
-    font-weight: 500;
-    line-height: 48px;
     color: var(--green-200);
+    margin: 0;
 }
 
 .meta {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--neutral-200);
 }
 
-.address {
-    font-size: 12px;
-    font-weight: 300;
-    line-height: 16px;
-    color: var(--text);
+.addressRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pinIcon {
+    width: 18px;
+    height: 18px;
 }
 
 .rating {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 10px;
-}
-
-.ratingValue {
-    font-size: 12px;
-    font-weight: 300;
-    line-height: 16px;
-    color: var(--text);
+    gap: 6px;
 }
 
 .desc {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-}
-
-.desc p {
-    margin: 0;
-    font-size: 12px;
-    font-weight: 300;
-    line-height: 16px;
+    gap: 16px;
     color: var(--neutral-600);
 }
 
 .cta {
-    width: 220px;
-    margin-top: 6px;
+    width: 100%;
+    max-width: 320px;
 }
 
 .photoWrap {
-    border-radius: 24px;
+    width: 100%;
+    height: 480px;
+    border-radius: 32px;
     overflow: hidden;
-    background: var(--neutral-0);
-    border: 1px solid var(--neutral-200);
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow-sm);
 }
 
 .photo {
     width: 100%;
-    height: 260px;
+    height: 100%;
     object-fit: cover;
-    display: block;
 }
 
 .section {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-}
-
-.sectionTitle {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 500;
-    line-height: 32px;
-    color: var(--text);
+    gap: 32px;
 }
 
 .gridDishes {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 22px;
+    gap: 24px;
 }
 
 .reviewsHeader {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    align-items: center;
 }
 
 .sortRow {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 10px;
-}
-
-.sortLabel {
-    font-size: 12px;
-    font-weight: 300;
-    line-height: 16px;
-    color: var(--neutral-600);
+    gap: 12px;
 }
 
 .tabs {
     display: flex;
-    gap: 18px;
-    align-items: center;
+    gap: 24px;
 }
 
 .gridReviews {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 18px;
+    gap: 24px;
 }
 
 .pagination {
-    margin-top: 10px;
+    margin-top: 16px;
     display: flex;
     justify-content: center;
+}
+
+.stateMessage, .stateMessageError {
+    text-align: center;
+    padding: 60px 0; /* Узгоджено з мейн пейдж */
 }
 
 @media (max-width: 1200px) {
     .top {
         grid-template-columns: 1fr;
+        gap: 40px;
     }
-
-    .photo {
-        height: 240px;
-    }
-
-    .gridDishes {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .gridReviews {
+    .gridDishes, .gridReviews {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 
-@media (max-width: 760px) {
-    .page {
-        padding: 16px 16px 40px;
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
     }
-
-    .title {
-        font-size: 36px;
-        line-height: 36px;
-    }
-
-    .cta {
-        width: 100%;
-    }
-
-    .reviewsHeader {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .gridDishes,
-    .gridReviews {
+    .gridDishes, .gridReviews {
         grid-template-columns: 1fr;
     }
 }

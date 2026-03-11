@@ -133,7 +133,6 @@ export default function Header({
     return (
         <header className={styles.header}>
             <div className={styles.inner}>
-                {/* Логотип */}
                 <button
                     type="button"
                     className={styles.brand}
@@ -148,7 +147,6 @@ export default function Header({
                     </span>
                 </button>
 
-                {/* Бургер для мобілки */}
                 <button
                     className={styles.burger}
                     onClick={toggleMobileMenu}
@@ -159,7 +157,6 @@ export default function Header({
                     <div className={`${styles.burgerLine} ${isMobileMenuOpen ? styles.line3 : ""}`}></div>
                 </button>
 
-                {/* Навігація */}
                 <nav className={`${styles.nav} ${isMobileMenuOpen ? styles.navActive : ""}`} aria-label="Primary navigation">
                     {links.map((l) => (
                         <NavigationLink
@@ -173,7 +170,6 @@ export default function Header({
                     ))}
                 </nav>
 
-                {/* Права частина */}
                 <div className={styles.right}>
                     {!isAuth ? (
                         <Button variant="secondary" size="lg" onClick={handleSignIn}>
