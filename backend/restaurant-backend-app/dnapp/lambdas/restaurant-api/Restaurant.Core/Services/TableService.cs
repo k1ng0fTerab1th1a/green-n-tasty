@@ -1,4 +1,4 @@
-﻿using Restaurant.Core.DTOs;
+using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
@@ -154,12 +154,12 @@ public class TableService(
                     currentAvailableSlot = new TimeSlot
                     {
                         StartOffset = slotStartOffset,
-                        EndOffset = slotEndOffset
+                        EndOffset = slotStartOffset
                     };
                 }
                 else
                 {
-                    currentAvailableSlot.EndOffset = slotEndOffset;
+                    currentAvailableSlot.EndOffset = slotStartOffset;
                 }
             }
             else
