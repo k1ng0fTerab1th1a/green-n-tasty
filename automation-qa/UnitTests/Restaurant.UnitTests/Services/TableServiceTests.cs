@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Moq;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
@@ -27,7 +27,6 @@ public sealed class TableServiceTests
         new()
         {
             Id = id,
-            EntityType = "LOCATION",
             Address = $"Address for {id}",
             TimeZone = "UTC",
             OpenTime = openTime,
@@ -268,9 +267,8 @@ public sealed class TableServiceTests
             .ReturnsAsync(new Location
             {
                 Id = "loc-tbilisi",
-                EntityType = "LOCATION",
                 Address = "Address for loc-tbilisi",
-                TimeZone = "Asia/Tbilisi",  // UTC+4, no DST
+                TimeZone = "Asia/Tbilisi",
                 OpenTime = "10:00",
                 CloseTime = "22:00",
                 Description = "Test",
