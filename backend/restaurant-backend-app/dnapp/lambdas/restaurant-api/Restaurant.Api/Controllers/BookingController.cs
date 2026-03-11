@@ -12,6 +12,8 @@ namespace Restaurant.Api.Controllers;
 public class BookingController(ITableService _tableService) : ControllerBase
 {
     [HttpGet("tables")]
+    [ProducesResponseType(typeof(ApiResponse<IList<TableWithAvailableSlots>>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<IList<TableWithAvailableSlots>>), StatusCodes.Status200OK)]
     public async Task<ApiResponse<IList<TableWithAvailableSlots>>> GetAvailableTables(
         [FromQuery] string date,
         [FromQuery] string? time,

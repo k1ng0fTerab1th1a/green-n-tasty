@@ -10,6 +10,7 @@ namespace Restaurant.Api.Controllers;
 public sealed class LocationsController(IFeedbackService _feedbackService, ILocationService _locationService, IDishService _dishService) : ControllerBase
 {
     [HttpGet("{id}/feedbacks")]
+    [ProducesResponseType(typeof(ApiResponse<FeedbackPaginatedDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetFeedbacksByLocationId(string id, string type, [FromQuery] List<string> sort, int size = 20, string? pageToken = null)
     {
         if (sort.Count == 0)
@@ -23,6 +24,7 @@ public sealed class LocationsController(IFeedbackService _feedbackService, ILoca
 
 
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<LocationResponse[]>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetLocations(CancellationToken cancellationToken)
     {
         var locations = await _locationService.GetLocationsAsync(cancellationToken);
@@ -30,6 +32,7 @@ public sealed class LocationsController(IFeedbackService _feedbackService, ILoca
     }
 
     [HttpGet("{id}/speciality-dishes")]
+    [ProducesResponseType(typeof(ApiResponse<DishShortResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSpecialityDishes([FromRoute] string id, CancellationToken cancellationToken)
     {
         var dishesEntities = await _dishService.GetSpecialityDishesByLocationIdAsync(id, cancellationToken);
@@ -40,6 +43,7 @@ public sealed class LocationsController(IFeedbackService _feedbackService, ILoca
     }
 
     [HttpGet("select-options")]
+    [ProducesResponseType(typeof(ApiResponse<LocationBrief[]>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetLocationOptions(CancellationToken cancellationToken)
     {
         var options = await _locationService.GetLocationOptionsAsync(cancellationToken);
