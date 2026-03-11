@@ -36,7 +36,6 @@ public sealed class DevSeedController : ControllerBase
         var item = new Location
         {
             Id = string.IsNullOrWhiteSpace(req.Id) ? Guid.NewGuid().ToString("N") : req.Id,
-            EntityType = "LOCATION",
             Address = req.Address,
             Description = req.Description,
             TotalCapacity = req.TotalCapacity,
