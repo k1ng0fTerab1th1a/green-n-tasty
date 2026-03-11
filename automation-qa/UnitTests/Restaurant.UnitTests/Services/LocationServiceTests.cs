@@ -18,7 +18,6 @@ public sealed class LocationServiceTests
         new()
         {
             Id = "loc-1",
-            EntityType = "LOCATION",
             Address = "Main street 1",
             Description = "Test",
             TotalCapacity = 120,
@@ -52,7 +51,6 @@ public sealed class LocationServiceTests
         new()
         {
             Id = "loc-1",
-            EntityType = "LOCATION",
             Address = "Main street 1",
             Description = "Test",
             TotalCapacity = 120,
