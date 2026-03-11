@@ -10,6 +10,7 @@ namespace Restaurant.Api.Controllers;
 public class DishController(IDishService _dishService) : ControllerBase
 {
     [HttpGet("popular")]
+    [ProducesResponseType(typeof(ApiResponse<List<DishShortResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPopularDishes()
     {
         var dishesEntities = await _dishService.GetPopularDishesAsync();

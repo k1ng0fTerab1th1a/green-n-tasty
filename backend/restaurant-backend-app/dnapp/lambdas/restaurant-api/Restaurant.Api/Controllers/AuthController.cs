@@ -20,6 +20,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("sign-up")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
     public async Task<IActionResult> SignUp([FromBody] Contracts.Requests.SignUpRequest request)
     {
         await _authService.SignUpAsync(request.Email, request.Password, request.FirstName, request.LastName);
@@ -28,6 +29,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("sign-in")]
+    [ProducesResponseType(typeof(ApiResponse<AuthResult>), StatusCodes.Status200OK)]
     public async Task<IActionResult> SignIn([FromBody] SignInRequest request)
     {
         var result = await _authService.SignInAsync(request.Email, request.Password);
@@ -36,6 +38,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("refresh-token")]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
     {
         var result = await _cognitoService.RefreshTokenAsync(request.RefreshToken);
@@ -43,6 +46,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("sign-out")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> SignOut([FromBody] SignOutRequest request)
     {
         await _cognitoService.SignOutAsync(request.RefreshToken);

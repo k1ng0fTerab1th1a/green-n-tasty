@@ -20,6 +20,7 @@ public sealed class ReservationsController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<List<ReservationResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMy(CancellationToken ct)
     {
         var actorUserId = User.GetUserId();
@@ -33,6 +34,8 @@ public sealed class ReservationsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<ReservationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById([FromRoute] string id, CancellationToken ct)
     {
         var actorUserId = User.GetUserId();
@@ -47,6 +50,8 @@ public sealed class ReservationsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Delete(string id, CancellationToken ct)
     {
         var actorUserId = User.GetUserId();
@@ -62,6 +67,8 @@ public sealed class ReservationsController : ControllerBase
     }
 
     [HttpPost("client")]
+    [ProducesResponseType(typeof(ApiResponse<ReservationResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateForClient([FromBody] CreateReservationRequest request, CancellationToken ct)
     {
         var customerId = User.GetUserId();
@@ -72,7 +79,10 @@ public sealed class ReservationsController : ControllerBase
         return ApiResponse<ReservationResponse>.Success(StatusCodes.Status201Created, reservationEntity.ToResponse());
     }
 
+    
     [HttpPut]
+    [ProducesResponseType(typeof(ApiResponse<ReservationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateReservation(
         [FromBody] UpdateReservationRequest request,
         CancellationToken ct)
