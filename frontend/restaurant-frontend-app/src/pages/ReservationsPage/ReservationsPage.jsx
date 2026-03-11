@@ -1,69 +1,94 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     BookingCard,
     MainLayout,
     FeedbackModal,
-    PageBanner
+    PageBanner,
+    Toast
 } from "../../components/index.js";
 import styles from "./ReservationsPage.module.css";
-
-
-const mockReservations = [
-    { id: 1, address: "48 Rustaveli Avenue", date: "Oct 14, 2024", time: "12:15 p.m. - 1:45 p.m.", guests: 10, status: "Reserved" },
-    { id: 2, address: "14 Baratashvili Street", date: "Oct 16, 2024", time: "10:30 a.m. - 12:00 p.m.", guests: 10, status: "Reserved" },
-    { id: 3, address: "14 Baratashvili Street", date: "Sep 14, 2024", time: "10:30 a.m. - 11:30 a.m.", guests: 5, status: "In Progress" },
-    { id: 4, address: "14 Baratashvili Street", date: "Jun 6, 2024", time: "10:30 a.m. - 11:30 a.m.", guests: 4, status: "Finished" },
-    { id: 5, address: "14 Baratashvili Street", date: "Mar 28, 2024", time: "10:30 a.m. - 11:30 a.m.", guests: 2, status: "Canceled" }
-];
-
-const mockStaffData = {
-    3: { name: "Mario Jast", role: "Waiter", rating: 4.96, avatar: "/assets/images/waiter1.jpg" },
-    4: { name: "Elena Smith", role: "Waiter", rating: 4.85, avatar: "/assets/images/waiter2.jpg" },
-};
+import { getClientReservations, deleteReservation } from "../../services/reservations";
+import { useAuth } from "../../auth/AuthContext.jsx";
 
 export default function ReservationsPage() {
-    const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
-    const [currentResId, setCurrentResId] = useState(null);
-    const [feedbacks, setFeedbacks] = useState({});
+    const { auth } = useAuth(); // Отримуємо дані авторизації з контексту
+    const [reservations, setReservations] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const welcomeTitle = "Hello, Jonson Doe (Customer)";
+    const [toast, setToast] = useState({ open: false, type: "success", title: "", message: "" });
 
-    const handleOpenFeedback = (id) => {
-        setCurrentResId(id);
-        setIsFeedbackOpen(true);
+    const welcomeTitle = `Hello, ${auth.username || "Guest"}`;
+
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const result = await getClientReservations();
+            if (result.isSuccess) {
+                setReservations(result.data || []);
+            }
+        } catch (error) {
+            showToast("error", "Error", "Failed to load reservations");
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const showToast = (type, title, message) => {
+        setToast({ open: true, type, title, message });
+    };
+
+    const handleCancel = async (id) => {
+        try {
+            const result = await deleteReservation(id);
+
+            if (result.isSuccess) {
+                showToast("success", "Success", "Reservation cancelled");
+                await loadData();
+            } else {
+                showToast("error", "Cancellation Failed", result.message);
+            }
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || "Something went wrong";
+            showToast("error", "Error", errorMessage);
+        }
+    };
+
+    useEffect(() => { loadData(); }, []);
 
     return (
         <MainLayout>
             <div className={styles.page}>
+                {/* Передаємо динамічний заголовок у PageBanner */}
                 <PageBanner title={welcomeTitle} />
-
                 <div className={styles.contentContainer}>
-                    <div className={styles.grid}>
-                        {mockReservations.map((res) => (
-                            <BookingCard
-                                key={res.id}
-                                booking={res}
-                                onCancel={() => console.log("Cancel", res.id)}
-                                onEdit={() => console.log("Edit", res.id)}
-                                onFeedback={() => handleOpenFeedback(res.id)}
-                                hasFeedback={!!feedbacks[res.id]}
-                            />
-                        ))}
-                    </div>
+                    {loading ? (
+                        <div className={styles.stateMessage}>Loading...</div>
+                    ) : reservations.length === 0 ? (
+                        <div className={styles.stateMessage}>You don't have any reservations.</div>
+                    ) : (
+                        <div className={styles.grid}>
+                            {reservations.map((res) => (
+                                <BookingCard
+                                    key={res.id}
+                                    booking={{
+                                        ...res,
+                                        address: res.locationId,
+                                        date: new Date(res.startDateTime).toLocaleDateString(),
+                                        time: `${new Date(res.startDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(res.endDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+                                        guests: res.guestsCount,
+                                        status: res.status
+                                    }}
+                                    onCancel={() => handleCancel(res.id)}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            <FeedbackModal
-                isOpen={isFeedbackOpen}
-                onClose={() => setIsFeedbackOpen(false)}
-                onSubmit={(data) => {
-                    setFeedbacks(prev => ({ ...prev, [currentResId]: data }));
-                    setIsFeedbackOpen(false);
-                }}
-                reservationId={currentResId}
-                waiter={mockStaffData[currentResId]}
-                initialData={feedbacks[currentResId]}
+            <Toast
+                {...toast}
+                onClose={() => setToast(prev => ({ ...prev, open: false }))}
             />
         </MainLayout>
     );

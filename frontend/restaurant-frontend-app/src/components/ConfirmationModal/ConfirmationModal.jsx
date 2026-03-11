@@ -33,14 +33,14 @@ export default function ConfirmationModal({ isOpen, onClose, reservationData }) 
                     <Button
                         variant="outline"
                         className={styles.cancelBtn}
-                        onClick={onClose}
+                        //onClick={onClose}
                     >
                         Cancel Reservation
                     </Button>
                     <Button
                         variant="primary"
                         className={styles.editBtn}
-                        onClick={() => console.log("Edit logic here")}
+                        //onClick={() => console.log("Edit logic here")}
                     >
                         Edit Reservation
                     </Button>

@@ -6,6 +6,7 @@
     background: var(--neutral-0);
     border-radius: var(--radius-lg);
     border: 1px solid var(--neutral-200);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .header {
@@ -34,26 +35,29 @@
 .badge {
     padding: 4px 12px;
     border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
 }
 
 .reserved {
-    background-color: var(--warning-bg);
-    color: var(--orange-400);
+    background-color: var(--warning-bg, #fff2d4);
+    color: var(--orange-400, #ffae00);
 }
 
 .inprogress {
-    background-color: var(--blue-100);
-    color: var(--blue-400);
+    background-color: var(--blue-100, #e7f0ff);
+    color: var(--blue-400, #0e53e9);
 }
 
 .finished {
-    background-color: var(--success-bg);
-    color: var(--green-200);
+    background-color: var(--success-bg, #e9ffea);
+    color: var(--green-200, #008209);
 }
 
 .canceled {
-    background-color: var(--danger-bg);
-    color: var(--danger);
+    background-color: #fdecec !important;
+    color: #eb5757 !important;
+    border: 1px solid rgba(235, 87, 87, 0.2);
 }
 
 .actions {
@@ -62,10 +66,12 @@
     align-items: center;
     gap: 16px;
     margin-top: auto;
+    min-height: 44px;
 }
 
 .cancelBtn {
     color: var(--neutral-900) !important;
+    text-decoration: underline;
 }
 
 .editBtn {

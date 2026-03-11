@@ -13,7 +13,15 @@ export default function BookingCard({
                                         hasFeedback
                                     }) {
     const { address, date, time, guests, status } = booking;
-    const statusClass = styles[status.toLowerCase().replace(/\s+/g, "")] || "";
+
+    const getStatusKey = (s) => {
+        const normalized = s?.toLowerCase().replace(/\s+/g, "");
+        if (normalized === "cancelled" || normalized === "canceled") return "canceled";
+        return normalized || "";
+    };
+
+    const statusKey = getStatusKey(status);
+    const statusClass = styles[statusKey] || "";
 
     return (
         <div className={`card ${styles.card}`}>
@@ -22,6 +30,7 @@ export default function BookingCard({
                     <img src={pinIcon} alt="" className={styles.icon} />
                     <span className="body-bold">{address}</span>
                 </div>
+                {/* Застосовуємо нормалізований клас */}
                 <div className={`${styles.badge} ${statusClass}`}>
                     <span className="caption">{status}</span>
                 </div>
@@ -43,7 +52,7 @@ export default function BookingCard({
             </div>
 
             <div className={styles.actions}>
-                {status === "Reserved" && (
+                {statusKey === "reserved" && (
                     <>
                         <Button
                             variant="tertiary"
@@ -63,7 +72,7 @@ export default function BookingCard({
                     </>
                 )}
 
-                {status === "In Progress" && (
+                {statusKey === "inprogress" && (
                     <Button
                         variant="secondary"
                         size="lg"
@@ -74,7 +83,7 @@ export default function BookingCard({
                     </Button>
                 )}
 
-                {status === "Finished" && (
+                {statusKey === "finished" && (
                     <Button
                         variant="secondary"
                         size="lg"

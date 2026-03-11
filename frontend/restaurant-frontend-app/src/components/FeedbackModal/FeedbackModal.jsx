@@ -15,7 +15,6 @@ export default function FeedbackModal({
     const [culinaryRating, setCulinaryRating] = useState(initialData?.culinaryRating || 4);
     const [comment, setComment] = useState(initialData?.comment || "");
 
-    // Дані за замовчуванням, якщо мокові дані не передані
     const displayWaiter = waiter || {
         name: "Mario Jast",
         role: "Waiter",

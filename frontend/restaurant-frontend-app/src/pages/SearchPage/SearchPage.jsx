@@ -1,10 +1,10 @@
 import { useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
     MainLayout,
     TableCard,
     SearchPanel,
     NavigationLink,
-    ReservationForm
 } from "../../components/index.js";
 import styles from "./SearchPage.module.css";
 import { getAvailableTables } from "../../services/bookings";
@@ -12,17 +12,17 @@ import { getLocations } from "../../services/locations";
 import heroImage from "../../assets/images/main-hero.jpg";
 
 export default function SearchPage() {
+    const [searchParams] = useSearchParams();
+    const urlLocationId = searchParams.get("locationId") || "";
+
     const [locations, setLocations] = useState([]);
     const [tables, setTables] = useState([]);
     const [loading, setLoading] = useState(false);
     const [pageError, setPageError] = useState("");
-
-    const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
-    const [selectedTable, setSelectedTable] = useState(null);
-    const [activeSlot, setActiveSlot] = useState("");
+    const [isUnauthorized, setIsUnauthorized] = useState(false);
 
     const [filters, setFilters] = useState({
-        locationId: "",
+        locationId: urlLocationId,
         date: new Date().toISOString().split('T')[0],
         time: "",
         guests: 1,
@@ -48,11 +48,19 @@ export default function SearchPage() {
         try {
             setLoading(true);
             setPageError("");
+            setIsUnauthorized(false);
+
             const response = await getAvailableTables(searchParams);
             setTables(Array.isArray(response.data) ? response.data : []);
         } catch (err) {
-            setPageError("Failed to load tables. Please try again.");
-            setTables([]);
+            // Перевірка на помилку авторизації 401
+            if (err.response?.status === 401) {
+                setIsUnauthorized(true);
+                setTables([]);
+            } else {
+                setPageError("Failed to load tables. Please try again.");
+                setTables([]);
+            }
         } finally {
             setLoading(false);
         }
@@ -61,12 +69,6 @@ export default function SearchPage() {
     const handleSearch = (data) => {
         setFilters(data);
         fetchAvailableTables(data);
-    };
-
-    const handleReservationSuccess = () => {
-        alert("Стіл успішно заброньовано!");
-        setIsReservationModalOpen(false);
-        fetchAvailableTables(filters);
     };
 
     const formatTime = (isoString) => {
@@ -138,29 +140,44 @@ export default function SearchPage() {
                 <section className={styles.resultsSection}>
                     <div className={styles.resultsHeader}>
                         <h2 className={styles.resultsTitle}>
-                            {loading ? "Searching..." : `${tables.length} tables available`}
+                            {loading
+                                ? "Searching..."
+                                : isUnauthorized
+                                    ? "Please sign in to search for available tables"
+                                    : `${tables.length} tables available`
+                            }
                         </h2>
                     </div>
 
-                    <div className={styles.resultsGrid}>
-                        {tables.map((table) => (
-                            <TableCard
-                                key={`${table.locationId}-${table.tableNumber}`}
-                                id={table.id}
-                                locationId={table.locationId}
-                                image={heroImage}
-                                location={table.locationAddress}
-                                tableNumber={table.tableNumber}
-                                capacity={table.capacity}
-                                date={filters.date}
-                                slots={table.availableSlots?.map(slot => {
-                                    const start = formatTime(slot.startOffset);
-                                    const end = formatTime(slot.endOffset);
-                                    return `${start} - ${end}`;
-                                }) || []}
-                            />
-                        ))}
-                    </div>
+                    {isUnauthorized ? (
+                        <div className={styles.stateMessage}>
+                            <p>You need to be logged in to view and book tables.</p>
+                        </div>
+                    ) : pageError ? (
+                        <div className={styles.stateMessageError}>{pageError}</div>
+                    ) : tables.length === 0 && !loading ? (
+                        <div className={styles.stateMessage}>No tables found for the selected criteria.</div>
+                    ) : (
+                        <div className={styles.resultsGrid}>
+                            {tables.map((table) => (
+                                <TableCard
+                                    key={`${table.locationId}-${table.tableNumber}`}
+                                    id={table.id}
+                                    locationId={table.locationId}
+                                    image={heroImage}
+                                    location={table.locationAddress}
+                                    tableNumber={table.tableNumber}
+                                    capacity={table.capacity}
+                                    date={filters.date}
+                                    slots={table.availableSlots?.map(slot => {
+                                        const start = formatTime(slot.startOffset);
+                                        const end = formatTime(slot.endOffset);
+                                        return `${start} - ${end}`;
+                                    }) || []}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </section>
             </section>
         </MainLayout>

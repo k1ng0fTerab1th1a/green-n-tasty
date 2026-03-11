@@ -1,13 +1,8 @@
 import { api } from "./api";
 
 export const getClientReservations = async () => {
-    try {
-        const response = await api.get("/reservations");
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching reservations:", error);
-        throw error;
-    }
+    const response = await api.get("/reservations"); //
+    return response.data;
 };
 
 export const createReservation = async (reservationData) => {
@@ -21,11 +16,6 @@ export const createReservation = async (reservationData) => {
 };
 
 export const deleteReservation = async (id) => {
-    try {
-        const response = await api.delete(`/reservations/${id}`);
-        return response.data;
-    } catch (error) {
-        console.error("Error deleting reservation:", error);
-        throw error;
-    }
+    const response = await api.delete(`/reservations/${id}`); //
+    return response.data; // Повертає результат видалення
 };

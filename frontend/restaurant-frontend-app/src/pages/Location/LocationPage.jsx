@@ -69,6 +69,8 @@ export default function LocationPage() {
     const [loading, setLoading] = useState(true);
     const [pageError, setPageError] = useState("");
 
+    const reviewsPerPage = 4;
+
     const sortOptions = useMemo(
         () => [
             { label: "Top rated first", value: "top-rated" },
@@ -79,60 +81,74 @@ export default function LocationPage() {
         []
     );
 
+    const handleBookTableClick = () => {
+        //navigate(`/search?locationId=${locationId}`);
+    };
+
+    useEffect(() => {
+        setPage(1);
+    }, [activeTab, sortBy]);
+
     useEffect(() => {
         let isMounted = true;
         async function loadPage() {
+            if (!locationId) return;
+
             try {
                 setLoading(true);
                 setPageError("");
+
+                const apiType = activeTab === "service" ? "waiter" : "kitchen";
+
                 const [locationData, dishesData, feedbacksData] = await Promise.all([
                     getLocationById(locationId),
                     getLocationSpecialityDishes(locationId),
-                    getLocationFeedbacks(locationId, activeTab),
+                    getLocationFeedbacks(locationId, apiType),
                 ]);
+
                 if (!isMounted) return;
-                const normalizedLocation = locationData
-                    ? {
-                        id: locationData.id,
-                        name: locationData.name || "Green & Tasty",
-                        address: locationData.address || "Unknown address",
-                        rating: parseRating(locationData.rating ?? locationData.averageRating ?? locationData.avgRating),
-                        imageSrc: locationData.imageUrl || fallbackImage,
-                        description: Array.isArray(locationData.description)
-                            ? locationData.description
-                            : locationData.description
-                                ? [locationData.description]
-                                : [],
-                    }
-                    : null;
+
+                const normalizedLocation = locationData ? {
+                    id: locationData.id,
+                    name: locationData.name || "Green & Tasty",
+                    address: locationData.address || "Unknown address",
+                    rating: parseRating(locationData.rating),
+                    imageSrc: locationData.imageUrl || fallbackImage,
+                    description: typeof locationData.description === 'string'
+                        ? [locationData.description]
+                        : (Array.isArray(locationData.description) ? locationData.description : ["Welcome!"]),
+                } : null;
+
                 const normalizedDishes = Array.isArray(dishesData)
                     ? dishesData.map((dish, index) => ({
-                        id: dish.id || `${dish.name || "dish"}-${index}`,
+                        id: dish.id || `dish-${index}`,
                         name: dish.name || "Unnamed dish",
                         price: parsePrice(dish.price),
                         weight: parseWeight(dish.weight),
-                        imageSrc: dish.imageUrl || fallbackImage,
-                        available: dish.available ?? true,
+                        imageSrc: dish.previewImageUrl || dish.imageUrl || fallbackImage,
+                        available: dish.state === "ON",
                     }))
                     : [];
+
                 const normalizedReviews = Array.isArray(feedbacksData)
                     ? feedbacksData.map((item, index) => ({
                         id: item.id || `review-${index}`,
-                        name: item.authorName || item.userName || item.author || `User ${index + 1}`,
-                        date: mapReviewDate(item.createdAt || item.date || item.updatedAt),
-                        rating: parseRating(item.rating),
-                        text: item.text || item.comment || "",
+                        name: item.authorName || item.userName || "Guest",
+                        date: mapReviewDate(item.date),
+                        rating: parseRating(item.rate),
+                        text: item.comment || "",
                         avatarSrc: item.avatarUrl || null,
-                        anonymous: Boolean(item.anonymous),
-                        category: item.category || item.type || (index % 2 === 0 ? "service" : "cuisine"),
+                        category: item.type === "waiter" ? "service" : "cuisine",
                     }))
                     : [];
+
                 setLocation(normalizedLocation);
                 setDishes(normalizedDishes);
                 setReviews(normalizedReviews);
+
+                if (!normalizedLocation) setPageError("Location not found");
             } catch (err) {
-                if (!isMounted) return;
-                setPageError("Failed to load location data.");
+                if (isMounted) setPageError("Failed to load location data.");
             } finally {
                 if (isMounted) setLoading(false);
             }
@@ -141,24 +157,33 @@ export default function LocationPage() {
         return () => { isMounted = false; };
     }, [locationId, activeTab]);
 
-    const filteredReviews = useMemo(() => {
-        const tabFiltered = reviews.filter((review) => !review.category || review.category === activeTab);
-        const sorted = [...tabFiltered];
-        if (sortBy === "top-rated") sorted.sort((a, b) => b.rating - a.rating);
-        else if (sortBy === "low-rated") sorted.sort((a, b) => a.rating - b.rating);
-        else if (sortBy === "newest") sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
-        else if (sortBy === "oldest") sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
-        return sorted;
-    }, [reviews, activeTab, sortBy]);
+    const sortedReviews = useMemo(() => {
+        const result = [...reviews];
 
-    const reviewsPerPage = 4;
-    const totalPages = Math.max(1, Math.ceil(filteredReviews.length / reviewsPerPage));
+        switch (sortBy) {
+            case "top-rated":
+                result.sort((a, b) => b.rating - a.rating);
+                break;
+            case "low-rated":
+                result.sort((a, b) => a.rating - b.rating);
+                break;
+            case "newest":
+                result.sort((a, b) => new Date(b.date) - new Date(a.date));
+                break;
+            case "oldest":
+                result.sort((a, b) => new Date(a.date) - new Date(b.date));
+                break;
+            default:
+                break;
+        }
+        return result;
+    }, [reviews, sortBy]);
+
+    const totalPages = Math.max(1, Math.ceil(sortedReviews.length / reviewsPerPage));
     const paginatedReviews = useMemo(() => {
         const start = (page - 1) * reviewsPerPage;
-        return filteredReviews.slice(start, start + reviewsPerPage);
-    }, [filteredReviews, page]);
-
-    useEffect(() => { setPage(1); }, [activeTab, sortBy]);
+        return sortedReviews.slice(start, start + reviewsPerPage);
+    }, [sortedReviews, page]);
 
     if (loading) return <MainLayout><div className={styles.stateMessage}>Loading location...</div></MainLayout>;
     if (pageError || !location) return <MainLayout><div className={styles.stateMessageError}>{pageError || "Location not found"}</div></MainLayout>;
@@ -169,7 +194,7 @@ export default function LocationPage() {
                 <div className={styles.breadcrumbs}>
                     <NavigationLink to="/main" className={styles.crumb}>Main page</NavigationLink>
                     <span className={styles.sep}>›</span>
-                    <span className={styles.crumbActive}>Location {location.address}</span>
+                    <span className={styles.crumbActive}>{location.name}</span>
                 </div>
 
                 <section className={styles.top}>
@@ -190,8 +215,12 @@ export default function LocationPage() {
                                 <p key={index}>{text}</p>
                             ))}
                         </div>
-                        <Button variant="primary" size="lg" className={styles.cta} onClick={() => navigate(`/locations/${location.id}/book`)}>
-                            Book a Table
+                        <Button
+                            variant="primary"
+                            onClick={handleBookTableClick}
+                            className={styles.cta}
+                        >
+                            Book a table
                         </Button>
                     </div>
                     <div className={styles.photoWrap}>
@@ -234,7 +263,11 @@ export default function LocationPage() {
                                 ))}
                             </div>
                             <div className={styles.pagination}>
-                                <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+                                <Pagination
+                                    page={page}
+                                    totalPages={totalPages}
+                                    onChange={setPage}
+                                />
                             </div>
                         </>
                     )}

@@ -67,7 +67,6 @@ export default function SearchPanel({
                                 min={getTodayDate()}
                             />
                         </div>
-                        {/* Якщо вибрана дата не є сьогоднішньою, показуємо кнопку скидання до сьогодні */}
                         {selectedDate && selectedDate !== getTodayDate() ? (
                             <button
                                 type="button"

@@ -9,7 +9,11 @@ export default function Pagination({ page = 1, totalPages = 1, onChange }) {
     return (
         <div className={styles.wrap} aria-label="Pagination">
             {pages.map((p) => (
-                <PageItem key={p} active={p === page} onClick={() => onChange?.(p)}>
+                <PageItem
+                    key={p}
+                    active={p === page}
+                    onClick={() => onChange?.(p)}
+                >
                     {p}
                 </PageItem>
             ))}

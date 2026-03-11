@@ -139,7 +139,7 @@ export default function MainPage() {
                                     weight={d.weight}
                                     imageSrc={d.imageSrc}
                                     available={d.available}
-                                    onPreOrder={() => navigate(`/locations/${defaultLocationId}`)}
+                                    //onPreOrder={() => navigate(`/locations/${defaultLocationId}`)}
                                 />
                             ))}
                         </div>

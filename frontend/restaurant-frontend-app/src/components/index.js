@@ -15,7 +15,6 @@ export { default as Radio } from "./Radio/Radio";
 export { default as Star } from "./Star/Star";
 export { default as DishCard } from "./DishCard/DishCard";
 export { default as ReviewCard } from "./ReviewCard/ReviewCard";
-export { default as ReservationCard } from "./ReservationCard/ReservationCard";
 export { default as LocationCard } from "./LocationCard/LocationCard";
 export { default as MainHero } from "./MainHero/MainHero";
 export { default as MainLayout } from "./MainLayout/MainLayout";

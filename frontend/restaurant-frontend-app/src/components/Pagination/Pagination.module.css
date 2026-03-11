@@ -1,15 +1,20 @@
+.wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .page {
     position: relative;
     background: transparent;
     border: none;
     cursor: pointer;
-
     font-size: 20px;
     font-weight: 500;
     line-height: 32px;
-
-    color: var(--text);
-    padding: 4px 6px;
+    color: var(--neutral-900);
+    padding: 4px 8px;
+    transition: color 0.2s ease;
 }
 
 .page:hover {
@@ -17,27 +22,21 @@
 }
 
 .active {
-    color: var(--text);
+    color: var(--neutral-900);
 }
 
 .active::after {
     content: "";
     position: absolute;
-    left: 6px;
-    right: 6px;
-    bottom: -6px;
+    left: 8px;
+    right: 8px;
+    bottom: -4px;
     height: 2px;
     background: var(--green-200);
-    border-radius: 999px;
+    border-radius: 2px;
 }
 
 .page:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-}
-
-.wrap {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
 }
