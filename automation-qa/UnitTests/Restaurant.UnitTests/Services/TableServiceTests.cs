@@ -1,5 +1,6 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Moq;
+using Restaurant.Core.Exceptions;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 using Restaurant.Core.Services;
@@ -8,7 +9,16 @@ namespace Restaurant.UnitTests.Services;
 
 public sealed class TableServiceTests
 {
-    private static readonly DateOnly FutureDate = new(2030, 1, 15);
+    private static readonly DateOnly FutureDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(7);
+    private static readonly string FutureDateStr = FutureDate.ToString("yyyy-MM-dd");
+    private static readonly string FutureDateNextDayStr = FutureDate.AddDays(1).ToString("yyyy-MM-dd");
+
+    private static DateTimeOffset FutureDateAt(int hour, int minute, int utcOffsetHours = 0) =>
+        new(FutureDate.ToDateTime(new TimeOnly(hour, minute)), TimeSpan.FromHours(utcOffsetHours));
+
+    private static DateTimeOffset FutureDateNextDayAt(int hour, int minute, int utcOffsetHours = 0) =>
+        new(FutureDate.AddDays(1).ToDateTime(new TimeOnly(hour, minute)), TimeSpan.FromHours(utcOffsetHours));
+
 
     private readonly Mock<ITableRepository> _tableRepo;
     private readonly Mock<ITableDayRepository> _tableDayRepo;
@@ -114,7 +124,7 @@ public sealed class TableServiceTests
             .ReturnsAsync(MakeUtcLocation("loc1"));
         _tableDayRepo.Setup(r => r.GetManyByTablesAndDateAsync(
                 It.Is<IEnumerable<string>>(keys => keys.Contains("loc1#1")),
-                "2030-01-15",
+                FutureDateStr,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, TableDay>());
 
@@ -123,8 +133,8 @@ public sealed class TableServiceTests
         result.Should().HaveCount(1);
         result[0].TableNumber.Should().Be(1);
         result[0].AvailableSlots.Should().HaveCount(1);
-        result[0].AvailableSlots[0].StartOffset.Should().Be(new DateTimeOffset(2030, 1, 15, 10, 0, 0, TimeSpan.Zero));
-        result[0].AvailableSlots[0].EndOffset.Should().Be(new DateTimeOffset(2030, 1, 15, 21, 45, 0, TimeSpan.Zero));
+        result[0].AvailableSlots[0].StartOffset.Should().Be(FutureDateAt(10, 0));
+        result[0].AvailableSlots[0].EndOffset.Should().Be(FutureDateAt(21, 45));
     }
 
     [Fact]
@@ -143,8 +153,8 @@ public sealed class TableServiceTests
                 ["loc1#1"] = new TableDay
                 {
                     TableKey = "loc1#1",
-                    Date = "2030-01-15",
-                    ReservedSlots = new HashSet<string> { "2030-01-15T10:00+00:00" }
+                    Date = FutureDateStr,
+                    ReservedSlots = new HashSet<string> { $"{FutureDateStr}T10:00+00:00" }
                 }
             });
 
@@ -191,13 +201,13 @@ public sealed class TableServiceTests
                 ["loc1#1"] = new TableDay
                 {
                     TableKey = "loc1#1",
-                    Date = "2030-01-15",
+                    Date = FutureDateStr,
                     ReservedSlots = new HashSet<string>
                     {
-                        "2030-01-15T11:15+00:00",
-                        "2030-01-15T11:30+00:00",
-                        "2030-01-15T11:45+00:00",
-                        "2030-01-15T12:00+00:00",
+                        $"{FutureDateStr}T11:15+00:00",
+                        $"{FutureDateStr}T11:30+00:00",
+                        $"{FutureDateStr}T11:45+00:00",
+                        $"{FutureDateStr}T12:00+00:00",
                     }
                 }
             });
@@ -206,8 +216,8 @@ public sealed class TableServiceTests
 
         result.Should().HaveCount(1);
         result[0].AvailableSlots.Should().HaveCount(1, because: "only the 60-min window qualifies; the 30-min window is below the threshold");
-        result[0].AvailableSlots[0].StartOffset.Should().Be(new DateTimeOffset(2030, 1, 15, 10, 0, 0, TimeSpan.Zero));
-        result[0].AvailableSlots[0].EndOffset.Should().Be(new DateTimeOffset(2030, 1, 15, 11, 0, 0, TimeSpan.Zero));
+        result[0].AvailableSlots[0].StartOffset.Should().Be(FutureDateAt(11, 30));
+        result[0].AvailableSlots[0].EndOffset.Should().Be(FutureDateAt(12, 45));
     }
 
     [Fact]
@@ -241,7 +251,7 @@ public sealed class TableServiceTests
             .ReturnsAsync(MakeUtcLocation("loc1"));
         _tableDayRepo.Setup(r => r.GetManyByTablesAndDateAsync(
                 It.Is<IEnumerable<string>>(keys => keys.Contains("loc1#2") && !keys.Contains("loc1#1")),
-                "2030-01-15",
+                FutureDateStr,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, TableDay>());
 
@@ -281,21 +291,21 @@ public sealed class TableServiceTests
 
         _tableDayRepo.Setup(r => r.GetManyByTablesAndDateAsync(
                 It.Is<IEnumerable<string>>(keys => keys.Contains("loc-utc#1")),
-                "2030-01-15",
+                FutureDateStr,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, TableDay>());
 
         _tableDayRepo.Setup(r => r.GetManyByTablesAndDateAsync(
                 It.Is<IEnumerable<string>>(keys => keys.Contains("loc-tbilisi#1")),
-                "2030-01-15",
+                FutureDateStr,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, TableDay>
             {
                 ["loc-tbilisi#1"] = new TableDay
                 {
                     TableKey = "loc-tbilisi#1",
-                    Date = "2030-01-15",
-                    ReservedSlots = new HashSet<string> { "2030-01-15T13:00+04:00" }
+                    Date = FutureDateStr,
+                    ReservedSlots = new HashSet<string> { $"{FutureDateStr}T13:00+04:00" }
                 }
             });
 
@@ -314,7 +324,7 @@ public sealed class TableServiceTests
             .ReturnsAsync(MakeUtcLocation("loc1", openTime: "14:00", closeTime: "02:00"));
         _tableDayRepo.Setup(r => r.GetManyByTablesAndDateAsync(
                 It.IsAny<IEnumerable<string>>(),
-                "2030-01-15",
+                FutureDateStr,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, TableDay>());
 
@@ -322,8 +332,8 @@ public sealed class TableServiceTests
 
         result.Should().HaveCount(1);
         result[0].AvailableSlots.Should().HaveCount(1, because: "the entire 12-hour shift is free — no split at midnight");
-        result[0].AvailableSlots[0].StartOffset.Should().Be(new DateTimeOffset(2030, 1, 15, 14, 0, 0, TimeSpan.Zero));
-        result[0].AvailableSlots[0].EndOffset.Should().Be(new DateTimeOffset(2030, 1, 16, 1, 45, 0, TimeSpan.Zero));
+        result[0].AvailableSlots[0].StartOffset.Should().Be(FutureDateAt(14, 0));
+        result[0].AvailableSlots[0].EndOffset.Should().Be(FutureDateNextDayAt(1, 45));
     }
 
     [Fact]
@@ -335,20 +345,59 @@ public sealed class TableServiceTests
             .ReturnsAsync(MakeUtcLocation("loc1", openTime: "14:00", closeTime: "02:00"));
         _tableDayRepo.Setup(r => r.GetManyByTablesAndDateAsync(
                 It.IsAny<IEnumerable<string>>(),
-                "2030-01-15",
+                FutureDateStr,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, TableDay>
             {
                 ["loc1#1"] = new TableDay
                 {
                     TableKey = "loc1#1",
-                    Date = "2030-01-15",
-                    ReservedSlots = new HashSet<string> { "2030-01-16T01:00+00:00" }
+                    Date = FutureDateStr,
+                    ReservedSlots = new HashSet<string> { $"{FutureDateNextDayStr}T01:00+00:00" }
                 }
             });
 
         var result = await _sut.GetAvailableTablesAsync(FutureDate, time: new TimeOnly(1, 0), locationId: "loc1", capacity: null, ct: default);
 
         result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAvailableTablesAsync_WhenDateIsInThePast_ShouldThrowBusinessException()
+    {
+        var pastDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1);
+
+        var act = async () => await _sut.GetAvailableTablesAsync(pastDate, time: null, locationId: null, capacity: null, ct: default);
+
+        await act.Should().ThrowAsync<BusinessException>()
+            .WithMessage("*past*");
+    }
+
+    [Fact]
+    public async Task GetAvailableTablesAsync_WhenDateIsTooFarInFuture_ShouldThrowBusinessException()
+    {
+        var farFutureDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(15);
+
+        var act = async () => await _sut.GetAvailableTablesAsync(farFutureDate, time: null, locationId: null, capacity: null, ct: default);
+
+        await act.Should().ThrowAsync<BusinessException>()
+            .WithMessage("*future*");
+    }
+
+    [Fact]
+    public async Task GetAvailableTablesAsync_WhenDateIsTodayAndTimeIsInPastForLocationTimezone_ShouldExcludeTableFromResults()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var pastLocalTime = TimeOnly.FromDateTime(DateTime.UtcNow.AddMinutes(-30));
+
+        _tableRepo.Setup(r => r.GetByLocationIdAsync("loc1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Table> { MakeTable("loc1", 1) }.AsReadOnly());
+        _locationRepo.Setup(r => r.GetByIdAsync("loc1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeUtcLocation("loc1", openTime: "00:00", closeTime: "23:45"));
+
+        var result = await _sut.GetAvailableTablesAsync(today, time: pastLocalTime, locationId: "loc1", capacity: null, ct: default);
+
+        result.Should().BeEmpty(because: "the requested time is in the past for this location's timezone");
+        _tableDayRepo.VerifyNoOtherCalls();
     }
 }

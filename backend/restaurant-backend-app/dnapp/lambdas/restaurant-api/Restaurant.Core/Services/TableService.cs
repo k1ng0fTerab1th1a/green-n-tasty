@@ -1,4 +1,5 @@
 using Restaurant.Core.DTOs;
+using Restaurant.Core.Exceptions;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
@@ -12,6 +13,7 @@ public class TableService(
 {
     private const int SLOT_DURATION_MINUTES = 15;
     private const int IGNORE_SLOT_IF_LESS_THAN_MINUTES = 60;
+    private const int FORBID_IF_IN_FUTURE_MORE_THAN_DAYS = 14;
 
     public async Task<IList<TableWithAvailableSlots>> GetAvailableTablesAsync(
         DateOnly date,
@@ -20,6 +22,16 @@ public class TableService(
         int? capacity,
         CancellationToken ct)
     {
+        int daysInFuture = date.DayNumber - DateOnly.FromDateTime(DateTime.UtcNow).DayNumber;
+        if (daysInFuture < 0)
+        {
+            throw new BusinessException("Cannot find available slots in the past.");
+        }
+        if (daysInFuture > FORBID_IF_IN_FUTURE_MORE_THAN_DAYS)
+        {
+            throw new BusinessException("The date requested is too far in the future.");
+        }
+
         IReadOnlyList<Table> tables = string.IsNullOrWhiteSpace(locationId)
             ? await _tableRepository.GetAllAsync(ct)
             : await _tableRepository.GetByLocationIdAsync(locationId, ct);
@@ -92,6 +104,9 @@ public class TableService(
             }
             reqTimeOffset = new(reqTimeLocal, tz.GetUtcOffset(reqTimeLocal));
         }
+
+        if (reqTimeOffset.HasValue && reqTimeOffset.Value < DateTimeOffset.UtcNow)
+            return new List<TableWithAvailableSlots>();
 
         string dateStr = shiftStartLocal.ToString("yyyy-MM-dd");
 
