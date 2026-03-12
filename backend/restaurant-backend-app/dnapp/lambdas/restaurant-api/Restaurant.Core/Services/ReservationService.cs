@@ -1,10 +1,9 @@
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Exceptions;
+using Restaurant.Core.Helpers;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
-using TimeZoneConverter;
-
 namespace Restaurant.Core.Services;
 
 public sealed class ReservationService : IReservationService
@@ -57,7 +56,7 @@ public sealed class ReservationService : IReservationService
         if ((start - DateTimeOffset.UtcNow).TotalMinutes < 30)
             throw new BusinessException("Reservation cannot be cancelled less than 30 minutes before it starts.");
 
-        var slots = GenerateSlots(start, end);
+        var slots = ReservationTimeHelper.GenerateSlots(start, end);
 
         var success = await _repo.CancelReservationAsync(reservation, slots, ct);
         if (!success)
@@ -71,13 +70,13 @@ public sealed class ReservationService : IReservationService
         var location = await _locationRepo.GetByIdAsync(dto.LocationId, ct)
                     ?? throw new BusinessException("Location not found.");
 
-        ValidateReservationTime(dto.TimeFrom, dto.TimeTo, dto.Date, location);
+        var (startDate, endDate) = ReservationTimeHelper.ResolveReservationDates(dto.Date, dto.TimeFrom, dto.TimeTo, location);
+        ReservationTimeHelper.ValidateReservationTime(dto.TimeFrom, dto.TimeTo, startDate, location);
 
-        var endDate = dto.TimeTo < dto.TimeFrom ? dto.Date.AddDays(1) : dto.Date;
-        var start = ToDateTimeOffset(dto.Date, dto.TimeFrom, location.TimeZone);
-        var end = ToDateTimeOffset(endDate, dto.TimeTo, location.TimeZone);
+        var start = ReservationTimeHelper.ToDateTimeOffset(startDate, dto.TimeFrom, location.TimeZone);
+        var end = ReservationTimeHelper.ToDateTimeOffset(endDate, dto.TimeTo, location.TimeZone);
 
-        var slots = GenerateSlots(start, end);
+        var slots = ReservationTimeHelper.GenerateSlots(start, end);
 
         var schedule = await _waiterScheduleRepo.GetAsync($"{dto.LocationId}#{dto.TableNumber}", dto.Date.ToString("yyyy-MM-dd"), ct);
 
@@ -89,6 +88,7 @@ public sealed class ReservationService : IReservationService
             CustomerId = customerId,
             WaiterId = waiterId,
             LocationId = dto.LocationId,
+            LocationAddress = location.Address,
             TableNumber = dto.TableNumber,
             TableKey = $"{dto.LocationId}#{dto.TableNumber}",
             StartDateTime = start.ToString("yyyy-MM-ddTHH:mmzzz"),
@@ -126,15 +126,14 @@ public sealed class ReservationService : IReservationService
         if ((oldStart - DateTimeOffset.UtcNow).TotalMinutes < 30)
             throw new BusinessException("Reservation cannot be updated less than 30 minutes before it starts.");
 
-        ValidateReservationTime(dto.TimeFrom, dto.TimeTo, dto.Date, location);
+        var (startDate, endDate) = ReservationTimeHelper.ResolveReservationDates(dto.Date, dto.TimeFrom, dto.TimeTo, location);
+        ReservationTimeHelper.ValidateReservationTime(dto.TimeFrom, dto.TimeTo, startDate, location);
 
-        var endDate = dto.TimeTo < dto.TimeFrom ? dto.Date.AddDays(1) : dto.Date;
-        var newStart = ToDateTimeOffset(dto.Date, dto.TimeFrom, location.TimeZone);
-        var newEnd = ToDateTimeOffset(endDate, dto.TimeTo, location.TimeZone);
+        var newStart = ReservationTimeHelper.ToDateTimeOffset(startDate, dto.TimeFrom, location.TimeZone);
+        var newEnd = ReservationTimeHelper.ToDateTimeOffset(endDate, dto.TimeTo, location.TimeZone);
 
-
-        List<string> oldSlots = GenerateSlots(oldStart, oldEnd);
-        List<string> newSlots = GenerateSlots(newStart, newEnd);
+        List<string> oldSlots = ReservationTimeHelper.GenerateSlots(oldStart, oldEnd);
+        List<string> newSlots = ReservationTimeHelper.GenerateSlots(newStart, newEnd);
 
         var oldTableKey = reservation.TableKey;
 
@@ -154,68 +153,5 @@ public sealed class ReservationService : IReservationService
         reservation.TableKey = $"{reservation.LocationId}#{dto.TableNumber}";
 
         return await _repo.UpdateReservationAsync(reservation, newSlots, oldSlots, oldTableKey, oldStart, ct);
-    }
-
-    private static void ValidateReservationTime(TimeOnly from, TimeOnly to, DateOnly date, Location location)
-    {
-        var openTime = TimeOnly.Parse(location.OpenTime);
-        var closeTime = TimeOnly.Parse(location.CloseTime);
-        var crossMidnight = closeTime < openTime;
-
-        var fromValid = crossMidnight
-            ? from >= openTime || from < closeTime
-            : from >= openTime && from < closeTime;
-
-        var toValid = crossMidnight
-            ? to > openTime || to <= closeTime
-            : to > openTime && to <= closeTime;
-
-        if (!fromValid || !toValid)
-            throw new BusinessException($"Reservation must be within working hours ({location.OpenTime} - {location.CloseTime}).");
-
-        if (from.Minute % 15 != 0 || from.Second != 0)
-            throw new BusinessException("Start time must be a multiple of 15 minutes.");
-
-        if (to.Minute % 15 != 0 || to.Second != 0)
-            throw new BusinessException("End time must be a multiple of 15 minutes.");
-
-        var duration = CalculateDuration(from, to);
-        if (duration < 60)
-            throw new BusinessException("Minimum booking duration is 60 minutes.");
-
-        if (duration > 6 * 60)
-            throw new BusinessException("Maximum booking duration is 6 hours.");
-
-        if (date.ToDateTime(from) <= DateTime.UtcNow)
-            throw new BusinessException("Cannot book for a past date or time.");
-    }
-    private static int CalculateDuration(TimeOnly from, TimeOnly to)
-    {
-        if (to >= from)
-            return (int)(to - from).TotalMinutes;
-
-        var toMidnight = (int)(TimeOnly.MaxValue - from).TotalMinutes + 1;
-        var fromMidnight = to.Hour * 60 + to.Minute;
-        return toMidnight + fromMidnight;
-    }
-    private static List<string> GenerateSlots(DateTimeOffset start, DateTimeOffset end)
-    {
-        var slots = new List<string>();
-        var cursor = start;
-
-        while (true)
-        {
-            slots.Add(cursor.ToString("yyyy-MM-ddTHH:mmzzz"));
-            if (cursor == end) break;
-            cursor = cursor.AddMinutes(15);
-        }
-
-        return slots;
-    }
-    private static DateTimeOffset ToDateTimeOffset(DateOnly date, TimeOnly time, string timeZoneId)
-    {
-        var tz = TZConvert.GetTimeZoneInfo(timeZoneId);
-        var dt = date.ToDateTime(time);
-        return new DateTimeOffset(dt, tz.GetUtcOffset(dt));
     }
 }

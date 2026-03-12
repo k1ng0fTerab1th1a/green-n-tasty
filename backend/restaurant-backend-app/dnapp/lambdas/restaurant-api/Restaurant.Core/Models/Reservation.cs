@@ -20,6 +20,9 @@ public sealed class Reservation
     [DynamoDBProperty("locationId")]
     public string LocationId { get; set; } = null!;
 
+    [DynamoDBProperty("locationAddress")]
+    public string LocationAddress { get; set; } = null!;
+
     [DynamoDBProperty("tableNumber")]
     public int TableNumber { get; set; }
 
