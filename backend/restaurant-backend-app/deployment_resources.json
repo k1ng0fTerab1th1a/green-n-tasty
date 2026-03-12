@@ -22,9 +22,12 @@
             "cognito-idp:ListUserPools",
             "cognito-idp:ListUserPoolClients",
             "cognito-idp:SignUp",
+            "cognito-idp:AdminCreateUser",
+            "cognito-idp:AdminSetUserPassword",
             "cognito-idp:AdminConfirmSignUp",
             "cognito-idp:InitiateAuth",
-            "cognito-idp:AdminDeleteUser"
+            "cognito-idp:AdminDeleteUser",
+            "cognito-idp:RevokeToken"
           ],
           "Effect": "Allow",
           "Resource": "*"
