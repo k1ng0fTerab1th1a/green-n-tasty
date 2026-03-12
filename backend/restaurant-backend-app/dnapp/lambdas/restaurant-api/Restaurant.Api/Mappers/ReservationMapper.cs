@@ -11,6 +11,7 @@ public static class ReservationMapper
     {
         Id = x.Id,
         LocationId = x.LocationId,
+        LocationAddress = x.LocationAddress,
         TableNumber = x.TableNumber,
         GuestsCount = x.GuestsCount,
         StartDateTime = x.StartDateTime,

@@ -227,6 +227,93 @@ public sealed class ReservationServiceTests
     }
 
     [Fact]
+    public async Task CreateForClientAsync_WhenCrossingMidnight_ShouldSendSlotsAcrossTwoCalendarDates()
+    {
+        var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10));
+        var nextDate = date.AddDays(1);
+        var dto = BuildDto(date, new TimeOnly(23, 0), new TimeOnly(1, 0));
+
+        _locationRepo.Setup(r => r.GetByIdAsync("loc-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildLocation(openTime: "18:00", closeTime: "04:00"));
+
+        _waiterScheduleRepo
+            .Setup(r => r.GetAsync("loc-1#3", date.ToString("yyyy-MM-dd"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new WaiterSchedule { TableKey = "loc-1#3", Date = date.ToString("yyyy-MM-dd"), WaiterId = "waiter-1" });
+
+        List<string>? capturedSlots = null;
+        _repo.Setup(r => r.CreateWithSlotsAsync(It.IsAny<Reservation>(), date, It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
+            .Callback<Reservation, DateOnly, List<string>, CancellationToken>((_, _, slots, _) =>
+            {
+                capturedSlots = slots;
+            })
+            .ReturnsAsync(true);
+
+        var result = await _sut.CreateForClientAsync("customer-1", dto, ct: default);
+
+        capturedSlots.Should().NotBeNull();
+        capturedSlots!.Should().HaveCount(9);
+        capturedSlots.Should().Contain(s => s.StartsWith(date.ToString("yyyy-MM-dd") + "T23:00"));
+        capturedSlots.Should().Contain(s => s.StartsWith(nextDate.ToString("yyyy-MM-dd") + "T00:00"));
+        capturedSlots.Should().Contain(s => s.StartsWith(nextDate.ToString("yyyy-MM-dd") + "T01:00"));
+
+        result.StartDateTime.Should().StartWith(date.ToString("yyyy-MM-dd") + "T23:00");
+        result.EndDateTime.Should().StartWith(nextDate.ToString("yyyy-MM-dd") + "T01:00");
+
+        _locationRepo.Verify(r => r.GetByIdAsync("loc-1", It.IsAny<CancellationToken>()), Times.Once);
+        _waiterScheduleRepo.Verify(r => r.GetAsync("loc-1#3", date.ToString("yyyy-MM-dd"), It.IsAny<CancellationToken>()), Times.Once);
+        _repo.Verify(r => r.CreateWithSlotsAsync(It.IsAny<Reservation>(), date, It.IsAny<List<string>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _repo.VerifyNoOtherCalls();
+        _locationRepo.VerifyNoOtherCalls();
+        _waiterScheduleRepo.VerifyNoOtherCalls();
+        _tableRepo.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task CreateForClientAsync_WhenBothTimesAfterMidnight_ShouldShiftSlotsToNextCalendarDate()
+    {
+        var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10));
+        var nextDate = date.AddDays(1);
+        var dto = BuildDto(date, new TimeOnly(1, 0), new TimeOnly(2, 0));
+
+        _locationRepo.Setup(r => r.GetByIdAsync("loc-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildLocation(openTime: "18:00", closeTime: "04:00"));
+
+        _waiterScheduleRepo
+            .Setup(r => r.GetAsync("loc-1#3", date.ToString("yyyy-MM-dd"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new WaiterSchedule { TableKey = "loc-1#3", Date = date.ToString("yyyy-MM-dd"), WaiterId = "waiter-1" });
+
+        Reservation? capturedReservation = null;
+        List<string>? capturedSlots = null;
+        _repo.Setup(r => r.CreateWithSlotsAsync(It.IsAny<Reservation>(), date, It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
+            .Callback<Reservation, DateOnly, List<string>, CancellationToken>((reservation, _, slots, _) =>
+            {
+                capturedReservation = reservation;
+                capturedSlots = slots;
+            })
+            .ReturnsAsync(true);
+
+        var result = await _sut.CreateForClientAsync("customer-1", dto, ct: default);
+
+        capturedReservation.Should().NotBeNull();
+        capturedSlots.Should().NotBeNull();
+        capturedSlots!.Should().HaveCount(5);
+        capturedSlots.Should().OnlyContain(s => s.StartsWith(nextDate.ToString("yyyy-MM-dd") + "T"));
+        capturedSlots.Should().Contain(s => s.StartsWith(nextDate.ToString("yyyy-MM-dd") + "T01:00"));
+        capturedSlots.Should().Contain(s => s.StartsWith(nextDate.ToString("yyyy-MM-dd") + "T02:00"));
+
+        result.StartDateTime.Should().StartWith(nextDate.ToString("yyyy-MM-dd") + "T01:00");
+        result.EndDateTime.Should().StartWith(nextDate.ToString("yyyy-MM-dd") + "T02:00");
+
+        _locationRepo.Verify(r => r.GetByIdAsync("loc-1", It.IsAny<CancellationToken>()), Times.Once);
+        _waiterScheduleRepo.Verify(r => r.GetAsync("loc-1#3", date.ToString("yyyy-MM-dd"), It.IsAny<CancellationToken>()), Times.Once);
+        _repo.Verify(r => r.CreateWithSlotsAsync(It.IsAny<Reservation>(), date, It.IsAny<List<string>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _repo.VerifyNoOtherCalls();
+        _locationRepo.VerifyNoOtherCalls();
+        _waiterScheduleRepo.VerifyNoOtherCalls();
+        _tableRepo.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task CreateForClientAsync_WhenLocationMissing_ShouldThrowBusinessException()
     {
         var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10));
@@ -386,6 +473,158 @@ public sealed class ReservationServiceTests
         _repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
         _locationRepo.Verify(r => r.GetByIdAsync("loc-1", It.IsAny<CancellationToken>()), Times.Once);
         _tableRepo.Verify(r => r.GetByLocationAndTableNumberAsync("loc-1", 4, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateReservationAsync_WhenCrossingMidnight_ShouldSendSlotsAcrossTwoCalendarDates()
+    {
+        var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5));
+        var nextDate = date.AddDays(1);
+        var dto = new UpdateReservationDTO("r1", 3, 4, date, new TimeOnly(23, 0), new TimeOnly(1, 0));
+
+        var existing = new Reservation
+        {
+            Id = "r1",
+            CustomerId = "customer-1",
+            WaiterId = "waiter-1",
+            LocationId = "loc-1",
+            TableNumber = 3,
+            TableKey = "loc-1#3",
+            GuestsCount = 2,
+            Status = ReservationStatus.Reserved,
+            StartDateTime = DateTimeOffset.UtcNow.AddHours(3).ToString("O"),
+            EndDateTime = DateTimeOffset.UtcNow.AddHours(4).ToString("O"),
+            CreatedAt = "c",
+            UpdatedAt = "u"
+        };
+
+        _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        _locationRepo.Setup(r => r.GetByIdAsync("loc-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildLocation(openTime: "18:00", closeTime: "04:00"));
+
+        _tableRepo.Setup(r => r.GetByLocationAndTableNumberAsync("loc-1", 4, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Table
+            {
+                LocationId = "loc-1",
+                TableNumber = 4,
+                LocationAddress = "Main street 1",
+                Capacity = 6
+            });
+
+        List<string>? capturedNewSlots = null;
+        _repo.Setup(r => r.UpdateReservationAsync(
+                It.IsAny<Reservation>(),
+                It.IsAny<List<string>>(),
+                It.IsAny<List<string>>(),
+                "loc-1#3",
+                It.IsAny<DateTimeOffset>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<Reservation, List<string>, List<string>, string, DateTimeOffset, CancellationToken>((_, newSlots, _, _, _, _) =>
+            {
+                capturedNewSlots = newSlots;
+            })
+            .ReturnsAsync(existing);
+
+        await _sut.UpdateReservationAsync("customer-1", false, dto);
+
+        capturedNewSlots.Should().NotBeNull();
+        capturedNewSlots!.Should().Equal(
+            $"{date:yyyy-MM-dd}T23:00+00:00",
+            $"{date:yyyy-MM-dd}T23:15+00:00",
+            $"{date:yyyy-MM-dd}T23:30+00:00",
+            $"{date:yyyy-MM-dd}T23:45+00:00",
+            $"{nextDate:yyyy-MM-dd}T00:00+00:00",
+            $"{nextDate:yyyy-MM-dd}T00:15+00:00",
+            $"{nextDate:yyyy-MM-dd}T00:30+00:00",
+            $"{nextDate:yyyy-MM-dd}T00:45+00:00",
+            $"{nextDate:yyyy-MM-dd}T01:00+00:00");
+
+        _repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
+        _locationRepo.Verify(r => r.GetByIdAsync("loc-1", It.IsAny<CancellationToken>()), Times.Once);
+        _tableRepo.Verify(r => r.GetByLocationAndTableNumberAsync("loc-1", 4, It.IsAny<CancellationToken>()), Times.Once);
+        _repo.Verify(r => r.UpdateReservationAsync(
+            It.IsAny<Reservation>(),
+            It.IsAny<List<string>>(),
+            It.IsAny<List<string>>(),
+            "loc-1#3",
+            It.IsAny<DateTimeOffset>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateReservationAsync_WhenBothTimesAfterMidnight_ShouldShiftSlotsToNextCalendarDate()
+    {
+        var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5));
+        var nextDate = date.AddDays(1);
+        var dto = new UpdateReservationDTO("r1", 3, 4, date, new TimeOnly(1, 0), new TimeOnly(2, 0));
+
+        var existing = new Reservation
+        {
+            Id = "r1",
+            CustomerId = "customer-1",
+            WaiterId = "waiter-1",
+            LocationId = "loc-1",
+            TableNumber = 3,
+            TableKey = "loc-1#3",
+            GuestsCount = 2,
+            Status = ReservationStatus.Reserved,
+            StartDateTime = DateTimeOffset.UtcNow.AddHours(3).ToString("O"),
+            EndDateTime = DateTimeOffset.UtcNow.AddHours(4).ToString("O"),
+            CreatedAt = "c",
+            UpdatedAt = "u"
+        };
+
+        _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        _locationRepo.Setup(r => r.GetByIdAsync("loc-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildLocation(openTime: "18:00", closeTime: "04:00"));
+
+        _tableRepo.Setup(r => r.GetByLocationAndTableNumberAsync("loc-1", 4, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Table
+            {
+                LocationId = "loc-1",
+                TableNumber = 4,
+                LocationAddress = "Main street 1",
+                Capacity = 6
+            });
+
+        List<string>? capturedNewSlots = null;
+        _repo.Setup(r => r.UpdateReservationAsync(
+                It.IsAny<Reservation>(),
+                It.IsAny<List<string>>(),
+                It.IsAny<List<string>>(),
+                "loc-1#3",
+                It.IsAny<DateTimeOffset>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<Reservation, List<string>, List<string>, string, DateTimeOffset, CancellationToken>((_, newSlots, _, _, _, _) =>
+            {
+                capturedNewSlots = newSlots;
+            })
+            .ReturnsAsync(existing);
+
+        await _sut.UpdateReservationAsync("customer-1", false, dto);
+
+        capturedNewSlots.Should().NotBeNull();
+        capturedNewSlots!.Should().Equal(
+            $"{nextDate:yyyy-MM-dd}T01:00+00:00",
+            $"{nextDate:yyyy-MM-dd}T01:15+00:00",
+            $"{nextDate:yyyy-MM-dd}T01:30+00:00",
+            $"{nextDate:yyyy-MM-dd}T01:45+00:00",
+            $"{nextDate:yyyy-MM-dd}T02:00+00:00");
+
+        _repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
+        _locationRepo.Verify(r => r.GetByIdAsync("loc-1", It.IsAny<CancellationToken>()), Times.Once);
+        _tableRepo.Verify(r => r.GetByLocationAndTableNumberAsync("loc-1", 4, It.IsAny<CancellationToken>()), Times.Once);
+        _repo.Verify(r => r.UpdateReservationAsync(
+            It.IsAny<Reservation>(),
+            It.IsAny<List<string>>(),
+            It.IsAny<List<string>>(),
+            "loc-1#3",
+            It.IsAny<DateTimeOffset>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
