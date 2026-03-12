@@ -216,8 +216,8 @@ public sealed class TableServiceTests
 
         result.Should().HaveCount(1);
         result[0].AvailableSlots.Should().HaveCount(1, because: "only the 60-min window qualifies; the 30-min window is below the threshold");
-        result[0].AvailableSlots[0].StartOffset.Should().Be(FutureDateAt(11, 30));
-        result[0].AvailableSlots[0].EndOffset.Should().Be(FutureDateAt(12, 45));
+        result[0].AvailableSlots[0].StartOffset.Should().Be(FutureDateAt(10, 0));
+        result[0].AvailableSlots[0].EndOffset.Should().Be(FutureDateAt(11, 0));
     }
 
     [Fact]
