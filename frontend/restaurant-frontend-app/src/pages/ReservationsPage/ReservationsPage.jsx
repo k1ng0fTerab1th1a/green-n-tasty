@@ -74,28 +74,34 @@ export default function ReservationsPage() {
                 const timePart = isoString.split('T')[1].split('+')[0].split('-')[0];
                 let [hours, minutes] = timePart.split(':');
                 hours = parseInt(hours, 10);
-                const ampm = hours >= 12 ? 'pm' : 'am'; // Формат без крапок
+                const ampm = hours >= 12 ? 'pm' : 'am';
                 hours = hours % 12;
                 hours = hours ? hours : 12;
                 return `${hours}:${minutes} ${ampm}`;
             };
 
-            let workingHoursStart = "";
-            let workingHoursEnd = "";
             let slotsForForm = [];
 
-            if (currentTableData && Array.isArray(currentTableData.availableSlots) && currentTableData.availableSlots.length > 0) {
-                slotsForForm = currentTableData.availableSlots;
-                const sortedSlots = [...slotsForForm].sort((a, b) =>
-                    a.startOffset.localeCompare(b.startOffset)
-                );
+            // ВИПРАВЛЕНО: Додаємо поточний слот користувача до масиву доступних слотів
+            const currentUserSlot = {
+                startOffset: res.startDateTime,
+                endOffset: res.endDateTime
+            };
 
-                workingHoursStart = formatTimeFromISO(sortedSlots[0].startOffset);
-                workingHoursEnd = formatTimeFromISO(sortedSlots[sortedSlots.length - 1].endOffset);
+            if (currentTableData && Array.isArray(currentTableData.availableSlots)) {
+                // Об'єднуємо отримані вільні слоти з поточним часом користувача
+                slotsForForm = [...currentTableData.availableSlots, currentUserSlot];
             } else {
-                workingHoursStart = formatTimeFromISO(res.startDateTime);
-                workingHoursEnd = formatTimeFromISO(res.endDateTime);
+                slotsForForm = [currentUserSlot];
             }
+
+            // Сортуємо об'єднаний пул слотів, щоб знайти справжні межі "Від" і "До"
+            const sortedSlots = [...slotsForForm].sort((a, b) =>
+                a.startOffset.localeCompare(b.startOffset)
+            );
+
+            const workingHoursStart = formatTimeFromISO(sortedSlots[0].startOffset);
+            const workingHoursEnd = formatTimeFromISO(sortedSlots[sortedSlots.length - 1].endOffset);
 
             setSelectedReservation({
                 id: res.id,

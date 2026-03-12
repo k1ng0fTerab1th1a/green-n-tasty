@@ -66,6 +66,10 @@ export default function ReservationForm({
             let current = parseTimeToDate(startStr);
             const end = parseTimeToDate(endStr);
 
+            if (end < current) {
+                end.setDate(end.getDate() + 1);
+            }
+
             while (current <= end) {
                 const label = current.toLocaleTimeString("en-US", {
                     hour: "numeric",
