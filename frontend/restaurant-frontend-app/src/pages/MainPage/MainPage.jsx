@@ -65,7 +65,7 @@ export default function MainPage() {
                         name: dish.name || "Unnamed dish",
                         price: parsePrice(dish.price),
                         weight: parseWeight(dish.weight),
-                        imageSrc: dish.imageUrl || fallbackDishImage,
+                        imageSrc: dish.previewImageUrl || fallbackDishImage,
                         available: true,
                     }))
                     : [];

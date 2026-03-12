@@ -1,9 +1,20 @@
 import Modal from "../Modal/Modal";
 import { Button } from "../index.js";
 import styles from "./ConfirmationModal.module.css";
+import {useNavigate} from "react-router-dom";
 
 export default function ConfirmationModal({ isOpen, onClose, reservationData }) {
     // reservationData: restaurantName, guests, date, timeFrom, timeTo, tableNumber, address
+    const navigate = useNavigate();
+    const handleCancelRedirect = () => {
+        onClose();
+        navigate("/reservations");
+    };
+
+    const handleEditRedirect = () => {
+        onClose();
+        navigate("/reservations");
+    };
 
     return (
         <Modal
@@ -33,14 +44,14 @@ export default function ConfirmationModal({ isOpen, onClose, reservationData }) 
                     <Button
                         variant="outline"
                         className={styles.cancelBtn}
-                        //onClick={onClose}
+                        onClick={handleCancelRedirect}
                     >
                         Cancel Reservation
                     </Button>
                     <Button
                         variant="primary"
                         className={styles.editBtn}
-                        //onClick={() => console.log("Edit logic here")}
+                        onClick={handleEditRedirect}
                     >
                         Edit Reservation
                     </Button>
