@@ -10,6 +10,7 @@ import styles from "./SearchPage.module.css";
 import { getAvailableTables } from "../../services/bookings";
 import { getLocations } from "../../services/locations";
 import heroImage from "../../assets/images/main-hero.jpg";
+import tableImage from "../../assets/images/tableImage.png";
 
 export default function SearchPage() {
     const [searchParams] = useSearchParams();
@@ -164,7 +165,7 @@ export default function SearchPage() {
                                     key={`${table.locationId}-${table.tableNumber}`}
                                     id={table.id}
                                     locationId={table.locationId}
-                                    image={table.locationImage || heroImage}
+                                    image={table.locationImage || tableImage}
                                     location={table.locationAddress}
                                     tableNumber={table.tableNumber}
                                     capacity={table.capacity}
