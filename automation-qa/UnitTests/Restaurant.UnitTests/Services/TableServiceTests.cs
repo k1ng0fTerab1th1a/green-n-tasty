@@ -124,7 +124,7 @@ public sealed class TableServiceTests
         result[0].TableNumber.Should().Be(1);
         result[0].AvailableSlots.Should().HaveCount(1);
         result[0].AvailableSlots[0].StartOffset.Should().Be(new DateTimeOffset(2030, 1, 15, 10, 0, 0, TimeSpan.Zero));
-        result[0].AvailableSlots[0].EndOffset.Should().Be(new DateTimeOffset(2030, 1, 15, 22, 0, 0, TimeSpan.Zero));
+        result[0].AvailableSlots[0].EndOffset.Should().Be(new DateTimeOffset(2030, 1, 15, 21, 45, 0, TimeSpan.Zero));
     }
 
     [Fact]
@@ -177,9 +177,9 @@ public sealed class TableServiceTests
     {
         _tableRepo.Setup(r => r.GetByLocationIdAsync("loc1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Table> { MakeTable("loc1", 1) }.AsReadOnly());
-        // Shift 10:00–13:00. Reserving 10:45–11:30 creates:
-        //   - free window 10:00–10:45 = 45 min -> below threshold, excluded from slots
-        //   - free window 11:30–13:00 = 90 min -> qualifies, kept in slots
+        // Shift 10:00–13:00. Reserving 11:15–12:00 (+15 min gap) creates:
+        //   - free window 10:00–11:00 = 60 min -> qualifies, kept in slots
+        //   - free window 12:15–12:45 = 30 min -> below threshold, excluded from slots
         _locationRepo.Setup(r => r.GetByIdAsync("loc1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeUtcLocation("loc1", openTime: "10:00", closeTime: "13:00"));
         _tableDayRepo.Setup(r => r.GetManyByTablesAndDateAsync(
@@ -194,9 +194,10 @@ public sealed class TableServiceTests
                     Date = "2030-01-15",
                     ReservedSlots = new HashSet<string>
                     {
-                        "2030-01-15T10:45+00:00",
-                        "2030-01-15T11:00+00:00",
-                        "2030-01-15T11:15+00:00"
+                        "2030-01-15T11:15+00:00",
+                        "2030-01-15T11:30+00:00",
+                        "2030-01-15T11:45+00:00",
+                        "2030-01-15T12:00+00:00",
                     }
                 }
             });
@@ -204,9 +205,9 @@ public sealed class TableServiceTests
         var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: null, ct: default);
 
         result.Should().HaveCount(1);
-        result[0].AvailableSlots.Should().HaveCount(1, because: "only the 90-min window qualifies; the 45-min window is below the threshold");
-        result[0].AvailableSlots[0].StartOffset.Should().Be(new DateTimeOffset(2030, 1, 15, 11, 30, 0, TimeSpan.Zero));
-        result[0].AvailableSlots[0].EndOffset.Should().Be(new DateTimeOffset(2030, 1, 15, 13, 0, 0, TimeSpan.Zero));
+        result[0].AvailableSlots.Should().HaveCount(1, because: "only the 60-min window qualifies; the 30-min window is below the threshold");
+        result[0].AvailableSlots[0].StartOffset.Should().Be(new DateTimeOffset(2030, 1, 15, 10, 0, 0, TimeSpan.Zero));
+        result[0].AvailableSlots[0].EndOffset.Should().Be(new DateTimeOffset(2030, 1, 15, 11, 0, 0, TimeSpan.Zero));
     }
 
     [Fact]
@@ -322,7 +323,7 @@ public sealed class TableServiceTests
         result.Should().HaveCount(1);
         result[0].AvailableSlots.Should().HaveCount(1, because: "the entire 12-hour shift is free — no split at midnight");
         result[0].AvailableSlots[0].StartOffset.Should().Be(new DateTimeOffset(2030, 1, 15, 14, 0, 0, TimeSpan.Zero));
-        result[0].AvailableSlots[0].EndOffset.Should().Be(new DateTimeOffset(2030, 1, 16, 2, 0, 0, TimeSpan.Zero));
+        result[0].AvailableSlots[0].EndOffset.Should().Be(new DateTimeOffset(2030, 1, 16, 1, 45, 0, TimeSpan.Zero));
     }
 
     [Fact]
