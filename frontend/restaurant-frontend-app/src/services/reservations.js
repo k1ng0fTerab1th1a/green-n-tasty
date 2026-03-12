@@ -19,3 +19,13 @@ export const deleteReservation = async (id) => {
     const response = await api.delete(`/reservations/${id}`); //
     return response.data; // Повертає результат видалення
 };
+
+export const updateReservation = async (reservationData) => {
+    try {
+        const response = await api.put("/reservations", reservationData);
+        return response.data;
+    } catch (error) {
+        console.error("Error updating reservation:", error);
+        throw error;
+    }
+};

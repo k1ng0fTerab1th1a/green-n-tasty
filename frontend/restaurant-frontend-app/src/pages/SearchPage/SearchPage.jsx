@@ -164,7 +164,7 @@ export default function SearchPage() {
                                     key={`${table.locationId}-${table.tableNumber}`}
                                     id={table.id}
                                     locationId={table.locationId}
-                                    image={heroImage}
+                                    image={table.locationImage || heroImage}
                                     location={table.locationAddress}
                                     tableNumber={table.tableNumber}
                                     capacity={table.capacity}
