@@ -11,11 +11,18 @@ using Xunit;
 
 public class FeedbackServiceTests
 {
+    private readonly Mock<IFeedbackRepository> _repo;
+    private readonly FeedbackService _sut;
+
+    public FeedbackServiceTests()
+    {
+        _repo = new Mock<IFeedbackRepository>(MockBehavior.Strict);
+        _sut = new FeedbackService(_repo.Object);
+    }
+
     [Fact]
     public async Task GetFeedbacksForLocation_ShouldCallRepository_AndReturnMappedDtos()
     {
-        var repo = new Mock<IFeedbackRepository>(MockBehavior.Strict);
-
         var repoResponse = new FeedbackPaginatedDBResponseDto
         {
             Feedbacks = new List<Feedback>
@@ -35,7 +42,7 @@ public class FeedbackServiceTests
             NextPageToken = "token-123"
         };
 
-        repo.Setup(r => r.GetByLocationAsync(
+        _repo.Setup(r => r.GetByLocationAsync(
                 "loc-1",
                 10,
                 "waiter",
@@ -43,9 +50,7 @@ public class FeedbackServiceTests
                 null))
             .ReturnsAsync(repoResponse);
 
-        var sut = new FeedbackService(repo.Object);
-
-        var result = await sut.GetFeedbacksForLocation(
+        var result = await _sut.GetFeedbacksForLocation(
             "loc-1",
             10,
             "waiter",
@@ -64,28 +69,26 @@ public class FeedbackServiceTests
         dto.UserName.Should().Be("John");
         dto.UserAvatarUrl.Should().Be("avatar");
 
-        repo.Verify(r => r.GetByLocationAsync(
+        _repo.Verify(r => r.GetByLocationAsync(
             "loc-1",
             10,
             "waiter",
             It.IsAny<List<string>>(),
             null), Times.Once);
 
-        repo.VerifyNoOtherCalls();
+        _repo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task GetFeedbacksForLocation_WhenRepositoryReturnsEmpty_ShouldReturnEmptyContent()
     {
-        var repo = new Mock<IFeedbackRepository>(MockBehavior.Strict);
-
         var repoResponse = new FeedbackPaginatedDBResponseDto
         {
             Feedbacks = new List<Feedback>(),
             NextPageToken = null
         };
 
-        repo.Setup(r => r.GetByLocationAsync(
+        _repo.Setup(r => r.GetByLocationAsync(
                 "loc-1",
                 10,
                 "waiter",
@@ -93,9 +96,7 @@ public class FeedbackServiceTests
                 null))
             .ReturnsAsync(repoResponse);
 
-        var sut = new FeedbackService(repo.Object);
-
-        var result = await sut.GetFeedbacksForLocation(
+        var result = await _sut.GetFeedbacksForLocation(
             "loc-1",
             10,
             "waiter",
@@ -105,28 +106,26 @@ public class FeedbackServiceTests
         result.Content.Should().BeEmpty();
         result.NextPageToken.Should().BeNull();
 
-        repo.Verify(r => r.GetByLocationAsync(
+        _repo.Verify(r => r.GetByLocationAsync(
             "loc-1",
             10,
             "waiter",
             It.IsAny<List<string>>(),
             null), Times.Once);
 
-        repo.VerifyNoOtherCalls();
+        _repo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task GetFeedbacksForLocation_ShouldForwardPageToken_ToRepository()
     {
-        var repo = new Mock<IFeedbackRepository>(MockBehavior.Strict);
-
         var repoResponse = new FeedbackPaginatedDBResponseDto
         {
             Feedbacks = new List<Feedback>(),
             NextPageToken = "next-token"
         };
 
-        repo.Setup(r => r.GetByLocationAsync(
+        _repo.Setup(r => r.GetByLocationAsync(
                 "loc-1",
                 5,
                 "kitchen",
@@ -134,9 +133,7 @@ public class FeedbackServiceTests
                 "page-1"))
             .ReturnsAsync(repoResponse);
 
-        var sut = new FeedbackService(repo.Object);
-
-        var result = await sut.GetFeedbacksForLocation(
+        var result = await _sut.GetFeedbacksForLocation(
             "loc-1",
             5,
             "kitchen",
@@ -147,13 +144,13 @@ public class FeedbackServiceTests
         result.NextPageToken.Should().Be("next-token");
         result.Content.Should().BeEmpty();
 
-        repo.Verify(r => r.GetByLocationAsync(
+        _repo.Verify(r => r.GetByLocationAsync(
             "loc-1",
             5,
             "kitchen",
             It.IsAny<List<string>>(),
             "page-1"), Times.Once);
 
-        repo.VerifyNoOtherCalls();
+        _repo.VerifyNoOtherCalls();
     }
 }
