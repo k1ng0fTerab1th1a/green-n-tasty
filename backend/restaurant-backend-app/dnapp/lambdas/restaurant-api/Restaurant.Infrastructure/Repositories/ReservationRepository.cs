@@ -342,9 +342,9 @@ public sealed class ReservationRepository : IReservationRepository
             await _dynamoDb.TransactWriteItemsAsync(
                 new TransactWriteItemsRequest { TransactItems = transactItems }, ct);
         }
-        catch (TransactionCanceledException ex)
+        catch (TransactionCanceledException)
         {
-            throw new BusinessException("Update failed: requested time slots are already taken." + ex);
+            throw new BusinessException("Update failed: requested time slots are already taken.");
         }
     }
 
