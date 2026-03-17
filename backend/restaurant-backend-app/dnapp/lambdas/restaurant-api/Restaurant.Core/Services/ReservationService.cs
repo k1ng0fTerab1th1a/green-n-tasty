@@ -4,7 +4,6 @@ using Restaurant.Core.Helpers;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
-using TimeZoneConverter;
 
 namespace Restaurant.Core.Services;
 
@@ -170,6 +169,7 @@ public sealed class ReservationService : IReservationService
             CustomerId = customerId,
             WaiterId = waiterId,
             LocationId = dto.LocationId,
+            LocationAddress = location.Address,
             TableNumber = dto.TableNumber,
             TableKey = $"{dto.LocationId}#{dto.TableNumber}",
             StartDateTime = start.ToString("yyyy-MM-ddTHH:mmzzz"),
@@ -222,13 +222,13 @@ public sealed class ReservationService : IReservationService
         CancellationToken ct = default)
     {
         var reservation = await GetByIdAsync(dto.Id, actorUserId, isActorWaiter, ct)
-                          ?? throw new ArgumentNullException("reservation", "Reservation does not exist");
+            ?? throw new ArgumentNullException("reservation", "Reservation does not exist");
 
         if (reservation.Status != ReservationStatus.Reserved)
             throw new BusinessException("Only reserved reservations can be updated.");
 
         var location = await _locationRepo.GetByIdAsync(reservation.LocationId, ct)
-                       ?? throw new BusinessException("Location not found.");
+            ?? throw new BusinessException("Location not found.");
 
         var oldStart = DateTimeOffset.Parse(reservation.StartDateTime);
         var oldEnd = DateTimeOffset.Parse(reservation.EndDateTime);
@@ -246,6 +246,7 @@ public sealed class ReservationService : IReservationService
         List<string> newSlots = ReservationTimeHelper.GenerateSlots(newStart, newEnd);
 
         var oldTableKey = reservation.TableKey;
+        var oldTableNumber = reservation.TableNumber;
 
         var table = await _tableRepository.GetByLocationAndTableNumberAsync(
             reservation.LocationId, dto.TableNumber, ct)
@@ -254,11 +255,25 @@ public sealed class ReservationService : IReservationService
         if (table.Capacity < dto.GuestNumber)
             throw new BusinessException("Amount of guests exceeds the table capacity.");
 
+        var reservationDateChanged = oldStart.ToString("yyyy-MM-dd") != dto.Date.ToString("yyyy-MM-dd");
+        var reservationTimeChanged = oldStart != newStart || oldEnd != newEnd;
+        var reservationTableChanged = oldTableNumber != dto.TableNumber;
+
+        if (isActorWaiter && (reservationDateChanged || reservationTimeChanged || reservationTableChanged))
+        {
+            var schedule = await _waiterScheduleRepo.GetAsync(
+                $"{reservation.LocationId}#{dto.TableNumber}",
+                dto.Date.ToString("yyyy-MM-dd"),
+                ct) ?? throw new BusinessException("No waiter assigned for this table on this date.");
+
+            if (!string.Equals(schedule.WaiterId, actorUserId, StringComparison.Ordinal))
+                throw new BusinessException("Waiter can update reservations only for assigned tables.");
+        }
+
         reservation.GuestsCount = dto.GuestNumber;
         reservation.StartDateTime = newStart.ToString("yyyy-MM-ddTHH:mmzzz");
         reservation.EndDateTime = newEnd.ToString("yyyy-MM-ddTHH:mmzzz");
         reservation.UpdatedAt = DateTime.UtcNow.ToString("O");
-
         reservation.TableNumber = dto.TableNumber;
         reservation.TableKey = $"{reservation.LocationId}#{dto.TableNumber}";
 
