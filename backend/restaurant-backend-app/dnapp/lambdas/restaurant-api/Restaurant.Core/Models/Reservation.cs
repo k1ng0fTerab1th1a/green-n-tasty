@@ -11,7 +11,7 @@ public sealed class Reservation
 
     [DynamoDBProperty("customerId")]
     [DynamoDBGlobalSecondaryIndexHashKey("customerId-start-index")]
-    public string CustomerId { get; set; } = null!;
+    public string? CustomerId { get; set; }
 
     [DynamoDBProperty("waiterId")]
     [DynamoDBGlobalSecondaryIndexHashKey("waiterId-start-index")]
@@ -45,6 +45,12 @@ public sealed class Reservation
 
     [DynamoDBProperty("status", typeof(ReservationStatusConverter))]
     public ReservationStatus Status { get; set; } = ReservationStatus.Reserved;
+
+    [DynamoDBProperty("isCreatedByWaiter")]
+    public bool IsCreatedByWaiter { get; set; }
+
+    [DynamoDBProperty("visitorName")]
+    public string? VisitorName { get; set; }
 
     [DynamoDBProperty("createdAt")]
     public string CreatedAt { get; set; } = null!;

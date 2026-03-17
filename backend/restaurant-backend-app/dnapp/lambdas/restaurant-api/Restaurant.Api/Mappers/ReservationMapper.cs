@@ -16,7 +16,9 @@ public static class ReservationMapper
         GuestsCount = x.GuestsCount,
         StartDateTime = x.StartDateTime,
         EndDateTime = x.EndDateTime,
-        Status = x.Status.ToString()
+        Status = x.Status.ToString(),
+        IsCreatedByWaiter = x.IsCreatedByWaiter,
+        VisitorName = x.VisitorName
     };
 
     public static CreateReservationDTO ToCreateDTO(this CreateReservationRequest x) => new(

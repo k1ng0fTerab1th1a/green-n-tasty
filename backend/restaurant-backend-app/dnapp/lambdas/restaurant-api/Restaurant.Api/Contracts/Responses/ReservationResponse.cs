@@ -11,4 +11,6 @@ public sealed class ReservationResponse
     public string EndDateTime { get; set; } = null!;
 
     public string Status { get; set; } = null!;
+    public bool IsCreatedByWaiter { get; set; }
+    public string? VisitorName { get; set; }
 }
