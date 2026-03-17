@@ -11,6 +11,7 @@ namespace Restaurant.Core.Services;
 public sealed class ReservationService : IReservationService
 {
     private const string WaiterRole = "WAITER";
+    private const string CustomerRole = "CUSTOMER";
 
     private readonly IReservationRepository _repo;
     private readonly IWaiterScheduleRepository _waiterScheduleRepo;
@@ -106,6 +107,77 @@ public sealed class ReservationService : IReservationService
             EndDateTime = end.ToString("yyyy-MM-ddTHH:mmzzz"),
             GuestsCount = dto.GuestsCount,
             Status = ReservationStatus.Reserved,
+            IsCreatedByWaiter = false,
+            VisitorName = null,
+            CreatedAt = DateTime.UtcNow.ToString("o"),
+            UpdatedAt = DateTime.UtcNow.ToString("o"),
+        };
+
+        var success = await _repo.CreateWithSlotsAsync(reservation, dto.Date, slots, ct);
+
+        if (!success)
+            throw new SlotUnavailableException();
+
+        return reservation;
+    }
+
+    public async Task<Reservation> CreateForWaiterAsync(string waiterId, CreateReservationForWaiterDTO dto, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(waiterId))
+            throw new UnauthorizedAccessException("Forbidden.");
+
+        var actor = await _userRepository.GetByIdAsync(waiterId, ct)
+                    ?? throw new UnauthorizedAccessException("Forbidden.");
+
+        if (!string.Equals(actor.Role, WaiterRole, StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("Forbidden.");
+
+        var customerId = string.IsNullOrWhiteSpace(dto.CustomerId) ? null : dto.CustomerId.Trim();
+        var visitorName = string.IsNullOrWhiteSpace(dto.VisitorName) ? null : dto.VisitorName.Trim();
+
+        if ((customerId is null && visitorName is null) || (customerId is not null && visitorName is not null))
+            throw new BusinessException("Exactly one of customerId or visitorName must be provided.");
+
+        if (customerId is not null)
+        {
+            var customer = await _userRepository.GetByIdAsync(customerId, ct)
+                           ?? throw new BusinessException("Customer not found.");
+
+            if (!string.Equals(customer.Role, CustomerRole, StringComparison.OrdinalIgnoreCase))
+                throw new BusinessException("Customer not found.");
+        }
+
+        var location = await _locationRepo.GetByIdAsync(dto.LocationId, ct)
+                    ?? throw new BusinessException("Location not found.");
+
+        ReservationTimeHelper.ValidateReservationTime(dto.TimeFrom, dto.TimeTo, dto.Date, location);
+
+        var endDate = dto.TimeTo < dto.TimeFrom ? dto.Date.AddDays(1) : dto.Date;
+        var start = ReservationTimeHelper.ToDateTimeOffset(dto.Date, dto.TimeFrom, location.TimeZone);
+        var end = ReservationTimeHelper.ToDateTimeOffset(endDate, dto.TimeTo, location.TimeZone);
+
+        var slots = ReservationTimeHelper.GenerateSlots(start, end);
+
+        var schedule = await _waiterScheduleRepo.GetAsync($"{dto.LocationId}#{dto.TableNumber}", dto.Date.ToString("yyyy-MM-dd"), ct)
+                       ?? throw new BusinessException("No waiter assigned for this table on this date.");
+
+        if (!string.Equals(schedule.WaiterId, waiterId, StringComparison.Ordinal))
+            throw new BusinessException("Waiter can create reservations only for assigned tables.");
+
+        var reservation = new Reservation
+        {
+            Id = Guid.NewGuid().ToString(),
+            CustomerId = customerId,
+            WaiterId = waiterId,
+            LocationId = dto.LocationId,
+            TableNumber = dto.TableNumber,
+            TableKey = $"{dto.LocationId}#{dto.TableNumber}",
+            StartDateTime = start.ToString("yyyy-MM-ddTHH:mmzzz"),
+            EndDateTime = end.ToString("yyyy-MM-ddTHH:mmzzz"),
+            GuestsCount = dto.GuestsCount,
+            Status = ReservationStatus.Reserved,
+            IsCreatedByWaiter = true,
+            VisitorName = visitorName,
             CreatedAt = DateTime.UtcNow.ToString("o"),
             UpdatedAt = DateTime.UtcNow.ToString("o"),
         };
