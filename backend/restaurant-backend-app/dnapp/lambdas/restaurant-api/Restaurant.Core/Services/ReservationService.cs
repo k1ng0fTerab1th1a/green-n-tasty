@@ -4,21 +4,32 @@ using Restaurant.Core.Helpers;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
+using TimeZoneConverter;
+
 namespace Restaurant.Core.Services;
 
 public sealed class ReservationService : IReservationService
 {
+    private const string WaiterRole = "WAITER";
+
     private readonly IReservationRepository _repo;
     private readonly IWaiterScheduleRepository _waiterScheduleRepo;
     private readonly ILocationRepository _locationRepo;
     private readonly ITableRepository _tableRepository;
+    private readonly IUserRepository _userRepository;
 
-    public ReservationService(IReservationRepository repo, IWaiterScheduleRepository waiterScheduleRepo, ILocationRepository locationRepo, ITableRepository tableRepository)
+    public ReservationService(
+        IReservationRepository repo,
+        IWaiterScheduleRepository waiterScheduleRepo,
+        ILocationRepository locationRepo,
+        ITableRepository tableRepository,
+        IUserRepository userRepository)
     {
         _repo = repo;
         _waiterScheduleRepo = waiterScheduleRepo;
         _locationRepo = locationRepo;
         _tableRepository = tableRepository;
+        _userRepository = userRepository;
     }
 
     public async Task<IReadOnlyList<Reservation>> GetMyAsync(string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
@@ -105,6 +116,33 @@ public sealed class ReservationService : IReservationService
             throw new SlotUnavailableException();
 
         return reservation;
+    }
+
+    public async Task<IReadOnlyList<WaiterCustomerLookupDTO>> SearchCustomersForWaiterAsync(
+        string actorUserId,
+        string query,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+            throw new UnauthorizedAccessException("Forbidden.");
+
+        if (string.IsNullOrWhiteSpace(query))
+            return Array.Empty<WaiterCustomerLookupDTO>();
+
+        var actor = await _userRepository.GetByIdAsync(actorUserId, ct)
+                    ?? throw new UnauthorizedAccessException("Forbidden.");
+
+        if (!string.Equals(actor.Role, WaiterRole, StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("Forbidden.");
+
+        var customers = await _userRepository.SearchCustomersAsync(query, ct);
+
+        return customers
+            .Select(x => new WaiterCustomerLookupDTO(
+                x.UserId,
+                $"{x.FirstName} {x.LastName}".Trim(),
+                EmailMaskingHelper.Mask(x.Email)))
+            .ToList();
     }
 
     public async Task<Reservation?> UpdateReservationAsync(string actorUserId, bool isActorWaiter,
