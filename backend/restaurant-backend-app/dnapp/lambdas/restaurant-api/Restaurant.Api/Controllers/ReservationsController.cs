@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.Contracts.Requests;
 using Restaurant.Api.Contracts.Responses;
@@ -9,7 +10,7 @@ namespace Restaurant.Api.Controllers;
 
 [ApiController]
 [Route("reservations")]
-//[Authorize]
+[Authorize]
 public sealed class ReservationsController : ControllerBase
 {
     private readonly IReservationService _reservationService;

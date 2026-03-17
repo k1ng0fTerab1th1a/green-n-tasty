@@ -171,6 +171,12 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public sealed class FakeReservationService : IReservationService
     {
         public List<Reservation> SeedReservations { get; } = new();
+        public string? LastCreateCustomerId { get; private set; }
+        public CreateReservationDTO? LastCreateDto { get; private set; }
+        public string? LastCancelReservationId { get; private set; }
+        public string? LastCancelUserId { get; private set; }
+        public bool? LastCancelIsWaiter { get; private set; }
+        public bool CancelShouldSucceed { get; set; }
 
         public FakeReservationService()
         {
@@ -180,6 +186,12 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public void Reset()
         {
             SeedReservations.Clear();
+            LastCreateCustomerId = null;
+            LastCreateDto = null;
+            LastCancelReservationId = null;
+            LastCancelUserId = null;
+            LastCancelIsWaiter = null;
+            CancelShouldSucceed = true;
 
             SeedReservations.Add(new Reservation
             {
@@ -243,12 +255,53 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public Task<bool> CancelReservation(string reservationId, string userId, bool isWaiter, CancellationToken ct = default)
         {
-            throw new NotImplementedException();
+            LastCancelReservationId = reservationId;
+            LastCancelUserId = userId;
+            LastCancelIsWaiter = isWaiter;
+
+            var entity = SeedReservations.SingleOrDefault(x => x.Id == reservationId);
+            if (entity is null)
+                return Task.FromResult(false);
+
+            var allowed = entity.CustomerId == userId || (isWaiter && entity.WaiterId == userId);
+            if (!allowed)
+                throw new UnauthorizedAccessException("Forbidden.");
+
+            if (!CancelShouldSucceed)
+                return Task.FromResult(false);
+
+            entity.Status = ReservationStatus.Cancelled;
+            entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
+            return Task.FromResult(true);
         }
 
         public Task<Reservation> CreateForClientAsync(string customerId, CreateReservationDTO dto, CancellationToken ct = default)
         {
-            throw new NotImplementedException();
+            LastCreateCustomerId = customerId;
+            LastCreateDto = dto;
+
+            var start = dto.Date.ToDateTime(dto.TimeFrom, DateTimeKind.Utc);
+            var end = dto.Date.ToDateTime(dto.TimeTo, DateTimeKind.Utc);
+
+            var created = new Reservation
+            {
+                Id = "r-created-1",
+                CustomerId = customerId,
+                WaiterId = "waiter-auto",
+                LocationId = dto.LocationId,
+                LocationAddress = "Generated address",
+                TableNumber = dto.TableNumber,
+                TableKey = $"{dto.LocationId}#{dto.TableNumber}",
+                StartDateTime = start.ToString("O"),
+                EndDateTime = end.ToString("O"),
+                GuestsCount = dto.GuestsCount,
+                Status = ReservationStatus.Reserved,
+                CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
+                UpdatedAt = DateTimeOffset.UtcNow.ToString("O")
+            };
+
+            SeedReservations.Add(created);
+            return Task.FromResult(created);
         }
 
         public Task<Reservation?> UpdateReservationAsync(string actorUserId, bool isActorWaiter, UpdateReservationDTO dto, CancellationToken ct = default)
