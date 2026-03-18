@@ -6,6 +6,7 @@ using Restaurant.IntegrationTests.Infrastructure;
 
 namespace Restaurant.Infrastructure.IntegrationTests;
 
+[Collection("DynamoDb collection")]
 public sealed class LocationRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
 {
     private readonly DynamoDBContext _context;

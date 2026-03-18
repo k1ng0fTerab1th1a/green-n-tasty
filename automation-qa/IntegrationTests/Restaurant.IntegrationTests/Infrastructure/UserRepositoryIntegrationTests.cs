@@ -6,6 +6,7 @@ using Restaurant.IntegrationTests.Infrastructure;
 
 namespace Restaurant.Infrastructure.IntegrationTests;
 
+[Collection("DynamoDb collection")]
 public class UserRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
 {
     private readonly DynamoDBContext _context;
@@ -47,34 +48,40 @@ public class UserRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
     [Fact]
     public async Task SearchCustomersAsync_ShouldFindByFirstNamePrefix()
     {
-        await CreateUserAsync("John", "Doe", "john.doe.first@test.com", "CUSTOMER");
-        await CreateUserAsync("Jane", "Smith", "jane.smith.first@test.com", "CUSTOMER");
+        var suffix = Guid.NewGuid().ToString("N")[..6];
 
-        var result = await _repo.SearchCustomersAsync("jo");
+        await CreateUserAsync($"John{suffix}", $"Doe{suffix}", $"john.{suffix}@test.com", "CUSTOMER");
+        await CreateUserAsync($"Jane{suffix}", $"Smith{suffix}", $"jane.{suffix}@test.com", "CUSTOMER");
 
-        result.Should().ContainSingle(x => x.FirstName == "John" && x.LastName == "Doe");
+        var result = await _repo.SearchCustomersAsync($"john{suffix[..3]}");
+
+        result.Should().ContainSingle(x => x.FirstName == $"John{suffix}" && x.LastName == $"Doe{suffix}");
     }
 
     [Fact]
     public async Task SearchCustomersAsync_ShouldFindByLastNamePrefix()
     {
-        await CreateUserAsync("Alice", "Johnson", "alice.johnson.last@test.com", "CUSTOMER");
-        await CreateUserAsync("Bob", "Brown", "bob.brown.last@test.com", "CUSTOMER");
+        var suffix = Guid.NewGuid().ToString("N")[..6];
 
-        var result = await _repo.SearchCustomersAsync("john");
+        await CreateUserAsync($"Alice{suffix}", $"Johnson{suffix}", $"alice.{suffix}@test.com", "CUSTOMER");
+        await CreateUserAsync($"Bob{suffix}", $"Brown{suffix}", $"bob.{suffix}@test.com", "CUSTOMER");
 
-        result.Should().ContainSingle(x => x.FirstName == "Alice" && x.LastName == "Johnson");
+        var result = await _repo.SearchCustomersAsync($"johnson{suffix[..3]}");
+
+        result.Should().ContainSingle(x => x.FirstName == $"Alice{suffix}" && x.LastName == $"Johnson{suffix}");
     }
 
     [Fact]
     public async Task SearchCustomersAsync_ShouldFindByEmailPrefix()
     {
-        await CreateUserAsync("Chris", "Miller", "chris.lookup.email@test.com", "CUSTOMER");
-        await CreateUserAsync("Diana", "Taylor", "diana.lookup.email@test.com", "CUSTOMER");
+        var suffix = Guid.NewGuid().ToString("N")[..6];
 
-        var result = await _repo.SearchCustomersAsync("chris.lookup");
+        await CreateUserAsync($"Alice{suffix}", $"Johnson{suffix}", $"alice.{suffix}@test.com", "CUSTOMER");
+        await CreateUserAsync($"Bob{suffix}", $"Brown{suffix}", $"bob.{suffix}@test.com", "CUSTOMER");
 
-        result.Should().ContainSingle(x => x.FirstName == "Chris" && x.LastName == "Miller");
+        var result = await _repo.SearchCustomersAsync($"johnson{suffix[..3]}");
+
+        result.Should().ContainSingle(x => x.FirstName == $"Alice{suffix}" && x.LastName == $"Johnson{suffix}");
     }
 
     [Fact]

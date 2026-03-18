@@ -7,6 +7,7 @@ using Restaurant.IntegrationTests.Infrastructure;
 
 namespace Restaurant.Infrastructure.IntegrationTests;
 
+[Collection("DynamoDb collection")]
 public sealed class ReservationRepositoryIntegrationTests
     : IClassFixture<DynamoDbFixture>
 {
