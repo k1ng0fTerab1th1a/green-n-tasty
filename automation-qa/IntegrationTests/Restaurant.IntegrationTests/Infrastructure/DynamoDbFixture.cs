@@ -33,26 +33,93 @@ public class DynamoDbFixture : IAsyncLifetime
 
     public Task DisposeAsync() => Task.CompletedTask;
 
+    private static readonly string[] RequiredUserIndexes =
+    [
+        "customer-firstName-index",
+        "customer-lastName-index",
+        "customer-email-index"
+    ];
+
     private async Task EnsureUsersTableAsync()
     {
         const string tableName = "Users";
 
         var existing = await Client.ListTablesAsync();
         if (existing.TableNames.Contains(tableName))
-            return;
+        {
+            var table = await Client.DescribeTableAsync(tableName);
+            var existingIndexes = table.Table.GlobalSecondaryIndexes?
+                .Select(x => x.IndexName)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
+
+            var hasAllIndexes = RequiredUserIndexes.All(existingIndexes.Contains);
+            if (hasAllIndexes)
+                return;
+
+            await Client.DeleteTableAsync(tableName);
+
+            while (true)
+            {
+                var tables = await Client.ListTablesAsync();
+                if (!tables.TableNames.Contains(tableName))
+                    break;
+
+                await Task.Delay(500);
+            }
+        }
 
         var request = new CreateTableRequest
         {
             TableName = tableName,
             AttributeDefinitions = new List<AttributeDefinition>
             {
-                new("userId", ScalarAttributeType.S)
+                new("userId", ScalarAttributeType.S),
+                new("role", ScalarAttributeType.S),
+                new("firstNameNormalized", ScalarAttributeType.S),
+                new("lastNameNormalized", ScalarAttributeType.S),
+                new("emailNormalized", ScalarAttributeType.S)
             },
             KeySchema = new List<KeySchemaElement>
             {
                 new("userId", KeyType.HASH)
             },
-            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+            ProvisionedThroughput = new ProvisionedThroughput(5, 5),
+            GlobalSecondaryIndexes = new List<GlobalSecondaryIndex>
+            {
+                new()
+                {
+                    IndexName = "customer-firstName-index",
+                    KeySchema = new List<KeySchemaElement>
+                    {
+                        new("role", KeyType.HASH),
+                        new("firstNameNormalized", KeyType.RANGE)
+                    },
+                    Projection = new Projection { ProjectionType = ProjectionType.ALL },
+                    ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+                },
+                new()
+                {
+                    IndexName = "customer-lastName-index",
+                    KeySchema = new List<KeySchemaElement>
+                    {
+                        new("role", KeyType.HASH),
+                        new("lastNameNormalized", KeyType.RANGE)
+                    },
+                    Projection = new Projection { ProjectionType = ProjectionType.ALL },
+                    ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+                },
+                new()
+                {
+                    IndexName = "customer-email-index",
+                    KeySchema = new List<KeySchemaElement>
+                    {
+                        new("role", KeyType.HASH),
+                        new("emailNormalized", KeyType.RANGE)
+                    },
+                    Projection = new Projection { ProjectionType = ProjectionType.ALL },
+                    ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+                }
+            }
         };
 
         await Client.CreateTableAsync(request);
