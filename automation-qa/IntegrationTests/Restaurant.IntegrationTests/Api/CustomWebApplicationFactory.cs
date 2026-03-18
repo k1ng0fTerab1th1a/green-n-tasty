@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
 using Restaurant.Api;
 using Restaurant.Core.DTOs;
+using Restaurant.Core.Exceptions;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
 using Restaurant.Core.SharedModels;
@@ -23,6 +24,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public FakeDishService DishService { get; } = new();
     public FakeAuthService AuthService { get; } = new();
     public FakeCognitoService CognitoService { get; } = new();
+    public FakeTableService TableService { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -64,6 +66,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<ICognitoService>();
             services.AddSingleton<ICognitoService>(CognitoService);
+
+            services.RemoveAll<ITableService>();
+            services.AddSingleton<ITableService>(TableService);
         });
     }
 
@@ -436,5 +441,62 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public Task<IReadOnlyList<Dish>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<Dish>>(Array.Empty<Dish>());
+    }
+
+    public sealed class FakeTableService : ITableService
+    {
+        public List<TableWithAvailableSlots> Response { get; } = new();
+        public Exception? Exception { get; set; }
+
+        public DateOnly? LastDate { get; private set; }
+        public TimeOnly? LastTime { get; private set; }
+        public string? LastLocationId { get; private set; }
+        public int? LastCapacity { get; private set; }
+
+        public FakeTableService()
+        {
+            Reset();
+        }
+
+        public void Reset()
+        {
+            Response.Clear();
+            Exception = null;
+            LastDate = null;
+            LastTime = null;
+            LastLocationId = null;
+            LastCapacity = null;
+
+            Response.Add(new TableWithAvailableSlots
+            {
+                LocationId = "loc-1",
+                TableNumber = 3,
+                LocationAddress = "Main street 1",
+                Capacity = 4,
+                AvailableSlots = new List<TimeSlot>
+                {
+                    new() { StartOffset = new DateTimeOffset(2026, 6, 1, 10, 0, 0, TimeSpan.Zero), EndOffset = new DateTimeOffset(2026, 6, 1, 10, 15, 0, TimeSpan.Zero) },
+                    new() { StartOffset = new DateTimeOffset(2026, 6, 1, 10, 15, 0, TimeSpan.Zero), EndOffset = new DateTimeOffset(2026, 6, 1, 10, 30, 0, TimeSpan.Zero) }
+                }
+            });
+        }
+
+        public Task<IList<TableWithAvailableSlots>> GetAvailableTablesAsync(
+            DateOnly date,
+            TimeOnly? time,
+            string? locationId,
+            int? capacity,
+            CancellationToken ct)
+        {
+            LastDate = date;
+            LastTime = time;
+            LastLocationId = locationId;
+            LastCapacity = capacity;
+
+            if (Exception is not null)
+                throw Exception;
+
+            return Task.FromResult<IList<TableWithAvailableSlots>>(Response.ToList());
+        }
     }
 }

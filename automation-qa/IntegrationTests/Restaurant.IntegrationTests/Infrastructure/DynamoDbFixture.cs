@@ -29,6 +29,7 @@ public class DynamoDbFixture : IAsyncLifetime
         await EnsureUsersTableAsync();
         await EnsureReservationsTableAsync();
         await EnsureLocationsTableAsync();
+        await EnsureTablesTableAsync();
         await EnsureTableDaysTableAsync();
     }
 
@@ -203,6 +204,78 @@ public class DynamoDbFixture : IAsyncLifetime
             {
                 // Creation is eventually consistent; retry until visible.
             }
+
+            await Task.Delay(500);
+        }
+    }
+
+    private async Task EnsureTablesTableAsync()
+    {
+        const string tableName = "Tables";
+
+        var existing = await Client.ListTablesAsync();
+        if (existing.TableNames.Contains(tableName))
+            return;
+
+        var request = new CreateTableRequest
+        {
+            TableName = tableName,
+            AttributeDefinitions = new List<AttributeDefinition>
+            {
+                new("locationId", ScalarAttributeType.S),
+                new("tableNumber", ScalarAttributeType.N)
+            },
+            KeySchema = new List<KeySchemaElement>
+            {
+                new("locationId", KeyType.HASH),
+                new("tableNumber", KeyType.RANGE)
+            },
+            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+        };
+
+        await Client.CreateTableAsync(request);
+
+        while (true)
+        {
+            var desc = await Client.DescribeTableAsync(tableName);
+            if (desc.Table.TableStatus == TableStatus.ACTIVE)
+                break;
+
+            await Task.Delay(500);
+        }
+    }
+
+    private async Task EnsureTableDaysTableAsync()
+    {
+        const string tableName = "TableDays";
+
+        var existing = await Client.ListTablesAsync();
+        if (existing.TableNames.Contains(tableName))
+            return;
+
+        var request = new CreateTableRequest
+        {
+            TableName = tableName,
+            AttributeDefinitions = new List<AttributeDefinition>
+            {
+                new("tableKey", ScalarAttributeType.S),
+                new("date", ScalarAttributeType.S)
+            },
+            KeySchema = new List<KeySchemaElement>
+            {
+                new("tableKey", KeyType.HASH),
+                new("date", KeyType.RANGE)
+            },
+            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+        };
+
+        await Client.CreateTableAsync(request);
+
+        while (true)
+        {
+            var desc = await Client.DescribeTableAsync(tableName);
+            if (desc.Table.TableStatus == TableStatus.ACTIVE)
+                break;
 
             await Task.Delay(500);
         }
