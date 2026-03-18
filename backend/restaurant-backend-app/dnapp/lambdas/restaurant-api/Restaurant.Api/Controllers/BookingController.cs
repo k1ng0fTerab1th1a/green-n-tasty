@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Services;
@@ -8,7 +7,6 @@ namespace Restaurant.Api.Controllers;
 
 [Route("bookings")]
 [ApiController]
-[Authorize]
 public class BookingController(ITableService _tableService) : ControllerBase
 {
     [HttpGet("tables")]
