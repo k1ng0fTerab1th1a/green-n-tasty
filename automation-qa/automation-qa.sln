@@ -1,6 +1,7 @@
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.5.2.0
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11527.330 d18.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "IntegrationTests", "IntegrationTests", "{1D262D65-7495-6CB3-7B98-55E7B311B78D}"
 EndProject
@@ -13,6 +14,11 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Restaurant.UnitTests", "UnitTests\Restaurant.UnitTests\Restaurant.UnitTests.csproj", "{60C3CBA3-19B5-CA1C-AD14-A7955A3DE22D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Restaurant.SystemTests", "SystemTests\Restaurant.SystemTests\Restaurant.SystemTests.csproj", "{2A5B7E2E-6A4A-49AE-B114-5A8B0C1D5D3F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Элементы решения", "Элементы решения", "{E272BE51-136C-456D-99F3-D01EF9688783}"
+	ProjectSection(SolutionItems) = preProject
+		SystemTests.runsettings = SystemTests.runsettings
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

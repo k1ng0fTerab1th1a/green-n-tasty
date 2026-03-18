@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
 using Restaurant.Api;
 using Restaurant.Core.DTOs;
+using Restaurant.Core.Exceptions;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
 using Restaurant.Core.SharedModels;
@@ -23,6 +24,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public FakeDishService DishService { get; } = new();
     public FakeAuthService AuthService { get; } = new();
     public FakeCognitoService CognitoService { get; } = new();
+    public FakeTableService TableService { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -64,6 +66,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<ICognitoService>();
             services.AddSingleton<ICognitoService>(CognitoService);
+
+            services.RemoveAll<ITableService>();
+            services.AddSingleton<ITableService>(TableService);
         });
     }
 
@@ -171,6 +176,12 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public sealed class FakeReservationService : IReservationService
     {
         public List<Reservation> SeedReservations { get; } = new();
+        public string? LastCreateCustomerId { get; private set; }
+        public CreateReservationDTO? LastCreateDto { get; private set; }
+        public string? LastCancelReservationId { get; private set; }
+        public string? LastCancelUserId { get; private set; }
+        public bool? LastCancelIsWaiter { get; private set; }
+        public bool CancelShouldSucceed { get; set; }
         public List<WaiterCustomerLookupDTO> CustomerLookupResults { get; } = new();
 
         public string? LastSearchActorUserId { get; private set; }
@@ -186,6 +197,12 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public void Reset()
         {
             SeedReservations.Clear();
+            LastCreateCustomerId = null;
+            LastCreateDto = null;
+            LastCancelReservationId = null;
+            LastCancelUserId = null;
+            LastCancelIsWaiter = null;
+            CancelShouldSucceed = true;
             CustomerLookupResults.Clear();
             LastSearchActorUserId = null;
             LastSearchQuery = null;
@@ -263,22 +280,41 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public Task<bool> CancelReservation(string reservationId, string userId, bool isWaiter, CancellationToken ct = default)
         {
-            throw new NotImplementedException();
+            LastCancelReservationId = reservationId;
+            LastCancelUserId = userId;
+            LastCancelIsWaiter = isWaiter;
+
+            var entity = SeedReservations.SingleOrDefault(x => x.Id == reservationId);
+            if (entity is null)
+                return Task.FromResult(false);
+
+            var allowed = entity.CustomerId == userId || (isWaiter && entity.WaiterId == userId);
+            if (!allowed)
+                throw new UnauthorizedAccessException("Forbidden.");
+
+            if (!CancelShouldSucceed)
+                return Task.FromResult(false);
+
+            entity.Status = ReservationStatus.Cancelled;
+            entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
+            return Task.FromResult(true);
         }
 
         public Task<Reservation> CreateForClientAsync(string customerId, CreateReservationDTO dto, CancellationToken ct = default)
         {
-            var start = new DateTimeOffset(dto.Date.ToDateTime(dto.TimeFrom), TimeSpan.Zero);
-            var endDate = dto.TimeTo < dto.TimeFrom ? dto.Date.AddDays(1) : dto.Date;
-            var end = new DateTimeOffset(endDate.ToDateTime(dto.TimeTo), TimeSpan.Zero);
+            LastCreateCustomerId = customerId;
+            LastCreateDto = dto;
 
-            var reservation = new Reservation
+            var start = dto.Date.ToDateTime(dto.TimeFrom, DateTimeKind.Utc);
+            var end = dto.Date.ToDateTime(dto.TimeTo, DateTimeKind.Utc);
+
+            var created = new Reservation
             {
-                Id = $"r-client-created-{SeedReservations.Count + 1}",
+                Id = "r-created-1",
                 CustomerId = customerId,
-                WaiterId = "waiter-1",
+                WaiterId = "waiter-auto",
                 LocationId = dto.LocationId,
-                LocationAddress = "Main street 1",
+                LocationAddress = "Generated address",
                 TableNumber = dto.TableNumber,
                 TableKey = $"{dto.LocationId}#{dto.TableNumber}",
                 StartDateTime = start.ToString("O"),
@@ -287,13 +323,12 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = false,
                 VisitorName = null,
-                CreatedAt = DateTime.UtcNow.ToString("O"),
-                UpdatedAt = DateTime.UtcNow.ToString("O")
+                CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
+                UpdatedAt = DateTimeOffset.UtcNow.ToString("O")
             };
 
-            SeedReservations.Add(reservation);
-
-            return Task.FromResult(reservation);
+            SeedReservations.Add(created);
+            return Task.FromResult(created);
         }
 
         public Task<Reservation> CreateForWaiterAsync(string waiterId, CreateReservationForWaiterDTO dto, CancellationToken ct = default)
@@ -477,5 +512,62 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public Task<IReadOnlyList<Dish>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<Dish>>(Array.Empty<Dish>());
+    }
+
+    public sealed class FakeTableService : ITableService
+    {
+        public List<TableWithAvailableSlots> Response { get; } = new();
+        public Exception? Exception { get; set; }
+
+        public DateOnly? LastDate { get; private set; }
+        public TimeOnly? LastTime { get; private set; }
+        public string? LastLocationId { get; private set; }
+        public int? LastCapacity { get; private set; }
+
+        public FakeTableService()
+        {
+            Reset();
+        }
+
+        public void Reset()
+        {
+            Response.Clear();
+            Exception = null;
+            LastDate = null;
+            LastTime = null;
+            LastLocationId = null;
+            LastCapacity = null;
+
+            Response.Add(new TableWithAvailableSlots
+            {
+                LocationId = "loc-1",
+                TableNumber = 3,
+                LocationAddress = "Main street 1",
+                Capacity = 4,
+                AvailableSlots = new List<TimeSlot>
+                {
+                    new() { StartOffset = new DateTimeOffset(2026, 6, 1, 10, 0, 0, TimeSpan.Zero), EndOffset = new DateTimeOffset(2026, 6, 1, 10, 15, 0, TimeSpan.Zero) },
+                    new() { StartOffset = new DateTimeOffset(2026, 6, 1, 10, 15, 0, TimeSpan.Zero), EndOffset = new DateTimeOffset(2026, 6, 1, 10, 30, 0, TimeSpan.Zero) }
+                }
+            });
+        }
+
+        public Task<IList<TableWithAvailableSlots>> GetAvailableTablesAsync(
+            DateOnly date,
+            TimeOnly? time,
+            string? locationId,
+            int? capacity,
+            CancellationToken ct)
+        {
+            LastDate = date;
+            LastTime = time;
+            LastLocationId = locationId;
+            LastCapacity = capacity;
+
+            if (Exception is not null)
+                throw Exception;
+
+            return Task.FromResult<IList<TableWithAvailableSlots>>(Response.ToList());
+        }
     }
 }

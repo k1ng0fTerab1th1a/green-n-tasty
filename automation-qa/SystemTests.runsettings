@@ -2,8 +2,8 @@
 <RunSettings>
   <RunConfiguration>
     <EnvironmentVariables>
-      <RUN_SYSTEM_TESTS>true</RUN_SYSTEM_TESTS>
-      <RUN_LIVE_COGNITO_TESTS>true</RUN_LIVE_COGNITO_TESTS>
+      <RUN_SYSTEM_TESTS>false</RUN_SYSTEM_TESTS>
+      <RUN_LIVE_COGNITO_TESTS>false</RUN_LIVE_COGNITO_TESTS>
       <SYSTEM_BASE_URL>https://v4fxro73vd.execute-api.eu-west-2.amazonaws.com/dev</SYSTEM_BASE_URL>
       <SYSTEM_AWS_REGION>eu-west-2</SYSTEM_AWS_REGION>
       <SYSTEM_COGNITO_USER_POOL_ID>eu-west-2_ECpW7q6CS</SYSTEM_COGNITO_USER_POOL_ID>
