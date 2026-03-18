@@ -987,6 +987,52 @@ public sealed class ReservationServiceTests
     }
 
     [Fact]
+    public async Task CreateForWaiterAsync_WhenActorIsNotWaiter_ShouldThrowUnauthorizedAccessException()
+    {
+        var dto = new CreateReservationForWaiterDTO(
+            "loc-1",
+            3,
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)),
+            new TimeOnly(12, 0),
+            new TimeOnly(13, 0),
+            2,
+            "customer-1",
+            null);
+
+        _userRepo.Setup(r => r.GetByIdAsync("customer-actor", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildCustomer("customer-actor"));
+
+        var act = async () => await _sut.CreateForWaiterAsync("customer-actor", dto, default);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("Forbidden.");
+    }
+
+    [Fact]
+    public async Task SearchCustomersForWaiterAsync_WhenActorIsNotWaiter_ShouldThrowUnauthorizedAccessException()
+    {
+        _userRepo.Setup(r => r.GetByIdAsync("customer-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildCustomer("customer-1"));
+
+        var act = async () => await _sut.SearchCustomersForWaiterAsync("customer-1", "ann", default);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("Forbidden.");
+    }
+
+    [Fact]
+    public async Task SearchCustomersForWaiterAsync_WhenQueryIsEmpty_ShouldReturnEmptyList_AndNotSearchRepository()
+    {
+        _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildWaiter("waiter-1"));
+
+        var result = await _sut.SearchCustomersForWaiterAsync("waiter-1", "", default);
+
+        result.Should().BeEmpty();
+        _userRepo.Verify(r => r.SearchCustomersAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task UpdateReservationAsync_WhenWaiterMovesReservationToAnotherWaiterSlot_ShouldThrowBusinessException()
     {
         var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5));
