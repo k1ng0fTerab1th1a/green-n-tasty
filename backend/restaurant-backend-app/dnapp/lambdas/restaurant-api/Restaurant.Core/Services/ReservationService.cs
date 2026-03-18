@@ -149,10 +149,10 @@ public sealed class ReservationService : IReservationService
         var location = await _locationRepo.GetByIdAsync(dto.LocationId, ct)
                     ?? throw new BusinessException("Location not found.");
 
-        ReservationTimeHelper.ValidateReservationTime(dto.TimeFrom, dto.TimeTo, dto.Date, location);
+        var (startDate, endDate) = ReservationTimeHelper.ResolveReservationDates(dto.Date, dto.TimeFrom, dto.TimeTo, location);
+        ReservationTimeHelper.ValidateReservationTime(dto.TimeFrom, dto.TimeTo, startDate, location);
 
-        var endDate = dto.TimeTo < dto.TimeFrom ? dto.Date.AddDays(1) : dto.Date;
-        var start = ReservationTimeHelper.ToDateTimeOffset(dto.Date, dto.TimeFrom, location.TimeZone);
+        var start = ReservationTimeHelper.ToDateTimeOffset(startDate, dto.TimeFrom, location.TimeZone);
         var end = ReservationTimeHelper.ToDateTimeOffset(endDate, dto.TimeTo, location.TimeZone);
 
         var slots = ReservationTimeHelper.GenerateSlots(start, end);

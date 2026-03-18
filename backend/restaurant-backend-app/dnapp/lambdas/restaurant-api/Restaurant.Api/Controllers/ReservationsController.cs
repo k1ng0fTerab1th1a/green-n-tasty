@@ -10,7 +10,7 @@ namespace Restaurant.Api.Controllers;
 
 [ApiController]
 [Route("reservations")]
-//[Authorize]
+[Authorize]
 public sealed class ReservationsController : ControllerBase
 {
     private readonly IReservationService _reservationService;
@@ -81,7 +81,6 @@ public sealed class ReservationsController : ControllerBase
     }
 
     [HttpGet("waiter/customers")]
-    [Authorize]
     [ProducesResponseType(typeof(ApiResponse<List<WaiterCustomerLookupResponse>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> SearchCustomersForWaiter([FromQuery] string query, CancellationToken ct)
@@ -100,7 +99,6 @@ public sealed class ReservationsController : ControllerBase
     }
 
     [HttpPost("waiter")]
-    [Authorize]
     [ProducesResponseType(typeof(ApiResponse<ReservationResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
