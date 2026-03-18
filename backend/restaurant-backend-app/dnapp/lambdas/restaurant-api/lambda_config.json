@@ -9,10 +9,13 @@
   "timeout": 30,
   "lambda_path": "lambdas\\restaurant-api",
   "dependencies": [
-    {
-      "resource_name": "Locations",
-      "resource_type": "dynamodb_table"
-    }
+    { "resource_name": "Locations",      "resource_type": "dynamodb_table" },
+    { "resource_name": "Reservations",   "resource_type": "dynamodb_table" },
+    { "resource_name": "TableDays",      "resource_type": "dynamodb_table" },
+    { "resource_name": "WaiterSchedule", "resource_type": "dynamodb_table" },
+    { "resource_name": "Tables",         "resource_type": "dynamodb_table" },
+    { "resource_name": "Users",          "resource_type": "dynamodb_table" },
+    { "resource_name": "Feedbacks",      "resource_type": "dynamodb_table" }
   ],
   "event_sources": [],
   "env_variables": {
