@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using Restaurant.Api.Tests;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 
 namespace Restaurant.IntegrationTests.Api;
@@ -171,5 +172,108 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
         doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
         doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Forbidden.");
+    }
+
+    [Fact]
+    public async Task Delete_AsOwner_ShouldReturn200_AndSuccessMessage()
+    {
+        _factory.ReservationService.Reset();
+
+        var res = await _client.SendAsync(Authed(HttpMethod.Delete, "/reservations/r-customer-1", userId: "customer-1"));
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.ReservationService.LastCancelReservationId.Should().Be("r-customer-1");
+        _factory.ReservationService.LastCancelUserId.Should().Be("customer-1");
+        _factory.ReservationService.LastCancelIsWaiter.Should().BeFalse();
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Reservation cancelled successfully.");
+    }
+
+    [Fact]
+    public async Task Delete_WhenServiceReturnsFalse_ShouldReturn500()
+    {
+        _factory.ReservationService.Reset();
+        _factory.ReservationService.CancelShouldSucceed = false;
+
+        var res = await _client.SendAsync(Authed(HttpMethod.Delete, "/reservations/r-customer-1", userId: "customer-1"));
+
+        res.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("During reservation cancellation something went wrong");
+    }
+
+    [Fact]
+    public async Task CreateForClient_WithoutUserHeader_ShouldReturn401()
+    {
+        _factory.ReservationService.Reset();
+
+        var payload = """
+        {
+          "locationId": "loc-10",
+          "tableNumber": 4,
+          "date": "2026-04-01",
+          "timeFrom": "12:00",
+          "timeTo": "13:30",
+          "guestsCount": 3
+        }
+        """;
+
+        var req = new HttpRequestMessage(HttpMethod.Post, "/reservations/client")
+        {
+            Content = new StringContent(payload, Encoding.UTF8, "application/json")
+        };
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task CreateForClient_WithValidPayload_ShouldReturn201_AndMapAllFields()
+    {
+        _factory.ReservationService.Reset();
+
+        var payload = """
+        {
+          "locationId": "loc-10",
+          "tableNumber": 4,
+          "date": "2026-04-01",
+          "timeFrom": "12:00",
+          "timeTo": "13:30",
+          "guestsCount": 3
+        }
+        """;
+
+        var req = Authed(HttpMethod.Post, "/reservations/client", userId: "customer-77");
+        req.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        _factory.ReservationService.LastCreateCustomerId.Should().Be("customer-77");
+        _factory.ReservationService.LastCreateDto.Should().NotBeNull();
+        _factory.ReservationService.LastCreateDto!.LocationId.Should().Be("loc-10");
+        _factory.ReservationService.LastCreateDto.TableNumber.Should().Be(4);
+        _factory.ReservationService.LastCreateDto.GuestsCount.Should().Be(3);
+        _factory.ReservationService.LastCreateDto.Date.ToString("yyyy-MM-dd").Should().Be("2026-04-01");
+        _factory.ReservationService.LastCreateDto.TimeFrom.ToString("HH:mm").Should().Be("12:00");
+        _factory.ReservationService.LastCreateDto.TimeTo.ToString("HH:mm").Should().Be("13:30");
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+
+        var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.GetPropertyIgnoreCase("id").GetString().Should().Be("r-created-1");
+        data.GetPropertyIgnoreCase("locationId").GetString().Should().Be("loc-10");
+        data.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(4);
+        data.GetPropertyIgnoreCase("guestsCount").GetInt32().Should().Be(3);
+        data.GetPropertyIgnoreCase("status").GetString().Should().Be("Reserved");
+        data.GetPropertyIgnoreCase("startDateTime").GetString().Should().Be("2026-04-01T12:00:00.0000000Z");
+        data.GetPropertyIgnoreCase("endDateTime").GetString().Should().Be("2026-04-01T13:30:00.0000000Z");
     }
 }
