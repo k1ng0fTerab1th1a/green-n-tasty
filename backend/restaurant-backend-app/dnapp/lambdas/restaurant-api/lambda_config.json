@@ -23,7 +23,6 @@
     "COGNITO_CLIENT_ID": "71bjhomgknlcrp2qpqo2cv0tea",
     "COGNITO_REGION": "eu-west-2",
     "SEED_TOKEN": "dev-seed-123",
-    "BACKFILL_USERS_ON_STARTUP": "false",
     "SQS_QUEUE_URL": "https://sqs.eu-west-2.amazonaws.com/864899830479/reservation-events-queue"
   },
   "publish_version": true,
