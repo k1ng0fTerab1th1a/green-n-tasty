@@ -3,6 +3,7 @@ using Amazon.SQS;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Restaurant.Api.HostedServices;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Services;
@@ -77,6 +78,16 @@ public class Startup
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<IWaiterScheduleRepository, WaiterScheduleRepository>();
 
+
+        var runUsersBackfill = string.Equals(
+            Environment.GetEnvironmentVariable("BACKFILL_USERS_ON_STARTUP"),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+
+        if (runUsersBackfill)
+        {
+            services.AddHostedService<UsersBackfillHostedService>();
+        }
 
         services.AddAuthorization();
         services.AddCors(options =>
