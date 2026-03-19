@@ -78,7 +78,7 @@ public class Startup
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<IWaiterScheduleRepository, WaiterScheduleRepository>();
 
-
+        /*
         var runUsersBackfill = string.Equals(
             Environment.GetEnvironmentVariable("BACKFILL_USERS_ON_STARTUP"),
             "true",
@@ -88,6 +88,7 @@ public class Startup
         {
             services.AddHostedService<UsersBackfillHostedService>();
         }
+        */
 
         services.AddAuthorization();
         services.AddCors(options =>
