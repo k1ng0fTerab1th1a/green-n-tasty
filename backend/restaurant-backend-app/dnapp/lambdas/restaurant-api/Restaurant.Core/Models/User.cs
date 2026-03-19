@@ -23,6 +23,15 @@ public class User
     [DynamoDBProperty("imageUrl")]
     public string? ImageUrl { get; set; }
 
+    [DynamoDBProperty("firstNameNormalized")]
+    public string FirstNameNormalized { get; set; } = string.Empty;
+
+    [DynamoDBProperty("lastNameNormalized")]
+    public string LastNameNormalized { get; set; } = string.Empty;
+
+    [DynamoDBProperty("emailNormalized")]
+    public string EmailNormalized { get; set; } = string.Empty;
+
     [DynamoDBProperty("createdAt")]
     public string CreatedAt { get; set; } = string.Empty;
 

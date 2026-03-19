@@ -39,6 +39,9 @@ public sealed partial class ReservationServiceTests
         result.TableKey.Should().Be("loc-1#3");
         result.GuestsCount.Should().Be(2);
         result.Status.Should().Be(ReservationStatus.Reserved);
+        result.LocationAddress.Should().Be("Main street 1");
+        result.IsCreatedByWaiter.Should().BeFalse();
+        result.VisitorName.Should().BeNull();
         capturedReservation.Should().NotBeNull();
         capturedSlots.Should().NotBeNull();
         capturedSlots!.Should().HaveCount(5);

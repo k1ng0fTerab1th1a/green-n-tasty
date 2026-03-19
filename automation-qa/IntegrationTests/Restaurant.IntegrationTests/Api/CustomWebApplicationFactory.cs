@@ -182,6 +182,12 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public string? LastCancelUserId { get; private set; }
         public bool? LastCancelIsWaiter { get; private set; }
         public bool CancelShouldSucceed { get; set; }
+        public List<WaiterCustomerLookupDTO> CustomerLookupResults { get; } = new();
+
+        public string? LastSearchActorUserId { get; private set; }
+        public string? LastSearchQuery { get; private set; }
+        public string? LastCreateForWaiterActorUserId { get; private set; }
+        public CreateReservationForWaiterDTO? LastCreateForWaiterDto { get; private set; }
 
         public FakeReservationService()
         {
@@ -197,6 +203,11 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastCancelUserId = null;
             LastCancelIsWaiter = null;
             CancelShouldSucceed = true;
+            CustomerLookupResults.Clear();
+            LastSearchActorUserId = null;
+            LastSearchQuery = null;
+            LastCreateForWaiterActorUserId = null;
+            LastCreateForWaiterDto = null;
 
             SeedReservations.Add(new Reservation
             {
@@ -204,12 +215,15 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 CustomerId = "customer-1",
                 WaiterId = "waiter-1",
                 LocationId = "loc-1",
+                LocationAddress = "Main street 1",
                 TableNumber = 3,
                 TableKey = "loc-1#3",
                 StartDateTime = "2026-03-05T10:00:00.0000000Z",
                 EndDateTime = "2026-03-05T11:30:00.0000000Z",
                 GuestsCount = 2,
                 Status = ReservationStatus.Reserved,
+                IsCreatedByWaiter = false,
+                VisitorName = null,
                 CreatedAt = "2026-03-01T00:00:00.0000000Z",
                 UpdatedAt = "2026-03-01T00:00:00.0000000Z"
             });
@@ -220,15 +234,21 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 CustomerId = "customer-2",
                 WaiterId = "waiter-1",
                 LocationId = "loc-2",
+                LocationAddress = "Second street 2",
                 TableNumber = 7,
                 TableKey = "loc-2#7",
                 StartDateTime = "2026-03-06T12:00:00.0000000Z",
                 EndDateTime = "2026-03-06T13:30:00.0000000Z",
                 GuestsCount = 4,
                 Status = ReservationStatus.Reserved,
+                IsCreatedByWaiter = false,
+                VisitorName = null,
                 CreatedAt = "2026-03-02T00:00:00.0000000Z",
                 UpdatedAt = "2026-03-02T00:00:00.0000000Z"
             });
+
+            CustomerLookupResults.Add(new WaiterCustomerLookupDTO("customer-1", "Anna Smith", "a**a@example.com"));
+            CustomerLookupResults.Add(new WaiterCustomerLookupDTO("customer-2", "John Doe", "j******e@example.com"));
         }
 
         public Task<IReadOnlyList<Reservation>> GetMyAsync(string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
@@ -301,12 +321,63 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 EndDateTime = end.ToString("O"),
                 GuestsCount = dto.GuestsCount,
                 Status = ReservationStatus.Reserved,
+                IsCreatedByWaiter = false,
+                VisitorName = null,
                 CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
                 UpdatedAt = DateTimeOffset.UtcNow.ToString("O")
             };
 
             SeedReservations.Add(created);
             return Task.FromResult(created);
+        }
+
+        public Task<Reservation> CreateForWaiterAsync(string waiterId, CreateReservationForWaiterDTO dto, CancellationToken ct = default)
+        {
+            LastCreateForWaiterActorUserId = waiterId;
+            LastCreateForWaiterDto = dto;
+
+            var start = new DateTimeOffset(dto.Date.ToDateTime(dto.TimeFrom), TimeSpan.Zero);
+            var endDate = dto.TimeTo < dto.TimeFrom ? dto.Date.AddDays(1) : dto.Date;
+            var end = new DateTimeOffset(endDate.ToDateTime(dto.TimeTo), TimeSpan.Zero);
+
+            var reservation = new Reservation
+            {
+                Id = $"r-waiter-created-{SeedReservations.Count + 1}",
+                CustomerId = dto.CustomerId,
+                WaiterId = waiterId,
+                LocationId = dto.LocationId,
+                LocationAddress = "Main street 1",
+                TableNumber = dto.TableNumber,
+                TableKey = $"{dto.LocationId}#{dto.TableNumber}",
+                StartDateTime = start.ToString("O"),
+                EndDateTime = end.ToString("O"),
+                GuestsCount = dto.GuestsCount,
+                Status = ReservationStatus.Reserved,
+                IsCreatedByWaiter = true,
+                VisitorName = dto.VisitorName,
+                CreatedAt = DateTime.UtcNow.ToString("O"),
+                UpdatedAt = DateTime.UtcNow.ToString("O")
+            };
+
+            SeedReservations.Add(reservation);
+
+            return Task.FromResult(reservation);
+        }
+
+        public Task<IReadOnlyList<WaiterCustomerLookupDTO>> SearchCustomersForWaiterAsync(string actorUserId, string query, CancellationToken ct = default)
+        {
+            LastSearchActorUserId = actorUserId;
+            LastSearchQuery = query;
+
+            if (string.IsNullOrWhiteSpace(query))
+                return Task.FromResult<IReadOnlyList<WaiterCustomerLookupDTO>>(Array.Empty<WaiterCustomerLookupDTO>());
+
+            var result = CustomerLookupResults
+                .Where(x => x.Username.Contains(query, StringComparison.OrdinalIgnoreCase)
+                         || x.MaskedEmail.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            return Task.FromResult<IReadOnlyList<WaiterCustomerLookupDTO>>(result);
         }
 
         public Task<Reservation?> UpdateReservationAsync(string actorUserId, bool isActorWaiter, UpdateReservationDTO dto, CancellationToken ct = default)

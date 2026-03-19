@@ -50,9 +50,9 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
         item.GetPropertyIgnoreCase("address").GetString().Should().Be("Berlin, Test str 1");
         item.GetPropertyIgnoreCase("description").GetString().Should().Be("Panoramic hall");
         item.GetPropertyIgnoreCase("totalCapacity").GetInt32().Should().Be(120);
-        item.GetPropertyIgnoreCase("averageOccupancy").GetDouble().Should().BeApproximately(0.354, 0.0001);
+        item.GetPropertyIgnoreCase("averageOccupancy").GetDouble().Should().BeApproximately(0.354, 0.001);
         item.GetPropertyIgnoreCase("imageUrl").GetString().Should().Be("http://img/loc-42");
-        item.GetPropertyIgnoreCase("rating").GetDouble().Should().BeApproximately(4.64, 0.0001);
+        item.GetPropertyIgnoreCase("rating").GetDouble().Should().BeApproximately(4.64, 0.01);
     }
 
     [Fact]

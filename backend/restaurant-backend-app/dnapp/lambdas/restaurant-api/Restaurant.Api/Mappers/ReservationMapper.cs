@@ -16,7 +16,9 @@ public static class ReservationMapper
         GuestsCount = x.GuestsCount,
         StartDateTime = x.StartDateTime,
         EndDateTime = x.EndDateTime,
-        Status = x.Status.ToString()
+        Status = x.Status.ToString(),
+        IsCreatedByWaiter = x.IsCreatedByWaiter,
+        VisitorName = x.VisitorName
     };
 
     public static CreateReservationDTO ToCreateDTO(this CreateReservationRequest x) => new(
@@ -28,6 +30,17 @@ public static class ReservationMapper
         x.GuestsCount
     );
 
+    public static CreateReservationForWaiterDTO ToCreateForWaiterDTO(this CreateReservationForWaiterRequest x) => new(
+            x.LocationId,
+            x.TableNumber,
+            DateOnly.Parse(x.Date),
+            TimeOnly.Parse(x.TimeFrom),
+            TimeOnly.Parse(x.TimeTo),
+            x.GuestsCount,
+            x.CustomerId,
+            x.VisitorName
+        );
+
     public static UpdateReservationDTO ToUpdateDTO(this UpdateReservationRequest x) => new(
         x.Id,
         x.GuestNumber,
@@ -36,4 +49,11 @@ public static class ReservationMapper
         TimeOnly.Parse(x.TimeFrom),
         TimeOnly.Parse(x.TimeTo)
     );
+
+    public static WaiterCustomerLookupResponse ToWaiterCustomerLookupResponse(this WaiterCustomerLookupDTO x) => new()
+    {
+        CustomerId = x.CustomerId,
+        Username = x.Username,
+        MaskedEmail = x.MaskedEmail
+    };
 }
