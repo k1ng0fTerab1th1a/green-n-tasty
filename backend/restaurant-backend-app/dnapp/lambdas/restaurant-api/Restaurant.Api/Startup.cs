@@ -1,4 +1,5 @@
 using Amazon.CognitoIdentityProvider;
+using Amazon.SQS;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -55,6 +56,8 @@ public class Startup
 
             return new AmazonCognitoIdentityProviderClient(config);
         });
+        services.AddSingleton<IAmazonSQS>(_ => new AmazonSQSClient());
+        services.AddScoped<IEventPublisher, SqsEventPublisher>();
 
         services.AddScoped<ICognitoService, CognitoService>();
         services.AddScoped<IAuthService, AuthService>();
