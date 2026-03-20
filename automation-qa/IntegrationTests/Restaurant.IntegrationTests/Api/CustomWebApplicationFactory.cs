@@ -264,22 +264,22 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult<IReadOnlyList<Reservation>>(result);
         }
 
-        public Task<Reservation?> GetByIdAsync(string id, string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
+        public Task<Result<Reservation>> GetByIdAsync(string id, string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
         {
             var entity = SeedReservations.SingleOrDefault(x => x.Id == id);
             if (entity is null)
-                return Task.FromResult<Reservation?>(null);
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.ReservationNotFound));
 
             var allowed = entity.CustomerId == actorUserId
                           || (actorIsWaiter && entity.WaiterId == actorUserId);
 
             if (!allowed)
-                throw new UnauthorizedAccessException("Forbidden.");
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.Forbidden));
 
-            return Task.FromResult<Reservation?>(entity);
+            return Task.FromResult(Result.Ok(entity));
         }
 
-        public Task<bool> CancelReservation(string reservationId, string userId, bool isWaiter, CancellationToken ct = default)
+        public Task<Result> CancelReservation(string reservationId, string userId, bool isWaiter, CancellationToken ct = default)
         {
             LastCancelReservationId = reservationId;
             LastCancelUserId = userId;
@@ -287,21 +287,21 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             var entity = SeedReservations.SingleOrDefault(x => x.Id == reservationId);
             if (entity is null)
-                return Task.FromResult(false);
+                return Task.FromResult(Result.Fail(ReservationErrors.ReservationNotFound));
 
             var allowed = entity.CustomerId == userId || (isWaiter && entity.WaiterId == userId);
             if (!allowed)
-                throw new UnauthorizedAccessException("Forbidden.");
+                return Task.FromResult(Result.Fail(ReservationErrors.Forbidden));
 
             if (!CancelShouldSucceed)
-                return Task.FromResult(false);
+                return Task.FromResult(Result.Fail(ReservationErrors.CancellationFailed));
 
             entity.Status = ReservationStatus.Cancelled;
             entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
-            return Task.FromResult(true);
+            return Task.FromResult(Result.Ok());
         }
 
-        public Task<Reservation> CreateForClientAsync(string customerId, CreateReservationDTO dto, CancellationToken ct = default)
+        public Task<Result<Reservation>> CreateForClientAsync(string customerId, CreateReservationDTO dto, CancellationToken ct = default)
         {
             LastCreateCustomerId = customerId;
             LastCreateDto = dto;
@@ -329,10 +329,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             };
 
             SeedReservations.Add(created);
-            return Task.FromResult(created);
+            return Task.FromResult(Result.Ok(created));
         }
 
-        public Task<Reservation> CreateForWaiterAsync(string waiterId, CreateReservationForWaiterDTO dto, CancellationToken ct = default)
+        public Task<Result<Reservation>> CreateForWaiterAsync(string waiterId, CreateReservationForWaiterDTO dto, CancellationToken ct = default)
         {
             LastCreateForWaiterActorUserId = waiterId;
             LastCreateForWaiterDto = dto;
@@ -362,26 +362,26 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             SeedReservations.Add(reservation);
 
-            return Task.FromResult(reservation);
+            return Task.FromResult(Result.Ok(reservation));
         }
 
-        public Task<IReadOnlyList<WaiterCustomerLookupDTO>> SearchCustomersForWaiterAsync(string actorUserId, string query, CancellationToken ct = default)
+        public Task<Result<IReadOnlyList<WaiterCustomerLookupDTO>>> SearchCustomersForWaiterAsync(string actorUserId, string query, CancellationToken ct = default)
         {
             LastSearchActorUserId = actorUserId;
             LastSearchQuery = query;
 
             if (string.IsNullOrWhiteSpace(query))
-                return Task.FromResult<IReadOnlyList<WaiterCustomerLookupDTO>>(Array.Empty<WaiterCustomerLookupDTO>());
+                return Task.FromResult(Result.Ok<IReadOnlyList<WaiterCustomerLookupDTO>>(Array.Empty<WaiterCustomerLookupDTO>()));
 
             var result = CustomerLookupResults
                 .Where(x => x.Username.Contains(query, StringComparison.OrdinalIgnoreCase)
                          || x.MaskedEmail.Contains(query, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            return Task.FromResult<IReadOnlyList<WaiterCustomerLookupDTO>>(result);
+            return Task.FromResult(Result.Ok<IReadOnlyList<WaiterCustomerLookupDTO>>(result));
         }
 
-        public Task<Reservation?> UpdateReservationAsync(string actorUserId, bool isActorWaiter, UpdateReservationDTO dto, CancellationToken ct = default)
+        public Task<Result<Reservation>> UpdateReservationAsync(string actorUserId, bool isActorWaiter, UpdateReservationDTO dto, CancellationToken ct = default)
         {
             throw new NotImplementedException();
         }

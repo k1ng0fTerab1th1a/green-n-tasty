@@ -19,7 +19,8 @@ public static class BusinessErrorExtensions
             ErrorType.Validation   => StatusCodes.Status400BadRequest,
             ErrorType.Conflict     => StatusCodes.Status409Conflict,
             ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
-            _ => throw new InvalidDataException("ErrorType must be NotFound, Validation, Conflict or Unauthorized.")
+            ErrorType.Forbidden    => StatusCodes.Status403Forbidden,
+            _ => throw new InvalidDataException("ErrorType must be NotFound, Validation, Conflict, Unauthorized or Forbidden.")
         };
 
         return ApiResponse<T>.Fail(statusCode, businessError.Message);

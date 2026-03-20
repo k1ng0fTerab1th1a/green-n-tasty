@@ -2,7 +2,7 @@
 
 namespace Restaurant.Core.Errors;
 
-public enum ErrorType { NotFound, Validation, Conflict, Unauthorized }
+public enum ErrorType { NotFound, Validation, Conflict, Unauthorized, Forbidden }
 
 public sealed class BusinessError : Error
 {

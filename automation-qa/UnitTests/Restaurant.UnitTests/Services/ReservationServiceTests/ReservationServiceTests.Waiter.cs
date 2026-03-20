@@ -1,7 +1,7 @@
 ﻿using FluentAssertions;
 using Moq;
 using Restaurant.Core.DTOs;
-using Restaurant.Core.Exceptions;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Models;
 
 namespace Restaurant.UnitTests.Services;
@@ -38,11 +38,12 @@ public sealed partial class ReservationServiceTests
 
         var result = await _sut.CreateForWaiterAsync("waiter-1", dto, default);
 
-        result.CustomerId.Should().Be("customer-1");
-        result.WaiterId.Should().Be("waiter-1");
-        result.LocationAddress.Should().Be("Main street 1");
-        result.IsCreatedByWaiter.Should().BeTrue();
-        result.VisitorName.Should().BeNull();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.CustomerId.Should().Be("customer-1");
+        result.Value.WaiterId.Should().Be("waiter-1");
+        result.Value.LocationAddress.Should().Be("Main street 1");
+        result.Value.IsCreatedByWaiter.Should().BeTrue();
+        result.Value.VisitorName.Should().BeNull();
 
         capturedReservation.Should().NotBeNull();
         capturedReservation!.IsCreatedByWaiter.Should().BeTrue();
@@ -75,14 +76,15 @@ public sealed partial class ReservationServiceTests
 
         var result = await _sut.CreateForWaiterAsync("waiter-1", dto, default);
 
-        result.CustomerId.Should().BeNull();
-        result.VisitorName.Should().Be("Anna Visitor");
-        result.IsCreatedByWaiter.Should().BeTrue();
-        result.LocationAddress.Should().Be("Main street 1");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.CustomerId.Should().BeNull();
+        result.Value.VisitorName.Should().Be("Anna Visitor");
+        result.Value.IsCreatedByWaiter.Should().BeTrue();
+        result.Value.LocationAddress.Should().Be("Main street 1");
     }
 
     [Fact]
-    public async Task CreateForWaiterAsync_WhenBothCustomerIdAndVisitorNameProvided_ShouldThrowBusinessException()
+    public async Task CreateForWaiterAsync_WhenBothCustomerIdAndVisitorNameProvided_ShouldReturnValidationError()
     {
         var dto = new CreateReservationForWaiterDTO(
             "loc-1",
@@ -97,14 +99,14 @@ public sealed partial class ReservationServiceTests
         _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildWaiter("waiter-1"));
 
-        var act = async () => await _sut.CreateForWaiterAsync("waiter-1", dto, default);
+        var result = await _sut.CreateForWaiterAsync("waiter-1", dto, default);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Exactly one of customerId or visitorName must be provided.");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.CustomerOrVisitorRequired);
     }
 
     [Fact]
-    public async Task CreateForWaiterAsync_WhenNeitherCustomerIdNorVisitorNameProvided_ShouldThrowBusinessException()
+    public async Task CreateForWaiterAsync_WhenNeitherCustomerIdNorVisitorNameProvided_ShouldReturnValidationError()
     {
         var dto = new CreateReservationForWaiterDTO(
             "loc-1",
@@ -119,14 +121,14 @@ public sealed partial class ReservationServiceTests
         _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildWaiter("waiter-1"));
 
-        var act = async () => await _sut.CreateForWaiterAsync("waiter-1", dto, default);
+        var result = await _sut.CreateForWaiterAsync("waiter-1", dto, default);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Exactly one of customerId or visitorName must be provided.");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.CustomerOrVisitorRequired);
     }
 
     [Fact]
-    public async Task CreateForWaiterAsync_WhenCustomerNotFound_ShouldThrowBusinessException()
+    public async Task CreateForWaiterAsync_WhenCustomerNotFound_ShouldReturnCustomerNotFoundError()
     {
         var dto = new CreateReservationForWaiterDTO(
             "loc-1",
@@ -143,14 +145,14 @@ public sealed partial class ReservationServiceTests
         _userRepo.Setup(r => r.GetByIdAsync("customer-404", It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
 
-        var act = async () => await _sut.CreateForWaiterAsync("waiter-1", dto, default);
+        var result = await _sut.CreateForWaiterAsync("waiter-1", dto, default);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Customer not found.");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.CustomerNotFound);
     }
 
     [Fact]
-    public async Task CreateForWaiterAsync_WhenCustomerRoleIsNotCustomer_ShouldThrowBusinessException()
+    public async Task CreateForWaiterAsync_WhenCustomerRoleIsNotCustomer_ShouldReturnCustomerNotFoundError()
     {
         var dto = new CreateReservationForWaiterDTO(
             "loc-1",
@@ -174,14 +176,14 @@ public sealed partial class ReservationServiceTests
                 Role = "ADMIN"
             });
 
-        var act = async () => await _sut.CreateForWaiterAsync("waiter-1", dto, default);
+        var result = await _sut.CreateForWaiterAsync("waiter-1", dto, default);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Customer not found.");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.CustomerNotFound);
     }
 
     [Fact]
-    public async Task CreateForWaiterAsync_WhenWaiterScheduleMissing_ShouldThrowBusinessException()
+    public async Task CreateForWaiterAsync_WhenWaiterScheduleMissing_ShouldReturnNoWaiterAssignedError()
     {
         var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10));
         var dto = new CreateReservationForWaiterDTO("loc-1", 3, date, new TimeOnly(12, 0), new TimeOnly(13, 0), 2, "customer-1", null);
@@ -198,14 +200,14 @@ public sealed partial class ReservationServiceTests
             .Setup(r => r.GetAsync("loc-1#3", date.ToString("yyyy-MM-dd"), It.IsAny<CancellationToken>()))
             .ReturnsAsync((WaiterSchedule?)null);
 
-        var act = async () => await _sut.CreateForWaiterAsync("waiter-1", dto, default);
+        var result = await _sut.CreateForWaiterAsync("waiter-1", dto, default);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("No waiter assigned for this table on this date.");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.NoWaiterAssigned);
     }
 
     [Fact]
-    public async Task CreateForWaiterAsync_WhenScheduleBelongsToAnotherWaiter_ShouldThrowBusinessException()
+    public async Task CreateForWaiterAsync_WhenScheduleBelongsToAnotherWaiter_ShouldReturnWaiterNotAssignedError()
     {
         var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10));
         var dto = new CreateReservationForWaiterDTO("loc-1", 3, date, new TimeOnly(12, 0), new TimeOnly(13, 0), 2, "customer-1", null);
@@ -226,14 +228,14 @@ public sealed partial class ReservationServiceTests
                 WaiterId = "waiter-2"
             });
 
-        var act = async () => await _sut.CreateForWaiterAsync("waiter-1", dto, default);
+        var result = await _sut.CreateForWaiterAsync("waiter-1", dto, default);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Waiter can create reservations only for assigned tables.");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.WaiterNotAssignedForCreation);
     }
 
     [Fact]
-    public async Task CreateForWaiterAsync_WhenActorIsNotWaiter_ShouldThrowUnauthorizedAccessException()
+    public async Task CreateForWaiterAsync_WhenActorIsNotWaiter_ShouldReturnForbiddenError()
     {
         var dto = new CreateReservationForWaiterDTO(
             "loc-1",
@@ -248,22 +250,22 @@ public sealed partial class ReservationServiceTests
         _userRepo.Setup(r => r.GetByIdAsync("customer-actor", It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildCustomer("customer-actor"));
 
-        var act = async () => await _sut.CreateForWaiterAsync("customer-actor", dto, default);
+        var result = await _sut.CreateForWaiterAsync("customer-actor", dto, default);
 
-        await act.Should().ThrowAsync<UnauthorizedAccessException>()
-            .WithMessage("Forbidden.");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.Forbidden);
     }
 
     [Fact]
-    public async Task SearchCustomersForWaiterAsync_WhenActorIsNotWaiter_ShouldThrowUnauthorizedAccessException()
+    public async Task SearchCustomersForWaiterAsync_WhenActorIsNotWaiter_ShouldReturnForbiddenError()
     {
         _userRepo.Setup(r => r.GetByIdAsync("customer-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildCustomer("customer-1"));
 
-        var act = async () => await _sut.SearchCustomersForWaiterAsync("customer-1", "ann", default);
+        var result = await _sut.SearchCustomersForWaiterAsync("customer-1", "ann", default);
 
-        await act.Should().ThrowAsync<UnauthorizedAccessException>()
-            .WithMessage("Forbidden.");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.Forbidden);
     }
 
     [Fact]
@@ -274,7 +276,8 @@ public sealed partial class ReservationServiceTests
 
         var result = await _sut.SearchCustomersForWaiterAsync("waiter-1", "", default);
 
-        result.Should().BeEmpty();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEmpty();
         _userRepo.Verify(r => r.SearchCustomersAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -299,14 +302,15 @@ public sealed partial class ReservationServiceTests
 
         var result = await _sut.SearchCustomersForWaiterAsync("waiter-1", "ann", default);
 
-        result.Should().HaveCount(1);
-        result[0].CustomerId.Should().Be("customer-1");
-        result[0].Username.Should().Be("Anna Smith");
-        result[0].MaskedEmail.Should().Be("a**a@example.com");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().HaveCount(1);
+        result.Value[0].CustomerId.Should().Be("customer-1");
+        result.Value[0].Username.Should().Be("Anna Smith");
+        result.Value[0].MaskedEmail.Should().Be("a**a@example.com");
     }
 
     [Fact]
-    public async Task UpdateReservationAsync_WhenWaiterMovesReservationToAnotherWaiterSlot_ShouldThrowBusinessException()
+    public async Task UpdateReservationAsync_WhenWaiterMovesReservationToAnotherWaiterSlot_ShouldReturnWaiterNotAssignedError()
     {
         var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5));
         var dto = new UpdateReservationDTO("r1", 3, 4, date, new TimeOnly(12, 0), new TimeOnly(13, 0));
@@ -351,9 +355,9 @@ public sealed partial class ReservationServiceTests
                 WaiterId = "waiter-2"
             });
 
-        var act = async () => await _sut.UpdateReservationAsync("waiter-1", true, dto, default);
+        var result = await _sut.UpdateReservationAsync("waiter-1", true, dto, default);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Waiter can update reservations only for assigned tables.");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.WaiterNotAssignedForUpdate);
     }
 }

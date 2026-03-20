@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Restaurant.Core.DTOs;
-using Restaurant.Core.Exceptions;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Models;
 
 namespace Restaurant.UnitTests.Services;
@@ -56,9 +56,9 @@ public sealed partial class ReservationServiceTests
 
         var result = await _sut.UpdateReservationAsync("customer-1", false, dto);
 
-        result.Should().NotBeNull();
-        result!.TableNumber.Should().Be(4);
-        result.GuestsCount.Should().Be(3);
+        result.IsSuccess.Should().BeTrue();
+        result.Value.TableNumber.Should().Be(4);
+        result.Value.GuestsCount.Should().Be(3);
 
         _repo.Verify(r => r.UpdateReservationAsync(
             It.IsAny<Reservation>(),
@@ -125,8 +125,9 @@ public sealed partial class ReservationServiceTests
             })
             .ReturnsAsync(existing);
 
-        await _sut.UpdateReservationAsync("customer-1", false, dto);
+        var result = await _sut.UpdateReservationAsync("customer-1", false, dto);
 
+        result.IsSuccess.Should().BeTrue();
         capturedNewSlots.Should().NotBeNull();
         capturedNewSlots!.Should().Equal(
             $"{date:yyyy-MM-dd}T23:00+00:00",
@@ -203,8 +204,9 @@ public sealed partial class ReservationServiceTests
             })
             .ReturnsAsync(existing);
 
-        await _sut.UpdateReservationAsync("customer-1", false, dto);
+        var result = await _sut.UpdateReservationAsync("customer-1", false, dto);
 
+        result.IsSuccess.Should().BeTrue();
         capturedNewSlots.Should().NotBeNull();
         capturedNewSlots!.Should().Equal(
             $"{nextDate:yyyy-MM-dd}T01:00+00:00",
@@ -226,7 +228,7 @@ public sealed partial class ReservationServiceTests
     }
 
     [Fact]
-    public async Task UpdateReservationAsync_WhenStatusNotReserved_ShouldThrowBusinessException()
+    public async Task UpdateReservationAsync_WhenStatusNotReserved_ShouldReturnNotUpdatableError()
     {
         var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5));
         var dto = new UpdateReservationDTO("r1", 2, 3, date, new TimeOnly(12, 0), new TimeOnly(13, 0));
@@ -250,16 +252,15 @@ public sealed partial class ReservationServiceTests
         _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(existing);
 
-        var act = async () => await _sut.UpdateReservationAsync("customer-1", false, dto);
+        var result = await _sut.UpdateReservationAsync("customer-1", false, dto);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Only reserved reservations can be updated.");
-
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.NotUpdatable);
         _repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateReservationAsync_WhenLessThan30MinutesBeforeStart_ShouldThrowBusinessException()
+    public async Task UpdateReservationAsync_WhenLessThan30MinutesBeforeStart_ShouldReturnTooLateToUpdateError()
     {
         var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1));
         var dto = new UpdateReservationDTO("r1", 2, 3, date, new TimeOnly(12, 0), new TimeOnly(13, 0));
@@ -286,17 +287,16 @@ public sealed partial class ReservationServiceTests
         _locationRepo.Setup(r => r.GetByIdAsync("loc-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildLocation());
 
-        var act = async () => await _sut.UpdateReservationAsync("customer-1", false, dto);
+        var result = await _sut.UpdateReservationAsync("customer-1", false, dto);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Reservation cannot be updated less than 30 minutes before it starts.");
-
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.TooLateToUpdate);
         _repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
         _locationRepo.Verify(r => r.GetByIdAsync("loc-1", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateReservationAsync_WhenTableNotFound_ShouldThrowBusinessException()
+    public async Task UpdateReservationAsync_WhenTableNotFound_ShouldReturnTableNotFoundError()
     {
         var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5));
         var dto = new UpdateReservationDTO("r1", 2, 5, date, new TimeOnly(12, 0), new TimeOnly(13, 0));
@@ -326,18 +326,17 @@ public sealed partial class ReservationServiceTests
         _tableRepo.Setup(r => r.GetByLocationAndTableNumberAsync("loc-1", 5, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Table?)null);
 
-        var act = async () => await _sut.UpdateReservationAsync("customer-1", false, dto);
+        var result = await _sut.UpdateReservationAsync("customer-1", false, dto);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Table not found.");
-
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.TableNotFound);
         _repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
         _locationRepo.Verify(r => r.GetByIdAsync("loc-1", It.IsAny<CancellationToken>()), Times.Once);
         _tableRepo.Verify(r => r.GetByLocationAndTableNumberAsync("loc-1", 5, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateReservationAsync_WhenGuestsExceedCapacity_ShouldThrowBusinessException()
+    public async Task UpdateReservationAsync_WhenGuestsExceedCapacity_ShouldReturnTableCapacityExceededError()
     {
         var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5));
         var dto = new UpdateReservationDTO("r1", 10, 4, date, new TimeOnly(12, 0), new TimeOnly(13, 0));
@@ -373,13 +372,13 @@ public sealed partial class ReservationServiceTests
                 Capacity = 4
             });
 
-        var act = async () => await _sut.UpdateReservationAsync("customer-1", false, dto);
+        var result = await _sut.UpdateReservationAsync("customer-1", false, dto);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Amount of guests exceeds the table capacity.");
-
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.TableCapacityExceeded);
         _repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
         _locationRepo.Verify(r => r.GetByIdAsync("loc-1", It.IsAny<CancellationToken>()), Times.Once);
         _tableRepo.Verify(r => r.GetByLocationAndTableNumberAsync("loc-1", 4, It.IsAny<CancellationToken>()), Times.Once);
     }
 }
+
