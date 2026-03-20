@@ -15,4 +15,9 @@ public class DishService(IDishRepository _dishRepository) : IDishService
     {
         return await _dishRepository.GetSpecialityDishesByLocationIdAsync(locationId, cancellationToken);
     }
+
+    public async Task<Dish?> GetDishByIdAsync(string dishId, CancellationToken cancellationToken = default)
+    {
+        return await _dishRepository.GetDishByIdAsync(dishId, cancellationToken);
+    }
 }

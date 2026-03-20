@@ -33,4 +33,9 @@ public class DishRepository(IDynamoDBContext _context) : IDishRepository
 
         return results;
     }
+    
+    public async Task<Dish?> GetDishByIdAsync(string dishId, CancellationToken ct = default)
+    {
+        return await _context.LoadAsync<Dish>(dishId, ct);
+    }
 }
