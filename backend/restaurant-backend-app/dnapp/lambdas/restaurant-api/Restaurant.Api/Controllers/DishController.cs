@@ -2,6 +2,7 @@
 using Microsoft.OpenApi.Services;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Api.Mappers;
+using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
 
@@ -30,5 +31,13 @@ public class DishController(IDishService _dishService) : ControllerBase
             return ApiResponse<Dish>.Fail(404, $"Dish with the id of {id} was not found");
 
         return ApiResponse<Dish>.Success(200, dish);
+    }
+
+    [HttpGet("menu")]
+    public async Task<IActionResult> GetMenuDishes(CancellationToken ct, [FromQuery] string? type = null, string sort = 
+        "price,asc")
+    {
+        var dishes = await _dishService.GetMenuBriefDishesAsync(type, sort, ct);
+        return ApiResponse<List<DishBriefDTO>>.Success(200, dishes.ToList());
     }
 }

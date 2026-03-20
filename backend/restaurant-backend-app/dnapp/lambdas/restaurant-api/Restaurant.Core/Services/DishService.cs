@@ -1,4 +1,5 @@
-﻿using Restaurant.Core.Interfaces.Repositories;
+﻿using Restaurant.Core.DTOs;
+using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
 
@@ -19,5 +20,11 @@ public class DishService(IDishRepository _dishRepository) : IDishService
     public async Task<Dish?> GetDishByIdAsync(string dishId, CancellationToken cancellationToken = default)
     {
         return await _dishRepository.GetDishByIdAsync(dishId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<DishBriefDTO>> GetMenuBriefDishesAsync(string? type, string sort,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dishRepository.GetShortenedDishesAsync(type, sort, cancellationToken);
     }
 }
