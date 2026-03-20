@@ -31,7 +31,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = id,
             CustomerId = "customer-1",
+            CustomerName = "Customer One",
             WaiterId = "waiter-1",
+            WaiterName = "Waiter One",
             LocationId = "loc-1",
             TableNumber = 3,
             TableKey = "loc-1#3",
@@ -59,7 +61,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = id,
             CustomerId = "customer-x",
+            CustomerName = "Customer X",
             WaiterId = "waiter-x",
+            WaiterName = "Waiter X",
             LocationId = "loc-1",
             TableNumber = 1,
             TableKey = "loc-1#1",
@@ -87,7 +91,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = id,
             CustomerId = "customer-y",
+            CustomerName = "Customer Y",
             WaiterId = "waiter-y",
+            WaiterName = "Waiter Y",
             LocationId = "loc-1",
             TableNumber = 2,
             TableKey = "loc-1#2",
@@ -121,7 +127,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = id,
             CustomerId = $"customer-{Guid.NewGuid():N}",
+            CustomerName = "Create Customer",
             WaiterId = $"waiter-{Guid.NewGuid():N}",
+            WaiterName = "Create Waiter",
             LocationId = "loc-create",
             TableNumber = 7,
             TableKey = tableKey,
@@ -161,7 +169,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = firstId,
             CustomerId = $"customer-{Guid.NewGuid():N}",
+            CustomerName = "First Customer",
             WaiterId = $"waiter-{Guid.NewGuid():N}",
+            WaiterName = "First Waiter",
             LocationId = "loc-overlap",
             TableNumber = 5,
             TableKey = tableKey,
@@ -177,7 +187,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = secondId,
             CustomerId = $"customer-{Guid.NewGuid():N}",
+            CustomerName = "Second Customer",
             WaiterId = $"waiter-{Guid.NewGuid():N}",
+            WaiterName = "Second Waiter",
             LocationId = "loc-overlap",
             TableNumber = 5,
             TableKey = tableKey,
@@ -214,7 +226,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = id,
             CustomerId = $"customer-{Guid.NewGuid():N}",
+            CustomerName = "Cancel Customer",
             WaiterId = $"waiter-{Guid.NewGuid():N}",
+            WaiterName = "Cancel Waiter",
             LocationId = "loc-cancel",
             TableNumber = 9,
             TableKey = tableKey,
@@ -262,7 +276,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = id,
             CustomerId = $"customer-{Guid.NewGuid():N}",
+            CustomerName = "Update Customer",
             WaiterId = $"waiter-{Guid.NewGuid():N}",
+            WaiterName = "Update Waiter",
             LocationId = "loc-update",
             TableNumber = 4,
             TableKey = tableKey,
@@ -287,7 +303,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = id,
             CustomerId = existing.CustomerId,
+            CustomerName = existing.CustomerName,
             WaiterId = existing.WaiterId,
+            WaiterName = existing.WaiterName,
             LocationId = existing.LocationId,
             TableNumber = existing.TableNumber,
             TableKey = tableKey,
@@ -330,7 +348,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = id,
             CustomerId = $"customer-{Guid.NewGuid():N}",
+            CustomerName = "Move Customer",
             WaiterId = $"waiter-{Guid.NewGuid():N}",
+            WaiterName = "Move Waiter",
             LocationId = "loc-move",
             TableNumber = 2,
             TableKey = oldTableKey,
@@ -355,7 +375,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = id,
             CustomerId = existing.CustomerId,
+            CustomerName = existing.CustomerName,
             WaiterId = existing.WaiterId,
+            WaiterName = existing.WaiterName,
             LocationId = existing.LocationId,
             TableNumber = 6,
             TableKey = newTableKey,
@@ -397,7 +419,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = id,
             CustomerId = $"customer-{Guid.NewGuid():N}",
+            CustomerName = "Lifecycle Customer",
             WaiterId = $"waiter-{Guid.NewGuid():N}",
+            WaiterName = "Lifecycle Waiter",
             LocationId = "loc-lifecycle",
             TableNumber = 2,
             TableKey = "loc-lifecycle#2",
@@ -439,7 +463,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = id,
             CustomerId = $"customer-{Guid.NewGuid():N}",
+            CustomerName = "Meals Customer",
             WaiterId = $"waiter-{Guid.NewGuid():N}",
+            WaiterName = "Meals Waiter",
             LocationId = "loc-lifecycle",
             TableNumber = 3,
             TableKey = tableKey,
@@ -504,7 +530,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = id,
             CustomerId = $"customer-{Guid.NewGuid():N}",
+            CustomerName = "Finish Customer",
             WaiterId = $"waiter-{Guid.NewGuid():N}",
+            WaiterName = "Finish Waiter",
             LocationId = "loc-finish",
             TableNumber = 5,
             TableKey = tableKey,
@@ -556,7 +584,9 @@ public sealed class ReservationRepositoryIntegrationTests
         {
             Id = id,
             CustomerId = $"customer-{Guid.NewGuid():N}",
+            CustomerName = "Mismatch Customer",
             WaiterId = $"waiter-{Guid.NewGuid():N}",
+            WaiterName = "Mismatch Waiter",
             LocationId = "loc-status-mismatch",
             TableNumber = 1,
             TableKey = "loc-status-mismatch#1",

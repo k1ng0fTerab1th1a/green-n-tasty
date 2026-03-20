@@ -55,6 +55,8 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
 
         var item = data[0];
         item.GetPropertyIgnoreCase("id").GetString().Should().Be("r-customer-1");
+        item.GetPropertyIgnoreCase("customerName").GetString().Should().Be("Anna Smith");
+        item.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Walter One");
         item.GetPropertyIgnoreCase("locationId").GetString().Should().Be("loc-1");
         item.GetPropertyIgnoreCase("locationAddress").GetString().Should().Be("Main street 1");
         item.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(3);
@@ -128,6 +130,8 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
 
         var dto = doc.RootElement.GetPropertyIgnoreCase("data");
         dto.GetPropertyIgnoreCase("id").GetString().Should().Be("r-customer-1");
+        dto.GetPropertyIgnoreCase("customerName").GetString().Should().Be("Anna Smith");
+        dto.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Walter One");
         dto.GetPropertyIgnoreCase("locationId").GetString().Should().Be("loc-1");
         dto.GetPropertyIgnoreCase("locationAddress").GetString().Should().Be("Main street 1");
         dto.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(3);
@@ -152,6 +156,8 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         var dto = doc.RootElement.GetPropertyIgnoreCase("data");
 
         dto.GetPropertyIgnoreCase("id").GetString().Should().Be("r-customer-2");
+        dto.GetPropertyIgnoreCase("customerName").GetString().Should().Be("John Doe");
+        dto.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Walter One");
         dto.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(7);
     }
 
@@ -278,6 +284,8 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
 
         var data = doc.RootElement.GetPropertyIgnoreCase("data");
         data.GetPropertyIgnoreCase("locationId").GetString().Should().Be("loc-1");
+        data.GetPropertyIgnoreCase("customerName").GetString().Should().Be("Customer customer-1");
+        data.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Waiter waiter-1");
         data.GetPropertyIgnoreCase("locationAddress").GetString().Should().Be("Main street 1");
         data.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(3);
         data.GetPropertyIgnoreCase("guestsCount").GetInt32().Should().Be(2);
@@ -318,6 +326,8 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
 
         var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.GetPropertyIgnoreCase("customerName").ValueKind.Should().Be(JsonValueKind.Null);
+        data.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Waiter waiter-1");
         data.GetPropertyIgnoreCase("actualStartTime").ValueKind.Should().Be(JsonValueKind.Null);
         data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
         data.GetPropertyIgnoreCase("isCreatedByWaiter").GetBoolean().Should().BeTrue();
@@ -450,6 +460,8 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
 
         var data = doc.RootElement.GetPropertyIgnoreCase("data");
         data.GetPropertyIgnoreCase("id").GetString().Should().Be("r-created-1");
+        data.GetPropertyIgnoreCase("customerName").GetString().Should().Be("Customer customer-77");
+        data.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Auto Waiter");
         data.GetPropertyIgnoreCase("locationId").GetString().Should().Be("loc-10");
         data.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(4);
         data.GetPropertyIgnoreCase("guestsCount").GetInt32().Should().Be(3);

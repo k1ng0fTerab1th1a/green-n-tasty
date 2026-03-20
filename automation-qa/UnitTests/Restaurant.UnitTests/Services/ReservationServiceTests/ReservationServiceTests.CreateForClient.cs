@@ -20,6 +20,11 @@ public sealed partial class ReservationServiceTests
             .Setup(r => r.GetAsync("loc-1#3", date.ToString("yyyy-MM-dd"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new WaiterSchedule { TableKey = "loc-1#3", Date = date.ToString("yyyy-MM-dd"), WaiterId = "waiter-1" });
 
+        _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildWaiter("waiter-1"));
+        _userRepo.Setup(r => r.GetByIdAsync("customer-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildCustomer("customer-1"));
+
         Reservation? capturedReservation = null;
         List<string>? capturedSlots = null;
         _repo.Setup(r => r.CreateWithSlotsAsync(It.IsAny<Reservation>(), date, It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
@@ -33,7 +38,9 @@ public sealed partial class ReservationServiceTests
         var result = await _sut.CreateForClientAsync("customer-1", dto, ct: default);
 
         result.CustomerId.Should().Be("customer-1");
+        result.CustomerName.Should().Be("Customer User");
         result.WaiterId.Should().Be("waiter-1");
+        result.WaiterName.Should().Be("Waiter User");
         result.LocationId.Should().Be("loc-1");
         result.TableNumber.Should().Be(3);
         result.TableKey.Should().Be("loc-1#3");
@@ -68,6 +75,11 @@ public sealed partial class ReservationServiceTests
         _waiterScheduleRepo
             .Setup(r => r.GetAsync("loc-1#3", date.ToString("yyyy-MM-dd"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new WaiterSchedule { TableKey = "loc-1#3", Date = date.ToString("yyyy-MM-dd"), WaiterId = "waiter-1" });
+
+        _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildWaiter("waiter-1"));
+        _userRepo.Setup(r => r.GetByIdAsync("customer-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildCustomer("customer-1"));
 
         List<string>? capturedSlots = null;
         _repo.Setup(r => r.CreateWithSlotsAsync(It.IsAny<Reservation>(), date, It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
@@ -110,6 +122,11 @@ public sealed partial class ReservationServiceTests
         _waiterScheduleRepo
             .Setup(r => r.GetAsync("loc-1#3", date.ToString("yyyy-MM-dd"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new WaiterSchedule { TableKey = "loc-1#3", Date = date.ToString("yyyy-MM-dd"), WaiterId = "waiter-1" });
+
+        _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildWaiter("waiter-1"));
+        _userRepo.Setup(r => r.GetByIdAsync("customer-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildCustomer("customer-1"));
 
         Reservation? capturedReservation = null;
         List<string>? capturedSlots = null;
@@ -201,6 +218,11 @@ public sealed partial class ReservationServiceTests
         _waiterScheduleRepo
             .Setup(r => r.GetAsync("loc-1#3", date.ToString("yyyy-MM-dd"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new WaiterSchedule { TableKey = "loc-1#3", Date = date.ToString("yyyy-MM-dd"), WaiterId = "waiter-1" });
+
+        _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildWaiter("waiter-1"));
+        _userRepo.Setup(r => r.GetByIdAsync("customer-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildCustomer("customer-1"));
 
         _repo.Setup(r => r.CreateWithSlotsAsync(It.IsAny<Reservation>(), date, It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
