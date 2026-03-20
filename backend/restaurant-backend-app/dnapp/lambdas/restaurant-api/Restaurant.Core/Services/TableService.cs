@@ -26,11 +26,11 @@ public class TableService(
         int daysInFuture = date.DayNumber - DateOnly.FromDateTime(DateTime.UtcNow).DayNumber;
         if (daysInFuture < 0)
         {
-            return new BusinessError("Cannot find available slots in the past.", ErrorType.Validation);
+            return TableErrors.RequestedSlotsFromPast;
         }
         if (daysInFuture > FORBID_IF_IN_FUTURE_MORE_THAN_DAYS)
         {
-            return new BusinessError("The date requested is too far in the future.", ErrorType.Validation);
+            return TableErrors.RequestedSlotsFromFarFuture;
         }
 
         IReadOnlyList<Table> tables = string.IsNullOrWhiteSpace(locationId)
