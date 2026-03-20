@@ -18,4 +18,7 @@ public sealed class LocationService : ILocationService
 
     public Task<IReadOnlyList<Location>> GetLocationOptionsAsync(CancellationToken cancellationToken = default)
         => _repository.GetLocationOptionsAsync(cancellationToken);
+
+    public Task<Location?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+        => _repository.GetByIdAsync(id, cancellationToken);
 }

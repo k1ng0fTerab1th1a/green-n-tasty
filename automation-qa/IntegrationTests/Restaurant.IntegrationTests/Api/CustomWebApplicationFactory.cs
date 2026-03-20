@@ -390,6 +390,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         public List<Location> Locations { get; } = new();
         public List<Location> Options { get; } = new();
+        public string? LastGetByIdId { get; private set; }
 
         public FakeLocationService()
         {
@@ -400,6 +401,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             Locations.Clear();
             Options.Clear();
+            LastGetByIdId = null;
 
             var item = new Location
             {
@@ -431,6 +433,12 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public Task<IReadOnlyList<Location>> GetLocationOptionsAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<Location>>(Options.ToList());
+
+        public Task<Location?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+        {
+            LastGetByIdId = id;
+            return Task.FromResult<Location?>(Locations.SingleOrDefault(x => x.Id == id));
+        }
     }
 
     public sealed class FakeFeedbackService : IFeedbackService

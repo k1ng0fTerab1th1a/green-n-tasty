@@ -3,6 +3,7 @@ using Restaurant.Api.Contracts.Responses;
 using Restaurant.Api.Mappers;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Services;
+
 namespace Restaurant.Api.Controllers;
 
 [ApiController]
@@ -22,13 +23,30 @@ public sealed class LocationsController(IFeedbackService _feedbackService, ILoca
         return ApiResponse<FeedbackPaginatedDto>.Success(StatusCodes.Status200OK, feedbackResponse);
     }
 
-
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<LocationResponse[]>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetLocations(CancellationToken cancellationToken)
     {
         var locations = await _locationService.GetLocationsAsync(cancellationToken);
-        return ApiResponse<LocationResponse[]>.Success(StatusCodes.Status200OK, locations.Select(l => l.ToResponse()).ToArray());
+        return ApiResponse<LocationResponse[]>.Success(
+            StatusCodes.Status200OK,
+            locations.Select(l => l.ToResponse()).ToArray());
+    }
+
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<LocationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetLocationById([FromRoute] string id, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            return ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Location id is required.");
+
+        var location = await _locationService.GetByIdAsync(id, cancellationToken);
+        if (location is null)
+            return ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Location not found.");
+
+        return ApiResponse<LocationResponse>.Success(StatusCodes.Status200OK, location.ToResponse());
     }
 
     [HttpGet("{id}/speciality-dishes")]
