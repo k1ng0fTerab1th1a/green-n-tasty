@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using Restaurant.Api.Tests;
+using Microsoft.AspNetCore.Http;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Models;
 using System.Net;
@@ -138,8 +139,8 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
         _factory.LocationService.LastGetByIdId.Should().BeNull();
 
         using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
-        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
-        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Location id is required.");
+        doc.RootElement.GetPropertyIgnoreCase("status").GetInt32().Should().Be(StatusCodes.Status400BadRequest);
+        doc.RootElement.GetPropertyIgnoreCase("title").GetString().Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
