@@ -254,6 +254,98 @@ public sealed class ReservationRepository : IReservationRepository
         return reservation;
     }
 
+    public async Task<bool> UpdateLifecycleAsync(
+        Reservation reservation,
+        ReservationStatus expectedCurrentStatus,
+        ReservationStatus newStatus,
+        List<string>? slotsToRelease = null,
+        CancellationToken ct = default)
+    {
+        var values = new Dictionary<string, AttributeValue>
+        {
+            [":expectedStatus"] = new() { S = expectedCurrentStatus.ToString() },
+            [":newStatus"] = new() { S = newStatus.ToString() },
+            [":updatedAt"] = new() { S = reservation.UpdatedAt }
+        };
+
+        var names = new Dictionary<string, string>
+        {
+            ["#status"] = "status"
+        };
+
+        var setters = new List<string>
+        {
+            "#status = :newStatus",
+            "updatedAt = :updatedAt"
+        };
+
+        if (reservation.ActualStartTime is not null)
+        {
+            values[":actualStartTime"] = new() { S = reservation.ActualStartTime };
+            setters.Add("actualStartTime = :actualStartTime");
+        }
+
+        if (reservation.ActualEndTime is not null)
+        {
+            values[":actualEndTime"] = new() { S = reservation.ActualEndTime };
+            setters.Add("actualEndTime = :actualEndTime");
+        }
+
+        var transactItems = new List<TransactWriteItem>
+        {
+            new()
+            {
+                Update = new Update
+                {
+                    TableName = "Reservations",
+                    Key = new Dictionary<string, AttributeValue>
+                    {
+                        ["id"] = new() { S = reservation.Id }
+                    },
+                    UpdateExpression = $"SET {string.Join(", ", setters)}",
+                    ConditionExpression = "attribute_exists(id) AND #status = :expectedStatus",
+                    ExpressionAttributeNames = names,
+                    ExpressionAttributeValues = values
+                }
+            }
+        };
+
+        if (slotsToRelease is { Count: > 0 })
+        {
+            var date = DateOnly.FromDateTime(DateTimeOffset.Parse(reservation.StartDateTime).DateTime);
+            transactItems.Add(new TransactWriteItem
+            {
+                Update = new Update
+                {
+                    TableName = "TableDays",
+                    Key = new Dictionary<string, AttributeValue>
+                    {
+                        ["tableKey"] = new() { S = reservation.TableKey },
+                        ["date"] = new() { S = date.ToString("yyyy-MM-dd") }
+                    },
+                    UpdateExpression = "DELETE reservedSlots :slots",
+                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                    {
+                        [":slots"] = new() { SS = slotsToRelease }
+                    }
+                }
+            });
+        }
+
+        try
+        {
+            await _dynamoDb.TransactWriteItemsAsync(new TransactWriteItemsRequest
+            {
+                TransactItems = transactItems
+            }, ct);
+            return true;
+        }
+        catch (TransactionCanceledException)
+        {
+            return false;
+        }
+    }
+
     private async Task UpdateSameTableSameDayAsync(
         Dictionary<string, AttributeValue> reservationItem,
         List<string> newSlots,

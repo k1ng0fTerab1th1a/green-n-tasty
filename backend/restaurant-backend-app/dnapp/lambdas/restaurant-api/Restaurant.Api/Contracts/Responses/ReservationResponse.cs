@@ -9,7 +9,8 @@ public sealed class ReservationResponse
     public int GuestsCount { get; set; }
     public string StartDateTime { get; set; } = null!;
     public string EndDateTime { get; set; } = null!;
-
+    public string? ActualStartTime { get; set; }
+    public string? ActualEndTime { get; set; }
     public string Status { get; set; } = null!;
     public bool IsCreatedByWaiter { get; set; }
     public string? VisitorName { get; set; }
