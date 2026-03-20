@@ -114,10 +114,13 @@ public sealed class CognitoServiceLiveIntegrationTests
         var user = CreateTestUser(settings);
 
         await sut.SignUpAsync(user.Email, user.Password, "Live", "Delete", role: "CUSTOMER");
-        await sut.DeleteUserAsync(user.Email);
 
-        await sut.Invoking(x => x.DeleteUserAsync(user.Email))
-            .Should().ThrowAsync<Amazon.CognitoIdentityProvider.Model.UserNotFoundException>();
+        var deleteResult = await sut.DeleteUserAsync(user.Email);
+        deleteResult.IsSuccess.Should().BeTrue();
+
+        var result = await sut.DeleteUserAsync(user.Email);
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(AuthErrors.UserNotFound);
     }
 
     [LiveCognitoFact]
@@ -150,8 +153,9 @@ public sealed class CognitoServiceLiveIntegrationTests
         var settings = GetRequiredSettings();
         var sut = CreateSut(settings);
 
-        await sut.Invoking(x => x.SignOutAsync("not-a-valid-refresh-token"))
-            .Should().ThrowAsync<AuthException>();
+        var result = await sut.SignOutAsync("not-a-valid-refresh-token");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(AuthErrors.SignOutFailed);
     }
 
     private static LiveCognitoSettings GetRequiredSettings()

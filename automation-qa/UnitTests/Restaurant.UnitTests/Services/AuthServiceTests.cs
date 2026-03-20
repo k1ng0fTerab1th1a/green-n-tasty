@@ -101,7 +101,7 @@ public class AuthServiceTests
         _waiterListRepo.Setup(r => r.ContainsAsync("user@test.com")).ReturnsAsync(false);
         _cognito.Setup(c => c.SignUpAsync("user@test.com", "Pass123!", "John", "Doe", "CUSTOMER"))
             .ReturnsAsync(Result.Ok("user-id-123"));
-        _cognito.Setup(c => c.DeleteUserAsync("user@test.com")).Returns(Task.CompletedTask);
+        _cognito.Setup(c => c.DeleteUserAsync("user@test.com")).ReturnsAsync(Result.Ok());
 
         _userRepo.Setup(r => r.CreateAsync(It.IsAny<User>()))
             .ThrowsAsync(new Exception("DynamoDB unavailable"));

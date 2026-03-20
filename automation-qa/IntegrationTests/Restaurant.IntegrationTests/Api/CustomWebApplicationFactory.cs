@@ -129,7 +129,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         public string RefreshTokenResponse { get; set; } = "new-access-token";
         public Exception? RefreshTokenException { get; set; }
-        public Exception? SignOutException { get; set; }
+        public BusinessError? SignOutFailResult { get; set; }
         public string? LastRefreshTokenInput { get; private set; }
         public string? LastSignOutRefreshToken { get; private set; }
 
@@ -137,7 +137,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             RefreshTokenResponse = "new-access-token";
             RefreshTokenException = null;
-            SignOutException = null;
+            SignOutFailResult = null;
             LastRefreshTokenInput = null;
             LastSignOutRefreshToken = null;
         }
@@ -150,7 +150,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password)
             => throw new NotImplementedException();
 
-        public Task DeleteUserAsync(string email)
+        public Task<Result> DeleteUserAsync(string email)
             => throw new NotImplementedException();
 
         public Task<string> RefreshTokenAsync(string refreshToken)
@@ -163,14 +163,14 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(RefreshTokenResponse);
         }
 
-        public Task SignOutAsync(string refreshToken)
+        public Task<Result> SignOutAsync(string refreshToken)
         {
             LastSignOutRefreshToken = refreshToken;
 
-            if (SignOutException is not null)
-                throw SignOutException;
+            if (SignOutFailResult is not null)
+                return Task.FromResult(Result.Fail(SignOutFailResult));
 
-            return Task.CompletedTask;
+            return Task.FromResult(Result.Ok());
         }
     }
 

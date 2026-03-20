@@ -56,9 +56,13 @@ public class AuthController : ControllerBase
 
     [HttpPost("sign-out")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<ApiResponse<object>> SignOut([FromBody] SignOutRequest request)
     {
-        await _cognitoService.SignOutAsync(request.RefreshToken);
+        var result = await _cognitoService.SignOutAsync(request.RefreshToken);
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<object>();
+
         return ApiResponse<object>.Success(StatusCodes.Status200OK, null, "Logged out successfully");
     }
 }

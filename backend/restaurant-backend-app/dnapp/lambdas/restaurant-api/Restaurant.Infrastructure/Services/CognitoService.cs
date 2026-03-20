@@ -3,7 +3,6 @@ using Amazon.CognitoIdentityProvider.Model;
 using FluentResults;
 using Microsoft.Extensions.Configuration;
 using Restaurant.Core.Errors;
-using Restaurant.Core.Exceptions;
 using Restaurant.Core.Interfaces.Services;
 
 namespace Restaurant.Infrastructure.Services;
@@ -91,7 +90,7 @@ public class CognitoService : ICognitoService
         }
     }
 
-    public async Task DeleteUserAsync(string email)
+    public async Task<Result> DeleteUserAsync(string email)
     {
         try
         {
@@ -102,10 +101,11 @@ public class CognitoService : ICognitoService
             };
 
             await _client.AdminDeleteUserAsync(request);
+            return Result.Ok();
         }
         catch (UserNotFoundException)
         {
-            throw new UserNotFoundException($"User with email {email} not found.");
+            return AuthErrors.UserNotFound;
         }
     }
 
@@ -126,7 +126,7 @@ public class CognitoService : ICognitoService
         return response.AuthenticationResult.AccessToken;
     }
 
-    public async Task SignOutAsync(string refreshToken)
+    public async Task<Result> SignOutAsync(string refreshToken)
     {
         var request = new RevokeTokenRequest
         {
@@ -137,14 +137,15 @@ public class CognitoService : ICognitoService
         try
         {
             await _client.RevokeTokenAsync(request);
+            return Result.Ok();
         }
         catch (UnsupportedOperationException)
         {
-            throw new AuthException("Token revocation is not supported or enabled.");
+            throw;
         }
-        catch (Exception)
+        catch (AmazonCognitoIdentityProviderException)
         {
-            throw new AuthException("Failed to log out due to an internal authentication error.");
+            return AuthErrors.SignOutFailed;
         }
     }
 }
