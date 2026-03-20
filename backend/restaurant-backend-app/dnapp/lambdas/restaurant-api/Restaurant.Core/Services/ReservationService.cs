@@ -92,12 +92,17 @@ public sealed class ReservationService : IReservationService
         var schedule = await _waiterScheduleRepo.GetAsync($"{dto.LocationId}#{dto.TableNumber}", dto.Date.ToString("yyyy-MM-dd"), ct);
 
         var waiterId = schedule?.WaiterId ?? throw new BusinessException("No waiter assigned for this table on this date.");
+        var waiter = await _userRepository.GetByIdAsync(waiterId, ct) ?? throw new BusinessException("Waiter not found.");
+
+        var customer = await _userRepository.GetByIdAsync(customerId, ct) ?? throw new BusinessException("Customer not found.");
 
         var reservation = new Reservation
         {
             Id = Guid.NewGuid().ToString(),
             CustomerId = customerId,
+            CustomerName = $"{customer.FirstName} {customer.LastName}",
             WaiterId = waiterId,
+            WaiterName = $"{waiter.FirstName} {waiter.LastName}",
             LocationId = dto.LocationId,
             LocationAddress = location.Address,
             TableNumber = dto.TableNumber,
@@ -139,6 +144,7 @@ public sealed class ReservationService : IReservationService
         if ((customerId is null && visitorName is null) || (customerId is not null && visitorName is not null))
             throw new BusinessException("Exactly one of customerId or visitorName must be provided.");
 
+        string? customerName = null;
         if (customerId is not null)
         {
             var customer = await _userRepository.GetByIdAsync(customerId, ct)
@@ -146,6 +152,8 @@ public sealed class ReservationService : IReservationService
 
             if (!string.Equals(customer.Role, CustomerRole, StringComparison.OrdinalIgnoreCase))
                 throw new BusinessException("Customer not found.");
+
+            customerName = $"{customer.FirstName} {customer.LastName}";
         }
 
         var location = await _locationRepo.GetByIdAsync(dto.LocationId, ct)
@@ -169,7 +177,9 @@ public sealed class ReservationService : IReservationService
         {
             Id = Guid.NewGuid().ToString(),
             CustomerId = customerId,
+            CustomerName = customerName,
             WaiterId = waiterId,
+            WaiterName = $"{actor.FirstName} {actor.LastName}",
             LocationId = dto.LocationId,
             LocationAddress = location.Address,
             TableNumber = dto.TableNumber,

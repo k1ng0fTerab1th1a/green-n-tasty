@@ -12,6 +12,8 @@ public static class ReservationMapper
         Id = x.Id,
         LocationId = x.LocationId,
         LocationAddress = x.LocationAddress,
+        CustomerName = x.CustomerName,
+        WaiterName = x.WaiterName,
         TableNumber = x.TableNumber,
         GuestsCount = x.GuestsCount,
         StartDateTime = x.StartDateTime,

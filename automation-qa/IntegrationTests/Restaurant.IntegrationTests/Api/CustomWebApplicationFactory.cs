@@ -218,7 +218,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             {
                 Id = "r-customer-1",
                 CustomerId = "customer-1",
+                CustomerName = "Anna Smith",
                 WaiterId = "waiter-1",
+                WaiterName = "Walter One",
                 LocationId = "loc-1",
                 LocationAddress = "Main street 1",
                 TableNumber = 3,
@@ -239,7 +241,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             {
                 Id = "r-customer-2",
                 CustomerId = "customer-2",
+                CustomerName = "John Doe",
                 WaiterId = "waiter-1",
+                WaiterName = "Walter One",
                 LocationId = "loc-2",
                 LocationAddress = "Second street 2",
                 TableNumber = 7,
@@ -321,7 +325,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             {
                 Id = "r-created-1",
                 CustomerId = customerId,
+                CustomerName = $"Customer {customerId}",
                 WaiterId = "waiter-auto",
+                WaiterName = "Auto Waiter",
                 LocationId = dto.LocationId,
                 LocationAddress = "Generated address",
                 TableNumber = dto.TableNumber,
@@ -355,7 +361,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             {
                 Id = $"r-waiter-created-{SeedReservations.Count + 1}",
                 CustomerId = dto.CustomerId,
+                CustomerName = dto.CustomerId is null ? null : $"Customer {dto.CustomerId}",
                 WaiterId = waiterId,
+                WaiterName = $"Waiter {waiterId}",
                 LocationId = dto.LocationId,
                 LocationAddress = "Main street 1",
                 TableNumber = dto.TableNumber,
