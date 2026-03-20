@@ -11,7 +11,8 @@ public interface IReservationService
     Task<Reservation> CreateForClientAsync(string customerId, CreateReservationDTO dto, CancellationToken ct = default);
     Task<Reservation> CreateForWaiterAsync(string waiterId, CreateReservationForWaiterDTO dto, CancellationToken ct = default);
     Task<IReadOnlyList<WaiterCustomerLookupDTO>> SearchCustomersForWaiterAsync(string actorUserId, string query, CancellationToken ct = default);
-
-    Task<Reservation?> UpdateReservationAsync(string actorUserId, bool isActorWaiter, UpdateReservationDTO dto,
-        CancellationToken ct = default);
+    Task<Reservation?> UpdateReservationAsync(string actorUserId, bool isActorWaiter, UpdateReservationDTO dto, CancellationToken ct = default);
+    Task<Reservation?> StartReservationAsync(string reservationId, string waiterId, CancellationToken ct = default);
+    Task<Reservation?> MarkMealsServedAsync(string reservationId, string waiterId, CancellationToken ct = default);
+    Task<Reservation?> FinishReservationAsync(string reservationId, string waiterId, CancellationToken ct = default);
 }

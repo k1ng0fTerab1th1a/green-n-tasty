@@ -183,11 +183,13 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public bool? LastCancelIsWaiter { get; private set; }
         public bool CancelShouldSucceed { get; set; }
         public List<WaiterCustomerLookupDTO> CustomerLookupResults { get; } = new();
-
         public string? LastSearchActorUserId { get; private set; }
         public string? LastSearchQuery { get; private set; }
         public string? LastCreateForWaiterActorUserId { get; private set; }
         public CreateReservationForWaiterDTO? LastCreateForWaiterDto { get; private set; }
+        public string? LastLifecycleReservationId { get; private set; }
+        public string? LastLifecycleWaiterId { get; private set; }
+        public string? LastLifecycleAction { get; private set; }
 
         public FakeReservationService()
         {
@@ -208,6 +210,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastSearchQuery = null;
             LastCreateForWaiterActorUserId = null;
             LastCreateForWaiterDto = null;
+            LastLifecycleReservationId = null;
+            LastLifecycleWaiterId = null;
+            LastLifecycleAction = null;
 
             SeedReservations.Add(new Reservation
             {
@@ -220,6 +225,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 TableKey = "loc-1#3",
                 StartDateTime = "2026-03-05T10:00:00.0000000Z",
                 EndDateTime = "2026-03-05T11:30:00.0000000Z",
+                ActualStartTime = null,
+                ActualEndTime = null,
                 GuestsCount = 2,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = false,
@@ -239,6 +246,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 TableKey = "loc-2#7",
                 StartDateTime = "2026-03-06T12:00:00.0000000Z",
                 EndDateTime = "2026-03-06T13:30:00.0000000Z",
+                ActualStartTime = null,
+                ActualEndTime = null,
                 GuestsCount = 4,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = false,
@@ -319,6 +328,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 TableKey = $"{dto.LocationId}#{dto.TableNumber}",
                 StartDateTime = start.ToString("O"),
                 EndDateTime = end.ToString("O"),
+                ActualStartTime = null,
+                ActualEndTime = null,
                 GuestsCount = dto.GuestsCount,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = false,
@@ -351,6 +362,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 TableKey = $"{dto.LocationId}#{dto.TableNumber}",
                 StartDateTime = start.ToString("O"),
                 EndDateTime = end.ToString("O"),
+                ActualStartTime = null,
+                ActualEndTime = null,
                 GuestsCount = dto.GuestsCount,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = true,
@@ -383,6 +396,62 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public Task<Reservation?> UpdateReservationAsync(string actorUserId, bool isActorWaiter, UpdateReservationDTO dto, CancellationToken ct = default)
         {
             throw new NotImplementedException();
+        }
+
+        public Task<Reservation?> StartReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
+        {
+            LastLifecycleReservationId = reservationId;
+            LastLifecycleWaiterId = waiterId;
+            LastLifecycleAction = "start";
+
+            var entity = SeedReservations.SingleOrDefault(x => x.Id == reservationId);
+            if (entity is null)
+                return Task.FromResult<Reservation?>(null);
+
+            if (entity.WaiterId != waiterId)
+                throw new UnauthorizedAccessException("Forbidden.");
+
+            entity.Status = ReservationStatus.InProgress;
+            entity.ActualStartTime = DateTimeOffset.UtcNow.ToString("O");
+            entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
+            return Task.FromResult<Reservation?>(entity);
+        }
+
+        public Task<Reservation?> MarkMealsServedAsync(string reservationId, string waiterId, CancellationToken ct = default)
+        {
+            LastLifecycleReservationId = reservationId;
+            LastLifecycleWaiterId = waiterId;
+            LastLifecycleAction = "meals-served";
+
+            var entity = SeedReservations.SingleOrDefault(x => x.Id == reservationId);
+            if (entity is null)
+                return Task.FromResult<Reservation?>(null);
+
+            if (entity.WaiterId != waiterId)
+                throw new UnauthorizedAccessException("Forbidden.");
+
+            entity.Status = ReservationStatus.MealsServed;
+            entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
+            return Task.FromResult<Reservation?>(entity);
+        }
+
+        public Task<Reservation?> FinishReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
+        {
+            LastLifecycleReservationId = reservationId;
+            LastLifecycleWaiterId = waiterId;
+            LastLifecycleAction = "finish";
+
+            var entity = SeedReservations.SingleOrDefault(x => x.Id == reservationId);
+            if (entity is null)
+                return Task.FromResult<Reservation?>(null);
+
+            if (entity.WaiterId != waiterId)
+                throw new UnauthorizedAccessException("Forbidden.");
+
+            entity.Status = ReservationStatus.Finished;
+            entity.ActualEndTime = DateTimeOffset.UtcNow.ToString("O");
+            entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
+            return Task.FromResult<Reservation?>(entity);
         }
     }
 

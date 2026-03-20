@@ -62,6 +62,8 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         item.GetPropertyIgnoreCase("startDateTime").GetString().Should().Be("2026-03-05T10:00:00.0000000Z");
         item.GetPropertyIgnoreCase("endDateTime").GetString().Should().Be("2026-03-05T11:30:00.0000000Z");
         item.GetPropertyIgnoreCase("status").GetString().Should().Be("Reserved");
+        item.GetPropertyIgnoreCase("actualStartTime").ValueKind.Should().Be(JsonValueKind.Null);
+        item.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
         item.GetPropertyIgnoreCase("isCreatedByWaiter").GetBoolean().Should().BeFalse();
         item.GetPropertyIgnoreCase("visitorName").ValueKind.Should().Be(JsonValueKind.Null);
     }
@@ -279,6 +281,8 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         data.GetPropertyIgnoreCase("locationAddress").GetString().Should().Be("Main street 1");
         data.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(3);
         data.GetPropertyIgnoreCase("guestsCount").GetInt32().Should().Be(2);
+        data.GetPropertyIgnoreCase("actualStartTime").ValueKind.Should().Be(JsonValueKind.Null);
+        data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
         data.GetPropertyIgnoreCase("isCreatedByWaiter").GetBoolean().Should().BeTrue();
         data.GetPropertyIgnoreCase("visitorName").ValueKind.Should().Be(JsonValueKind.Null);
 
@@ -314,6 +318,8 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
 
         var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.GetPropertyIgnoreCase("actualStartTime").ValueKind.Should().Be(JsonValueKind.Null);
+        data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
         data.GetPropertyIgnoreCase("isCreatedByWaiter").GetBoolean().Should().BeTrue();
         data.GetPropertyIgnoreCase("visitorName").GetString().Should().Be("Anna Visitor");
 
@@ -448,7 +454,96 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         data.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(4);
         data.GetPropertyIgnoreCase("guestsCount").GetInt32().Should().Be(3);
         data.GetPropertyIgnoreCase("status").GetString().Should().Be("Reserved");
+        data.GetPropertyIgnoreCase("actualStartTime").ValueKind.Should().Be(JsonValueKind.Null);
+        data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
         data.GetPropertyIgnoreCase("startDateTime").GetString().Should().Be("2026-04-01T12:00:00.0000000Z");
         data.GetPropertyIgnoreCase("endDateTime").GetString().Should().Be("2026-04-01T13:30:00.0000000Z");
     }
+
+
+    [Fact]
+    public async Task StartReservation_WithoutUserHeader_ShouldReturn401()
+    {
+        _factory.ReservationService.Reset();
+
+        var res = await _client.PostAsync("/reservations/r-customer-1/start", content: null);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task StartReservation_AsNonWaiter_ShouldReturn403()
+    {
+        _factory.ReservationService.Reset();
+
+        var res = await _client.SendAsync(Authed(HttpMethod.Post, "/reservations/r-customer-1/start", userId: "customer-1", role: "CUSTOMER"));
+
+        res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Forbidden.");
+    }
+
+    [Fact]
+    public async Task StartReservation_AsAssignedWaiter_ShouldReturn200_AndSetActualStartTime()
+    {
+        _factory.ReservationService.Reset();
+
+        var res = await _client.SendAsync(Authed(HttpMethod.Post, "/reservations/r-customer-1/start", userId: "waiter-1", role: "WAITER"));
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.ReservationService.LastLifecycleReservationId.Should().Be("r-customer-1");
+        _factory.ReservationService.LastLifecycleWaiterId.Should().Be("waiter-1");
+        _factory.ReservationService.LastLifecycleAction.Should().Be("start");
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.GetPropertyIgnoreCase("status").GetString().Should().Be("InProgress");
+        data.GetPropertyIgnoreCase("actualStartTime").GetString().Should().NotBeNullOrWhiteSpace();
+        data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task MarkMealsServed_AsAssignedWaiter_ShouldReturn200_AndSetMealsServedStatus()
+    {
+        _factory.ReservationService.Reset();
+
+        var reservation = _factory.ReservationService.SeedReservations.Single(x => x.Id == "r-customer-1");
+        reservation.Status = Restaurant.Core.Models.ReservationStatus.InProgress;
+        reservation.ActualStartTime = DateTimeOffset.UtcNow.AddMinutes(-30).ToString("O");
+
+        var res = await _client.SendAsync(Authed(HttpMethod.Post, "/reservations/r-customer-1/meals-served", userId: "waiter-1", role: "WAITER"));
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.ReservationService.LastLifecycleAction.Should().Be("meals-served");
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.GetPropertyIgnoreCase("status").GetString().Should().Be("MealsServed");
+        data.GetPropertyIgnoreCase("actualStartTime").GetString().Should().NotBeNullOrWhiteSpace();
+        data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task FinishReservation_AsAssignedWaiter_ShouldReturn200_AndSetActualEndTime()
+    {
+        _factory.ReservationService.Reset();
+
+        var reservation = _factory.ReservationService.SeedReservations.Single(x => x.Id == "r-customer-1");
+        reservation.Status = Restaurant.Core.Models.ReservationStatus.MealsServed;
+        reservation.ActualStartTime = DateTimeOffset.UtcNow.AddHours(-1).ToString("O");
+
+        var res = await _client.SendAsync(Authed(HttpMethod.Post, "/reservations/r-customer-1/finish", userId: "waiter-1", role: "WAITER"));
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.ReservationService.LastLifecycleAction.Should().Be("finish");
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.GetPropertyIgnoreCase("status").GetString().Should().Be("Finished");
+        data.GetPropertyIgnoreCase("actualStartTime").GetString().Should().NotBeNullOrWhiteSpace();
+        data.GetPropertyIgnoreCase("actualEndTime").GetString().Should().NotBeNullOrWhiteSpace();
+    }
+
 }

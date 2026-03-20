@@ -16,6 +16,8 @@ public static class ReservationMapper
         GuestsCount = x.GuestsCount,
         StartDateTime = x.StartDateTime,
         EndDateTime = x.EndDateTime,
+        ActualStartTime = x.ActualStartTime,
+        ActualEndTime = x.ActualEndTime,
         Status = x.Status.ToString(),
         IsCreatedByWaiter = x.IsCreatedByWaiter,
         VisitorName = x.VisitorName

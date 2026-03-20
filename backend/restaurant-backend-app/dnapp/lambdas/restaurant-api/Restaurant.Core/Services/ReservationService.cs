@@ -104,6 +104,8 @@ public sealed class ReservationService : IReservationService
             TableKey = $"{dto.LocationId}#{dto.TableNumber}",
             StartDateTime = start.ToString("yyyy-MM-ddTHH:mmzzz"),
             EndDateTime = end.ToString("yyyy-MM-ddTHH:mmzzz"),
+            ActualStartTime = null,
+            ActualEndTime = null,
             GuestsCount = dto.GuestsCount,
             Status = ReservationStatus.Reserved,
             IsCreatedByWaiter = false,
@@ -174,6 +176,8 @@ public sealed class ReservationService : IReservationService
             TableKey = $"{dto.LocationId}#{dto.TableNumber}",
             StartDateTime = start.ToString("yyyy-MM-ddTHH:mmzzz"),
             EndDateTime = end.ToString("yyyy-MM-ddTHH:mmzzz"),
+            ActualStartTime = null,
+            ActualEndTime = null,
             GuestsCount = dto.GuestsCount,
             Status = ReservationStatus.Reserved,
             IsCreatedByWaiter = true,
@@ -278,5 +282,88 @@ public sealed class ReservationService : IReservationService
         reservation.TableKey = $"{reservation.LocationId}#{dto.TableNumber}";
 
         return await _repo.UpdateReservationAsync(reservation, newSlots, oldSlots, oldTableKey, oldStart, ct);
+    }
+
+    public async Task<Reservation?> StartReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
+    {
+        var reservation = await GetByIdAsync(reservationId, waiterId, actorIsWaiter: true, ct);
+        if (reservation is null)
+            return null;
+
+        if (reservation.Status != ReservationStatus.Reserved)
+            throw new BusinessException("Only reserved reservations can be started.");
+
+        var now = DateTimeOffset.UtcNow.ToString("O");
+        reservation.Status = ReservationStatus.InProgress;
+        reservation.ActualStartTime = reservation.ActualStartTime ?? now;
+        reservation.UpdatedAt = now;
+
+        var success = await _repo.UpdateLifecycleAsync(
+            reservation,
+            ReservationStatus.Reserved,
+            ReservationStatus.InProgress,
+            slotsToRelease: null,
+            ct);
+
+        if (!success)
+            throw new BusinessException("Failed to start reservation.");
+
+        return reservation;
+    }
+
+    public async Task<Reservation?> MarkMealsServedAsync(string reservationId, string waiterId, CancellationToken ct = default)
+    {
+        var reservation = await GetByIdAsync(reservationId, waiterId, actorIsWaiter: true, ct);
+        if (reservation is null)
+            return null;
+
+        if (reservation.Status != ReservationStatus.InProgress)
+            throw new BusinessException("Only in-progress reservations can be marked as meals served.");
+
+        reservation.Status = ReservationStatus.MealsServed;
+        reservation.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
+
+        var success = await _repo.UpdateLifecycleAsync(
+            reservation,
+            ReservationStatus.InProgress,
+            ReservationStatus.MealsServed,
+            slotsToRelease: null,
+            ct);
+
+        if (!success)
+            throw new BusinessException("Failed to mark meals as served.");
+
+        return reservation;
+    }
+
+    public async Task<Reservation?> FinishReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
+    {
+        var reservation = await GetByIdAsync(reservationId, waiterId, actorIsWaiter: true, ct);
+        if (reservation is null)
+            return null;
+
+        if (reservation.Status != ReservationStatus.MealsServed)
+            throw new BusinessException("Only meals-served reservations can be finished.");
+
+        var actualEnd = DateTimeOffset.UtcNow.ToString("O");
+        reservation.Status = ReservationStatus.Finished;
+        reservation.ActualEndTime = actualEnd;
+        reservation.UpdatedAt = actualEnd;
+
+        var slots = ReservationTimeHelper.GenerateSlots(
+            DateTimeOffset.Parse(reservation.StartDateTime),
+            DateTimeOffset.Parse(reservation.EndDateTime));
+
+        var success = await _repo.UpdateLifecycleAsync(
+            reservation,
+            ReservationStatus.MealsServed,
+            ReservationStatus.Finished,
+            slots,
+            ct);
+
+        if (!success)
+            throw new BusinessException("Failed to finish reservation.");
+
+        return reservation;
     }
 }

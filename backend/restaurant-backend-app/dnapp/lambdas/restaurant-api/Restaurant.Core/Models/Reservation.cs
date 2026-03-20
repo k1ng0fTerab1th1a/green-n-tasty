@@ -40,6 +40,12 @@ public sealed class Reservation
     [DynamoDBProperty("endDateTime")]
     public string EndDateTime { get; set; } = null!;
 
+    [DynamoDBProperty("actualStartTime")]
+    public string? ActualStartTime { get; set; }
+
+    [DynamoDBProperty("actualEndTime")]
+    public string? ActualEndTime { get; set; }
+
     [DynamoDBProperty("guestsCount")]
     public int GuestsCount { get; set; }
 
