@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using FluentResults;
+using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.Contracts.Responses;
+using Restaurant.Api.Extensions;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Services;
 
@@ -34,6 +36,11 @@ public class BookingController(ITableService _tableService) : ControllerBase
         }
 
         var availableTables = await _tableService.GetAvailableTablesAsync(parsedDate, parsedTime, locationId, guests, ct);
-        return ApiResponse<IList<TableWithAvailableSlots>>.Success(StatusCodes.Status200OK, availableTables);
+
+        if (availableTables.IsFailed)
+        {
+            return availableTables.Errors[0].ToApiResponse<IList<TableWithAvailableSlots>>();
+        }
+        return ApiResponse<IList<TableWithAvailableSlots>>.Success(StatusCodes.Status200OK, availableTables.Value);
     }
 }
