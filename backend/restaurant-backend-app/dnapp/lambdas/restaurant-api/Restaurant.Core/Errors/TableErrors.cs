@@ -1,6 +1,6 @@
 ﻿namespace Restaurant.Core.Errors;
 
-internal class TableErrors
+public static class TableErrors
 {
     public static BusinessError RequestedSlotsFromPast => 
         new("Cannot find available slots in the past.", ErrorType.Validation);

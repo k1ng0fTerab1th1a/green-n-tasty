@@ -371,7 +371,7 @@ public sealed class TableServiceTests
         var result = await _sut.GetAvailableTablesAsync(pastDate, time: null, locationId: null, capacity: null, ct: default);
 
         result.IsFailed.Should().BeTrue();
-        result.Errors.OfType<BusinessError>().Should().ContainSingle(e => e.Message.Contains("past"));
+        result.Errors[0].Should().Be(TableErrors.RequestedSlotsFromPast);
     }
 
     [Fact]
@@ -382,7 +382,7 @@ public sealed class TableServiceTests
         var result = await _sut.GetAvailableTablesAsync(farFutureDate, time: null, locationId: null, capacity: null, ct: default);
 
         result.IsFailed.Should().BeTrue();
-        result.Errors.OfType<BusinessError>().Should().ContainSingle(e => e.Message.Contains("future"));
+        result.Errors[0].Should().Be(TableErrors.RequestedSlotsFromFarFuture);
     }
 
     [Fact]

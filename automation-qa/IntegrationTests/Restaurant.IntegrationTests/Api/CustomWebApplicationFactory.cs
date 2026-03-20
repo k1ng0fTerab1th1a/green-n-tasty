@@ -77,8 +77,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         public AuthResult SignInResponse { get; set; } = new("id-token", "refresh-token", "John Doe", "CUSTOMER");
 
-        public Exception? SignUpException { get; set; }
-        public Exception? SignInException { get; set; }
+        public BusinessError? SignUpFailResult { get; set; }
+        public BusinessError? SignInFailResult { get; set; }
 
         public string? LastSignUpEmail { get; private set; }
         public string? LastSignUpPassword { get; private set; }
@@ -90,8 +90,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public void Reset()
         {
             SignInResponse = new AuthResult("id-token", "refresh-token", "John Doe", "CUSTOMER");
-            SignUpException = null;
-            SignInException = null;
+            SignUpFailResult = null;
+            SignInFailResult = null;
             LastSignUpEmail = null;
             LastSignUpPassword = null;
             LastSignUpFirstName = null;
@@ -100,28 +100,28 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastSignInPassword = null;
         }
 
-        public Task SignUpAsync(string email, string password, string firstName, string lastName)
+        public Task<Result> SignUpAsync(string email, string password, string firstName, string lastName)
         {
             LastSignUpEmail = email;
             LastSignUpPassword = password;
             LastSignUpFirstName = firstName;
             LastSignUpLastName = lastName;
 
-            if (SignUpException is not null)
-                throw SignUpException;
+            if (SignUpFailResult is not null)
+                return Task.FromResult(Result.Fail(SignUpFailResult));
 
-            return Task.CompletedTask;
+            return Task.FromResult(Result.Ok());
         }
 
-        public Task<AuthResult> SignInAsync(string email, string password)
+        public Task<Result<AuthResult>> SignInAsync(string email, string password)
         {
             LastSignInEmail = email;
             LastSignInPassword = password;
 
-            if (SignInException is not null)
-                throw SignInException;
+            if (SignInFailResult is not null)
+                return Task.FromResult(Result.Fail<AuthResult>(SignInFailResult));
 
-            return Task.FromResult(SignInResponse);
+            return Task.FromResult(Result.Ok(SignInResponse));
         }
     }
 
@@ -144,10 +144,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public string GetUserPoolId() => "test-pool";
 
-        public Task<string> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER")
+        public Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER")
             => throw new NotImplementedException();
 
-        public Task<(string IdToken, string RefreshToken)> SignInAsync(string email, string password)
+        public Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password)
             => throw new NotImplementedException();
 
         public Task DeleteUserAsync(string email)
@@ -427,11 +427,11 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             });
         }
 
-        public Task<IReadOnlyList<Location>> GetLocationsAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyList<Location>>(Locations.ToList());
+        public Task<Result<IReadOnlyList<Location>>> GetLocationsAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Ok<IReadOnlyList<Location>>(Locations.ToList()));
 
-        public Task<IReadOnlyList<Location>> GetLocationOptionsAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyList<Location>>(Options.ToList());
+        public Task<Result<IReadOnlyList<Location>>> GetLocationOptionsAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Ok<IReadOnlyList<Location>>(Options.ToList()));
     }
 
     public sealed class FakeFeedbackService : IFeedbackService
@@ -465,7 +465,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             };
         }
 
-        public Task<FeedbackPaginatedDto> GetFeedbacksForLocation(
+        public Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(
             string locationId,
             int size,
             string type,
@@ -478,7 +478,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastSort = sort.ToList();
             LastPageToken = pageToken;
 
-            return Task.FromResult(Response);
+            return Task.FromResult(Result.Ok(Response));
         }
     }
 
@@ -499,20 +499,20 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             DishesByLocation["loc-1"] = Array.Empty<Dish>();
         }
 
-        public Task<IReadOnlyList<Dish>> GetSpecialityDishesByLocationIdAsync(
+        public Task<Result<IReadOnlyList<Dish>>> GetSpecialityDishesByLocationIdAsync(
             string locationId,
             CancellationToken cancellationToken = default)
         {
             LastLocationId = locationId;
 
             if (DishesByLocation.TryGetValue(locationId, out var dishes))
-                return Task.FromResult(dishes);
+                return Task.FromResult(Result.Ok(dishes));
 
-            return Task.FromResult<IReadOnlyList<Dish>>(Array.Empty<Dish>());
+            return Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(Array.Empty<Dish>()));
         }
 
-        public Task<IReadOnlyList<Dish>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyList<Dish>>(Array.Empty<Dish>());
+        public Task<Result<IReadOnlyList<Dish>>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(Array.Empty<Dish>()));
     }
 
     public sealed class FakeTableService : ITableService

@@ -1,6 +1,8 @@
 ﻿using Amazon.CognitoIdentityProvider;
 using Amazon.CognitoIdentityProvider.Model;
+using FluentResults;
 using Microsoft.Extensions.Configuration;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Exceptions;
 using Restaurant.Core.Interfaces.Services;
 
@@ -25,7 +27,7 @@ public class CognitoService : ICognitoService
 
     public string GetUserPoolId() => _userPoolId;
 
-    public async Task<string> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER")
+    public async Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER")
     {
         try
         {
@@ -56,11 +58,11 @@ public class CognitoService : ICognitoService
         }
         catch (UsernameExistsException)
         {
-            throw new UserAlreadyExistsException();
+            return AuthErrors.UserAlreadyExists;
         }
     }
 
-    public async Task<(string IdToken, string RefreshToken)> SignInAsync(string email, string password)
+    public async Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password)
     {
         try
         {
@@ -81,11 +83,11 @@ public class CognitoService : ICognitoService
         }
         catch (NotAuthorizedException)
         {
-            throw new InvalidCredentialsException();
+            return AuthErrors.InvalidCredentials;
         }
         catch (UserNotFoundException)
         {
-            throw new InvalidCredentialsException();
+            return AuthErrors.InvalidCredentials;
         }
     }
 

@@ -1,9 +1,10 @@
 ﻿using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
-using Restaurant.Core.Exceptions;
 using Restaurant.Core.Models;
 using Restaurant.Core.Services;
+using Restaurant.Core.Errors;
 using FluentAssertions;
+using FluentResults;
 using Moq;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -32,13 +33,14 @@ public class AuthServiceTests
         // Arrange
         _waiterListRepo.Setup(r => r.ContainsAsync("user@test.com")).ReturnsAsync(false);
         _cognito.Setup(c => c.SignUpAsync("user@test.com", "Pass123!", "John", "Doe", "CUSTOMER"))
-            .ReturnsAsync("user-id-123");
+            .ReturnsAsync(Result.Ok("user-id-123"));
         _userRepo.Setup(r => r.CreateAsync(It.IsAny<User>())).Returns(Task.CompletedTask);
 
         // Act
-        await _sut.SignUpAsync("user@test.com", "Pass123!", "John", "Doe");
+        var result = await _sut.SignUpAsync("user@test.com", "Pass123!", "John", "Doe");
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
         _cognito.Verify(c => c.SignUpAsync(
             "user@test.com",
             "Pass123!",
@@ -53,13 +55,14 @@ public class AuthServiceTests
         // Arrange
         _waiterListRepo.Setup(r => r.ContainsAsync("waiter@test.com")).ReturnsAsync(true);
         _cognito.Setup(c => c.SignUpAsync("waiter@test.com", "Pass123!", "Bob", "Smith", "WAITER"))
-            .ReturnsAsync("waiter-id-456");
+            .ReturnsAsync(Result.Ok("waiter-id-456"));
         _userRepo.Setup(r => r.CreateAsync(It.IsAny<User>())).Returns(Task.CompletedTask);
 
         // Act
-        await _sut.SignUpAsync("waiter@test.com", "Pass123!", "Bob", "Smith");
+        var result = await _sut.SignUpAsync("waiter@test.com", "Pass123!", "Bob", "Smith");
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
         _cognito.Verify(c => c.SignUpAsync(
             "waiter@test.com",
             "Pass123!",
@@ -74,13 +77,14 @@ public class AuthServiceTests
         // Arrange
         _waiterListRepo.Setup(r => r.ContainsAsync("user@test.com")).ReturnsAsync(false);
         _cognito.Setup(c => c.SignUpAsync("user@test.com", "Pass123!", "John", "Doe", "CUSTOMER"))
-            .ReturnsAsync("user-id-123");
+            .ReturnsAsync(Result.Ok("user-id-123"));
         _userRepo.Setup(r => r.CreateAsync(It.IsAny<User>())).Returns(Task.CompletedTask);
 
         // Act
-        await _sut.SignUpAsync("user@test.com", "Pass123!", "John", "Doe");
+        var result = await _sut.SignUpAsync("user@test.com", "Pass123!", "John", "Doe");
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
         _userRepo.Verify(r => r.CreateAsync(
             It.Is<User>(u =>
                 u.UserId == "user-id-123" &&
@@ -96,7 +100,7 @@ public class AuthServiceTests
         // Arrange
         _waiterListRepo.Setup(r => r.ContainsAsync("user@test.com")).ReturnsAsync(false);
         _cognito.Setup(c => c.SignUpAsync("user@test.com", "Pass123!", "John", "Doe", "CUSTOMER"))
-            .ReturnsAsync("user-id-123");
+            .ReturnsAsync(Result.Ok("user-id-123"));
         _cognito.Setup(c => c.DeleteUserAsync("user@test.com")).Returns(Task.CompletedTask);
 
         _userRepo.Setup(r => r.CreateAsync(It.IsAny<User>()))
@@ -109,6 +113,29 @@ public class AuthServiceTests
         await act.Should().ThrowAsync<Exception>();
 
         _cognito.Verify(c => c.DeleteUserAsync("user@test.com"), Times.Once);
+    }
+
+    [Fact]
+    public async Task SignUp_WhenUserAlreadyExists_ShouldReturnFailedResult()
+    {
+        // Arrange
+        _waiterListRepo.Setup(r => r.ContainsAsync("user@test.com")).ReturnsAsync(false);
+        _cognito.Setup(c => c.SignUpAsync(
+                "user@test.com",
+                "Pass123!",
+                "John",
+                "Doe",
+                "CUSTOMER"))
+            .ReturnsAsync(Result.Fail<string>(AuthErrors.UserAlreadyExists));
+
+        // Act
+        var result = await _sut.SignUpAsync("user@test.com", "Pass123!", "John", "Doe");
+
+        // Assert
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(AuthErrors.UserAlreadyExists);
+
+        _userRepo.Verify(r => r.CreateAsync(It.IsAny<User>()), Times.Never);
     }
 
     [Fact]
@@ -162,14 +189,14 @@ public class AuthServiceTests
         var fakeToken = GenerateFakeJwt("John", "Doe", "CUSTOMER");
 
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync((fakeToken, "refresh-token"));
+            .ReturnsAsync(Result.Ok<(string, string)>((fakeToken, "refresh-token")));
 
         var result = await _sut.SignInAsync("user@test.com", "Pass123!");
 
-        result.Username.Should().Be("John Doe");
-        result.Role.Should().Be("CUSTOMER");
-        result.IdToken.Should().Be(fakeToken);
-        result.RefreshToken.Should().Be("refresh-token");
+        result.Value.Username.Should().Be("John Doe");
+        result.Value.Role.Should().Be("CUSTOMER");
+        result.Value.IdToken.Should().Be(fakeToken);
+        result.Value.RefreshToken.Should().Be("refresh-token");
     }
 
 
@@ -179,11 +206,11 @@ public class AuthServiceTests
     {
         var fakeToken = GenerateFakeJwt("Bob", "Smith", "WAITER");
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync((fakeToken, "refresh-token"));
+            .ReturnsAsync(Result.Ok<(string, string)>((fakeToken, "refresh-token")));
 
         var result = await _sut.SignInAsync("waiter@test.com", "Pass123!");
 
-        result.Role.Should().Be("WAITER");
+        result.Value.Role.Should().Be("WAITER");
     }
 
     [Fact]
@@ -197,11 +224,11 @@ public class AuthServiceTests
         var fakeToken = new JwtSecurityTokenHandler().WriteToken(token);
 
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync((fakeToken, "refresh-token"));
+            .ReturnsAsync(Result.Ok<(string, string)>((fakeToken, "refresh-token")));
 
         var result = await _sut.SignInAsync("user@test.com", "Pass123!");
 
-        result.Role.Should().Be("CUSTOMER");
+        result.Value.Role.Should().Be("CUSTOMER");
     }
 
     [Fact]
@@ -214,21 +241,23 @@ public class AuthServiceTests
         var fakeToken = new JwtSecurityTokenHandler().WriteToken(token);
 
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync((fakeToken, "refresh-token"));
+            .ReturnsAsync(Result.Ok<(string, string)>((fakeToken, "refresh-token")));
 
         var result = await _sut.SignInAsync("user@test.com", "Pass123!");
 
-        result.Username.Should().BeEmpty();
+        result.Value.Username.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task SignIn_ShouldPropagate_WhenCognitoThrows()
+    public async Task SignIn_WhenInvalidCredentials_ShouldReturnFailedResult()
     {
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .ThrowsAsync(new InvalidCredentialsException());
+            .ReturnsAsync(Result.Fail<(string, string)>(AuthErrors.InvalidCredentials));
 
-        await _sut.Invoking(s => s.SignInAsync("user@test.com", "wrong"))
-            .Should().ThrowAsync<InvalidCredentialsException>();
+        var result = await _sut.SignInAsync("user@test.com", "wrong");
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(AuthErrors.InvalidCredentials);
     }
 
     private static string GenerateFakeJwt(string firstName, string lastName, string role)

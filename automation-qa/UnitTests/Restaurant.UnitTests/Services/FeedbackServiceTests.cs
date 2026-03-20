@@ -56,11 +56,11 @@ public class FeedbackServiceTests
             "waiter",
             new List<string>());
 
-        result.Size.Should().Be(10);
-        result.NextPageToken.Should().Be("token-123");
-        result.Content.Should().HaveCount(1);
+        result.Value.Size.Should().Be(10);
+        result.Value.NextPageToken.Should().Be("token-123");
+        result.Value.Content.Should().HaveCount(1);
 
-        var dto = result.Content[0];
+        var dto = result.Value.Content[0];
         dto.Id.Should().Be("fb-1");
         dto.Rate.Should().Be("5");
         dto.Comment.Should().Be("Great service");
@@ -102,9 +102,9 @@ public class FeedbackServiceTests
             "waiter",
             new List<string>());
 
-        result.Size.Should().Be(10);
-        result.Content.Should().BeEmpty();
-        result.NextPageToken.Should().BeNull();
+        result.Value.Size.Should().Be(10);
+        result.Value.Content.Should().BeEmpty();
+        result.Value.NextPageToken.Should().BeNull();
 
         _repo.Verify(r => r.GetByLocationAsync(
             "loc-1",
@@ -140,9 +140,9 @@ public class FeedbackServiceTests
             new List<string>(),
             "page-1");
 
-        result.Size.Should().Be(5);
-        result.NextPageToken.Should().Be("next-token");
-        result.Content.Should().BeEmpty();
+        result.Value.Size.Should().Be(5);
+        result.Value.NextPageToken.Should().Be("next-token");
+        result.Value.Content.Should().BeEmpty();
 
         _repo.Verify(r => r.GetByLocationAsync(
             "loc-1",

@@ -1,9 +1,10 @@
-﻿using Restaurant.Core.Models;
+﻿using FluentResults;
+using Restaurant.Core.Models;
 
 namespace Restaurant.Core.Interfaces.Services;
 
 public interface IDishService
 {
-    Task<IReadOnlyList<Dish>> GetSpecialityDishesByLocationIdAsync(string locationId, CancellationToken cancellationToken);
-    Task<IReadOnlyList<Dish>> GetPopularDishesAsync(CancellationToken cancellationToken = default);
+    Task<Result<IReadOnlyList<Dish>>> GetSpecialityDishesByLocationIdAsync(string locationId, CancellationToken cancellationToken = default);
+    Task<Result<IReadOnlyList<Dish>>> GetPopularDishesAsync(CancellationToken cancellationToken = default);
 }

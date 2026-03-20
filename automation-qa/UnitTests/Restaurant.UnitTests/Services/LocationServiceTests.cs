@@ -34,8 +34,8 @@ public sealed class LocationServiceTests
 
         var result = await sut.GetLocationsAsync(CancellationToken.None);
 
-        result.Should().HaveCount(1);
-        result[0].Id.Should().Be("loc-1");
+        result.Value.Should().HaveCount(1);
+        result.Value[0].Id.Should().Be("loc-1");
 
         repo.Verify(r => r.GetLocationsAsync(It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
@@ -67,8 +67,8 @@ public sealed class LocationServiceTests
 
         var result = await sut.GetLocationOptionsAsync(CancellationToken.None);
 
-        result.Should().HaveCount(1);
-        result[0].Address.Should().Be("Main street 1");
+        result.Value.Should().HaveCount(1);
+        result.Value[0].Address.Should().Be("Main street 1");
 
         repo.Verify(r => r.GetLocationOptionsAsync(It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
@@ -86,7 +86,7 @@ public sealed class LocationServiceTests
 
         var result = await sut.GetLocationsAsync(CancellationToken.None);
 
-        result.Should().BeEmpty();
+        result.Value.Should().BeEmpty();
         repo.Verify(r => r.GetLocationsAsync(It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
     }
@@ -103,7 +103,7 @@ public sealed class LocationServiceTests
 
         var result = await sut.GetLocationOptionsAsync(CancellationToken.None);
 
-        result.Should().BeEmpty();
+        result.Value.Should().BeEmpty();
         repo.Verify(r => r.GetLocationOptionsAsync(It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
     }
