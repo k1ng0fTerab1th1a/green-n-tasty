@@ -1,6 +1,7 @@
 ﻿using Amazon.CognitoIdentityProvider;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
+using FluentResults;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
 using Restaurant.Api;
 using Restaurant.Core.DTOs;
-using Restaurant.Core.Exceptions;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
 using Restaurant.Core.SharedModels;
@@ -517,7 +518,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public sealed class FakeTableService : ITableService
     {
         public List<TableWithAvailableSlots> Response { get; } = new();
-        public Exception? Exception { get; set; }
+        public BusinessError? FailResult { get; set; }
 
         public DateOnly? LastDate { get; private set; }
         public TimeOnly? LastTime { get; private set; }
@@ -532,7 +533,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public void Reset()
         {
             Response.Clear();
-            Exception = null;
+            FailResult = null;
             LastDate = null;
             LastTime = null;
             LastLocationId = null;
@@ -552,7 +553,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             });
         }
 
-        public Task<IList<TableWithAvailableSlots>> GetAvailableTablesAsync(
+        public Task<Result<IList<TableWithAvailableSlots>>> GetAvailableTablesAsync(
             DateOnly date,
             TimeOnly? time,
             string? locationId,
@@ -564,10 +565,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastLocationId = locationId;
             LastCapacity = capacity;
 
-            if (Exception is not null)
-                throw Exception;
+            if (FailResult is not null)
+                return Task.FromResult(Result.Fail<IList<TableWithAvailableSlots>>(FailResult));
 
-            return Task.FromResult<IList<TableWithAvailableSlots>>(Response.ToList());
+            return Task.FromResult(Result.Ok<IList<TableWithAvailableSlots>>(Response.ToList()));
         }
     }
 }

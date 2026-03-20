@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Restaurant.Api.Tests;
 using Restaurant.Core.DTOs;
-using Restaurant.Core.Exceptions;
+using Restaurant.Core.Errors;
 using System.Net;
 using System.Text.Json;
 
@@ -127,13 +127,13 @@ public sealed class BookingEndpointsTests : IClassFixture<CustomWebApplicationFa
         _factory.TableService.LastCapacity.Should().BeNull();
     }
 
-    // ─── BusinessException mapped to 400 via GlobalExceptionHandler ──────────
+    // ─── Failed Result mapped to 400 by the controller ──────────────────────
 
     [Fact]
-    public async Task GetAvailableTables_WhenServiceThrowsBusinessException_ShouldReturn400WithMessage()
+    public async Task GetAvailableTables_WhenServiceReturnsValidationError_ShouldReturn400WithMessage()
     {
         _factory.TableService.Reset();
-        _factory.TableService.Exception = new BusinessException("Cannot find available slots in the past.");
+        _factory.TableService.FailResult = new BusinessError("Cannot find available slots in the past.", ErrorType.Validation);
 
         var res = await _client.SendAsync(Authed(HttpMethod.Get, "/bookings/tables?date=2026-06-01"));
 
