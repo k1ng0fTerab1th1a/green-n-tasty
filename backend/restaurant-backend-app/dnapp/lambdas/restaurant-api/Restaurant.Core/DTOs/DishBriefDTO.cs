@@ -8,6 +8,7 @@ public class DishBriefDTO
     public float Price { get; set; }
     public string? ImageUrl { get; set; }
     public int? Weight { get; set; }
+    public string State { get; set; } = "ON";
 }
 
-// Dish types:     Appetizer, MainCourse, Desert, Drink, Snack
+// Dish types:     Appetizer, MainCourse, Desert, Drink, Snack, Special

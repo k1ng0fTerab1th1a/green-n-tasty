@@ -23,7 +23,8 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
         return results;
     }
 
-    public async Task<IReadOnlyList<Dish>> GetSpecialityDishesByLocationIdAsync(string locationId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Dish>> GetSpecialityDishesByLocationIdAsync(string locationId, CancellationToken 
+            cancellationToken = default)
     {
         var config = new DynamoDBOperationConfig
         {
@@ -42,13 +43,16 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
         return await _context.LoadAsync<Dish>(dishId, ct);
     }
 
+    // !!!IMPORTANT(шоб не забути)!!! So basically here we don't need GSI since the amount of dishes is not big and 
+    //probably initially we will load all the dishes. But if we add GSI we can move to QueryRequest which will reduce 
+    // RCU cost.
     public async Task<IReadOnlyList<DishBriefDTO>> GetShortenedDishesAsync(string? type, string sort,
         CancellationToken ct = default)
     {
         var request = new ScanRequest
         {
             TableName = "Dishes",
-            ProjectionExpression = "id, #n, dishType, price, imageUrl, #w",
+            ProjectionExpression = "id, #n, dishType, price, imageUrl, #w, state",
             ExpressionAttributeNames = new Dictionary<string, string>
             {
                 { "#n", "name" },
@@ -88,12 +92,13 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
     
     private static DishBriefDTO MapToDishBrief(Dictionary<string, AttributeValue> item) => new()
     {
-        Id       = item.TryGetValue("id", out var id)           ? id.S                       : string.Empty,
-        Name     = item.TryGetValue("name", out var name)       ? name.S                     : string.Empty,
-        DishType = item.TryGetValue("dishType", out var type)   ? type.S                     : string.Empty,
-        Price    = item.TryGetValue("price", out var price)     ? float.Parse(price.N)       : 0f,
-        ImageUrl = item.TryGetValue("imageUrl", out var imgUrl) ? imgUrl.S                   : null,
-        Weight   = item.TryGetValue("weight", out var weight)   ? int.Parse(weight.N)        : null
+        Id       = item.TryGetValue("id", out var id)           ? id.S             : string.Empty,
+        Name     = item.TryGetValue("name", out var name)       ? name.S           : string.Empty,
+        DishType = item.TryGetValue("dishType", out var type)   ? type.S           : string.Empty,
+        Price    = item.TryGetValue("price", out var price)     ? float.Parse(price.N) : 0f,
+        ImageUrl = item.TryGetValue("imageUrl", out var imgUrl) ? imgUrl.S         : null,
+        Weight   = item.TryGetValue("weight", out var weight)   ? int.Parse(weight.N) : null,
+        State    = item.TryGetValue("state", out var state)     ? state.S          : "ON"
     };
     
     private static IReadOnlyList<DishBriefDTO> ApplySort(List<DishBriefDTO> dishes, string sort)
