@@ -61,6 +61,7 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         item.GetPropertyIgnoreCase("locationAddress").GetString().Should().Be("Main street 1");
         item.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(3);
         item.GetPropertyIgnoreCase("guestsCount").GetInt32().Should().Be(2);
+        item.GetPropertyIgnoreCase("dishCount").GetInt32().Should().Be(0);
         item.GetPropertyIgnoreCase("startDateTime").GetString().Should().Be("2026-03-05T10:00:00.0000000Z");
         item.GetPropertyIgnoreCase("endDateTime").GetString().Should().Be("2026-03-05T11:30:00.0000000Z");
         item.GetPropertyIgnoreCase("status").GetString().Should().Be("Reserved");
@@ -89,6 +90,12 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
             .ToList();
 
         ids.Should().BeEquivalentTo(new[] { "r-customer-1", "r-customer-2" });
+
+        var first = data.EnumerateArray().Single(x => x.GetPropertyIgnoreCase("id").GetString() == "r-customer-1");
+        var second = data.EnumerateArray().Single(x => x.GetPropertyIgnoreCase("id").GetString() == "r-customer-2");
+
+        first.GetPropertyIgnoreCase("dishCount").GetInt32().Should().Be(0);
+        second.GetPropertyIgnoreCase("dishCount").GetInt32().Should().Be(3);
     }
 
     [Fact]
@@ -136,6 +143,7 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         dto.GetPropertyIgnoreCase("locationAddress").GetString().Should().Be("Main street 1");
         dto.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(3);
         dto.GetPropertyIgnoreCase("guestsCount").GetInt32().Should().Be(2);
+        dto.GetPropertyIgnoreCase("dishCount").GetInt32().Should().Be(0);
         dto.GetPropertyIgnoreCase("startDateTime").GetString().Should().Be("2026-03-05T10:00:00.0000000Z");
         dto.GetPropertyIgnoreCase("endDateTime").GetString().Should().Be("2026-03-05T11:30:00.0000000Z");
         dto.GetPropertyIgnoreCase("status").GetString().Should().Be("Reserved");
@@ -159,6 +167,7 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         dto.GetPropertyIgnoreCase("customerName").GetString().Should().Be("John Doe");
         dto.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Walter One");
         dto.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(7);
+        dto.GetPropertyIgnoreCase("dishCount").GetInt32().Should().Be(3);
     }
 
     [Fact]
@@ -289,6 +298,7 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         data.GetPropertyIgnoreCase("locationAddress").GetString().Should().Be("Main street 1");
         data.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(3);
         data.GetPropertyIgnoreCase("guestsCount").GetInt32().Should().Be(2);
+        data.GetPropertyIgnoreCase("dishCount").GetInt32().Should().Be(0);
         data.GetPropertyIgnoreCase("actualStartTime").ValueKind.Should().Be(JsonValueKind.Null);
         data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
         data.GetPropertyIgnoreCase("isCreatedByWaiter").GetBoolean().Should().BeTrue();
@@ -330,6 +340,7 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         data.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Waiter waiter-1");
         data.GetPropertyIgnoreCase("actualStartTime").ValueKind.Should().Be(JsonValueKind.Null);
         data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
+        data.GetPropertyIgnoreCase("dishCount").GetInt32().Should().Be(0);
         data.GetPropertyIgnoreCase("isCreatedByWaiter").GetBoolean().Should().BeTrue();
         data.GetPropertyIgnoreCase("visitorName").GetString().Should().Be("Anna Visitor");
 
@@ -465,6 +476,7 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         data.GetPropertyIgnoreCase("locationId").GetString().Should().Be("loc-10");
         data.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(4);
         data.GetPropertyIgnoreCase("guestsCount").GetInt32().Should().Be(3);
+        data.GetPropertyIgnoreCase("dishCount").GetInt32().Should().Be(0);
         data.GetPropertyIgnoreCase("status").GetString().Should().Be("Reserved");
         data.GetPropertyIgnoreCase("actualStartTime").ValueKind.Should().Be(JsonValueKind.Null);
         data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);

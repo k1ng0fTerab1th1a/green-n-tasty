@@ -5,6 +5,7 @@ namespace Restaurant.Core.Interfaces.Repositories;
 public interface IReservationRepository
 {
     Task<Reservation?> GetByIdAsync(string id, CancellationToken ct = default);
+    Task UpdateAsync(Reservation reservation, CancellationToken ct = default);
 
     Task<IReadOnlyList<Reservation>> QueryByCustomerAsync(
         string customerId,

@@ -33,4 +33,14 @@ public class DishRepository(IDynamoDBContext _context) : IDishRepository
 
         return results;
     }
+
+    public async Task<List<Dish>> GetByIdsAsync(IEnumerable<string> ids, CancellationToken ct = default)
+    {
+        var batch = _context.CreateBatchGet<Dish>();
+        foreach (var id in ids)
+            batch.AddKey(id);
+
+        await batch.ExecuteAsync(ct);
+        return batch.Results;
+    }
 }

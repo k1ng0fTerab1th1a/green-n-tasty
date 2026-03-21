@@ -33,6 +33,11 @@ public sealed class ReservationRepository : IReservationRepository
         return item;
     }
 
+    public async Task UpdateAsync(Reservation reservation, CancellationToken ct = default)
+    {
+        await _context.SaveAsync(reservation, ct);
+    }
+
     public async Task<IReadOnlyList<Reservation>> QueryByCustomerAsync(
         string customerId,
         string? startFromIso = null,

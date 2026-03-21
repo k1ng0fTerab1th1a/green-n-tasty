@@ -35,6 +35,8 @@ public class DynamoDbFixture : IAsyncLifetime
 
         await EnsureUsersTableAsync();
         await EnsureReservationsTableAsync();
+        await EnsureOrdersTableAsync();
+        await EnsureDishesTableAsync();
         await EnsureLocationsTableAsync();
         await EnsureTablesTableAsync();
         await EnsureTableDaysTableAsync();
@@ -222,6 +224,62 @@ public class DynamoDbFixture : IAsyncLifetime
                     ProvisionedThroughput = new ProvisionedThroughput(5, 5)
                 }
             ]
+        };
+
+        await EnsureTableAsync(request);
+    }
+
+    private async Task EnsureOrdersTableAsync()
+    {
+        const string tableName = "Orders";
+
+        var request = new CreateTableRequest
+        {
+            TableName = tableName,
+            AttributeDefinitions =
+            [
+                new AttributeDefinition("id", ScalarAttributeType.S),
+                new AttributeDefinition("reservationId", ScalarAttributeType.S)
+            ],
+            KeySchema =
+            [
+                new KeySchemaElement("id", KeyType.HASH)
+            ],
+            ProvisionedThroughput = new ProvisionedThroughput(5, 5),
+            GlobalSecondaryIndexes =
+            [
+                new GlobalSecondaryIndex
+                {
+                    IndexName = "reservationId-index",
+                    KeySchema =
+                    [
+                        new KeySchemaElement("reservationId", KeyType.HASH)
+                    ],
+                    Projection = new Projection { ProjectionType = ProjectionType.ALL },
+                    ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+                }
+            ]
+        };
+
+        await EnsureTableAsync(request);
+    }
+
+    private async Task EnsureDishesTableAsync()
+    {
+        const string tableName = "Dishes";
+
+        var request = new CreateTableRequest
+        {
+            TableName = tableName,
+            AttributeDefinitions =
+            [
+                new AttributeDefinition("id", ScalarAttributeType.S)
+            ],
+            KeySchema =
+            [
+                new KeySchemaElement("id", KeyType.HASH)
+            ],
+            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
         };
 
         await EnsureTableAsync(request);

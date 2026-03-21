@@ -12,7 +12,7 @@ public enum FeedbackType
 public class Feedback
 {
     [DynamoDBHashKey("id")]
-    public string Id { get; set; }
+    public string Id { get; set; } 
 
     [DynamoDBProperty("rate")]
     public int Rate { get; set; }

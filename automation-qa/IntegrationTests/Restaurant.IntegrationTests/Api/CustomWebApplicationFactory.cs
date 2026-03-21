@@ -23,6 +23,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public FakeLocationService LocationService { get; } = new();
     public FakeFeedbackService FeedbackService { get; } = new();
     public FakeDishService DishService { get; } = new();
+    public FakeOrderService OrderService { get; } = new();
     public FakeAuthService AuthService { get; } = new();
     public FakeCognitoService CognitoService { get; } = new();
     public FakeTableService TableService { get; } = new();
@@ -61,6 +62,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IDishService>();
             services.AddSingleton<IDishService>(DishService);
+
+            services.RemoveAll<IOrderService>();
+            services.AddSingleton<IOrderService>(OrderService);
 
             services.RemoveAll<IAuthService>();
             services.AddSingleton<IAuthService>(AuthService);
@@ -123,6 +127,54 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             return Task.FromResult(Result.Ok(SignInResponse));
         }
+    }
+
+    public sealed class FakeOrderService : IOrderService
+    {
+        public string? LastActorId { get; private set; }
+        public CreateOrderDTO? LastDto { get; private set; }
+        public BusinessError? CreateFailResult { get; set; }
+        public Order CreateResponse { get; set; } = BuildDefaultOrder();
+
+        public void Reset()
+        {
+            LastActorId = null;
+            LastDto = null;
+            CreateFailResult = null;
+            CreateResponse = BuildDefaultOrder();
+        }
+
+        public Task<Result<Order>> CreateAsyncForReservation(string actorId, CreateOrderDTO dto, CancellationToken ct = default)
+        {
+            LastActorId = actorId;
+            LastDto = dto;
+
+            if (CreateFailResult is not null)
+                return Task.FromResult(Result.Fail<Order>(CreateFailResult));
+
+            return Task.FromResult(Result.Ok(CreateResponse));
+        }
+
+        private static Order BuildDefaultOrder()
+            => new()
+            {
+                Id = "o-1",
+                ReservationId = "r-customer-1",
+                LocationId = "loc-1",
+                LocationAddress = "Main street 1",
+                WaiterId = "waiter-1",
+                WaiterName = "Walter One",
+                CustomerId = "customer-1",
+                CustomerName = "Anna Smith",
+                VisitorName = null,
+                TableNumber = 3,
+                GuestsCount = 2,
+                Status = OrderStatus.Open,
+                DishesJson = "[]",
+                TotalAmount = 0,
+                CreatedAt = "2026-03-01T00:00:00.0000000Z",
+                CompletedAt = null
+            };
     }
 
     public sealed class FakeCognitoService : ICognitoService
@@ -231,6 +283,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ActualStartTime = null,
                 ActualEndTime = null,
                 GuestsCount = 2,
+                DishCount = 0,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = false,
                 VisitorName = null,
@@ -254,6 +307,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ActualStartTime = null,
                 ActualEndTime = null,
                 GuestsCount = 4,
+                DishCount = 3,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = false,
                 VisitorName = null,
@@ -338,6 +392,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ActualStartTime = null,
                 ActualEndTime = null,
                 GuestsCount = dto.GuestsCount,
+                DishCount = 0,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = false,
                 VisitorName = null,
@@ -374,6 +429,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ActualStartTime = null,
                 ActualEndTime = null,
                 GuestsCount = dto.GuestsCount,
+                DishCount = 0,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = true,
                 VisitorName = dto.VisitorName,
