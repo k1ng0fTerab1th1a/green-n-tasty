@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.Contracts.Requests;
 using Restaurant.Api.Contracts.Responses;
+using Restaurant.Api.Extensions;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.SharedModels;
 
@@ -21,35 +22,46 @@ public class AuthController : ControllerBase
 
     [HttpPost("sign-up")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> SignUp([FromBody] Contracts.Requests.SignUpRequest request)
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<ApiResponse<object>> SignUp([FromBody] SignUpRequest request)
     {
-        await _authService.SignUpAsync(request.Email, request.Password, request.FirstName, request.LastName);
+        var result = await _authService.SignUpAsync(request.Email, request.Password, request.FirstName, request.LastName);
+
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<object>();
 
         return ApiResponse<object>.Success(StatusCodes.Status201Created, null, "User registered successfully");
     }
 
     [HttpPost("sign-in")]
     [ProducesResponseType(typeof(ApiResponse<AuthResult>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> SignIn([FromBody] SignInRequest request)
+    [ProducesResponseType(typeof(ApiResponse<AuthResult>), StatusCodes.Status401Unauthorized)]
+    public async Task<ApiResponse<AuthResult>> SignIn([FromBody] SignInRequest request)
     {
         var result = await _authService.SignInAsync(request.Email, request.Password);
 
-        return ApiResponse<AuthResult>.Success(StatusCodes.Status200OK, result, "Authentication successful");
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<AuthResult>();
+
+        return ApiResponse<AuthResult>.Success(StatusCodes.Status200OK, result.Value, "Authentication successful");
     }
 
     [HttpPost("refresh-token")]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+    public async Task<ApiResponse<string>> RefreshToken([FromBody] RefreshTokenRequest request)
     {
-        var result = await _cognitoService.RefreshTokenAsync(request.RefreshToken);
-        return ApiResponse<string>.Success(StatusCodes.Status200OK, result, "Token refreshed successfully");
+        var token = await _cognitoService.RefreshTokenAsync(request.RefreshToken);
+        return ApiResponse<string>.Success(StatusCodes.Status200OK, token, "Token refreshed successfully");
     }
 
     [HttpPost("sign-out")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> SignOut([FromBody] SignOutRequest request)
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<ApiResponse<object>> SignOut([FromBody] SignOutRequest request)
     {
-        await _cognitoService.SignOutAsync(request.RefreshToken);
+        var result = await _cognitoService.SignOutAsync(request.RefreshToken);
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<object>();
 
         return ApiResponse<object>.Success(StatusCodes.Status200OK, null, "Logged out successfully");
     }

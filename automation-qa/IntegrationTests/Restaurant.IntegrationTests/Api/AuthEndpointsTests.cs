@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Restaurant.Api.Tests;
-using Restaurant.Core.Exceptions;
+using Restaurant.Core.Errors;
 using Restaurant.Core.SharedModels;
 using System.Net;
 using System.Text;
@@ -64,7 +64,7 @@ public sealed class AuthEndpointsTests : IClassFixture<CustomWebApplicationFacto
     public async Task SignUp_WhenUserAlreadyExists_ShouldReturn409()
     {
         _factory.AuthService.Reset();
-        _factory.AuthService.SignUpException = new UserAlreadyExistsException();
+        _factory.AuthService.SignUpFailResult = new BusinessError("User with this email already exists!", ErrorType.Conflict);
 
         var res = await _client.PostAsync("/auth/sign-up", Json(new
         {
@@ -108,7 +108,7 @@ public sealed class AuthEndpointsTests : IClassFixture<CustomWebApplicationFacto
     public async Task SignIn_WhenInvalidCredentials_ShouldReturn401()
     {
         _factory.AuthService.Reset();
-        _factory.AuthService.SignInException = new InvalidCredentialsException();
+        _factory.AuthService.SignInFailResult = new BusinessError("Invalid email or password!", ErrorType.Unauthorized);
 
         var res = await _client.PostAsync("/auth/sign-in", Json(new
         {

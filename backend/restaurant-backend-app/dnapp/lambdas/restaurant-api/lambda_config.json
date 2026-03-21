@@ -19,10 +19,11 @@
   ],
   "event_sources": [],
   "env_variables": {
-    "COGNITO_USER_POOL_ID": "eu-west-2_ECpW7q6CS",
-    "COGNITO_CLIENT_ID": "1voqqt8m9pppct1ntbriurrqkp",
+    "COGNITO_USER_POOL_ID": "eu-west-2_t9vciMEPT",
+    "COGNITO_CLIENT_ID": "71bjhomgknlcrp2qpqo2cv0tea",
     "COGNITO_REGION": "eu-west-2",
-    "SEED_TOKEN": "dev-seed-123"
+    "SEED_TOKEN": "dev-seed-123",
+    "SQS_QUEUE_URL": "https://sqs.eu-west-2.amazonaws.com/864899830479/reservation-events-queue"
   },
   "publish_version": true,
   "alias": "${lambdas_alias_name}",

@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using Restaurant.Api.Tests;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
@@ -54,12 +55,19 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
 
         var item = data[0];
         item.GetPropertyIgnoreCase("id").GetString().Should().Be("r-customer-1");
+        item.GetPropertyIgnoreCase("customerName").GetString().Should().Be("Anna Smith");
+        item.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Walter One");
         item.GetPropertyIgnoreCase("locationId").GetString().Should().Be("loc-1");
+        item.GetPropertyIgnoreCase("locationAddress").GetString().Should().Be("Main street 1");
         item.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(3);
         item.GetPropertyIgnoreCase("guestsCount").GetInt32().Should().Be(2);
         item.GetPropertyIgnoreCase("startDateTime").GetString().Should().Be("2026-03-05T10:00:00.0000000Z");
         item.GetPropertyIgnoreCase("endDateTime").GetString().Should().Be("2026-03-05T11:30:00.0000000Z");
         item.GetPropertyIgnoreCase("status").GetString().Should().Be("Reserved");
+        item.GetPropertyIgnoreCase("actualStartTime").ValueKind.Should().Be(JsonValueKind.Null);
+        item.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
+        item.GetPropertyIgnoreCase("isCreatedByWaiter").GetBoolean().Should().BeFalse();
+        item.GetPropertyIgnoreCase("visitorName").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]
@@ -122,12 +130,17 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
 
         var dto = doc.RootElement.GetPropertyIgnoreCase("data");
         dto.GetPropertyIgnoreCase("id").GetString().Should().Be("r-customer-1");
+        dto.GetPropertyIgnoreCase("customerName").GetString().Should().Be("Anna Smith");
+        dto.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Walter One");
         dto.GetPropertyIgnoreCase("locationId").GetString().Should().Be("loc-1");
+        dto.GetPropertyIgnoreCase("locationAddress").GetString().Should().Be("Main street 1");
         dto.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(3);
         dto.GetPropertyIgnoreCase("guestsCount").GetInt32().Should().Be(2);
         dto.GetPropertyIgnoreCase("startDateTime").GetString().Should().Be("2026-03-05T10:00:00.0000000Z");
         dto.GetPropertyIgnoreCase("endDateTime").GetString().Should().Be("2026-03-05T11:30:00.0000000Z");
         dto.GetPropertyIgnoreCase("status").GetString().Should().Be("Reserved");
+        dto.GetPropertyIgnoreCase("isCreatedByWaiter").GetBoolean().Should().BeFalse();
+        dto.GetPropertyIgnoreCase("visitorName").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]
@@ -143,6 +156,8 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         var dto = doc.RootElement.GetPropertyIgnoreCase("data");
 
         dto.GetPropertyIgnoreCase("id").GetString().Should().Be("r-customer-2");
+        dto.GetPropertyIgnoreCase("customerName").GetString().Should().Be("John Doe");
+        dto.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Walter One");
         dto.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(7);
     }
 
@@ -175,6 +190,182 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
     }
 
     [Fact]
+    public async Task SearchCustomersForWaiter_WithoutUserHeader_ShouldReturn401()
+    {
+        _factory.ReservationService.Reset();
+
+        var res = await _client.GetAsync("/reservations/waiter/customers?query=Anna");
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task SearchCustomersForWaiter_AsWaiter_ShouldReturn200()
+    {
+        _factory.ReservationService.Reset();
+
+        var res = await _client.SendAsync(Authed(HttpMethod.Get, "/reservations/waiter/customers?query=Anna", userId: "waiter-1", role: "WAITER"));
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+
+        var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.ValueKind.Should().Be(JsonValueKind.Array);
+        data.GetArrayLength().Should().Be(1);
+
+        var item = data[0];
+        item.GetPropertyIgnoreCase("customerId").GetString().Should().Be("customer-1");
+        item.GetPropertyIgnoreCase("username").GetString().Should().Be("Anna Smith");
+        item.GetPropertyIgnoreCase("maskedEmail").GetString().Should().Be("a**a@example.com");
+
+        _factory.ReservationService.LastSearchActorUserId.Should().Be("waiter-1");
+        _factory.ReservationService.LastSearchQuery.Should().Be("Anna");
+    }
+
+    [Fact]
+    public async Task SearchCustomersForWaiter_AsNonWaiter_ShouldReturn403()
+    {
+        _factory.ReservationService.Reset();
+
+        var res = await _client.SendAsync(Authed(HttpMethod.Get, "/reservations/waiter/customers?query=Anna", userId: "customer-1", role: "CUSTOMER"));
+
+        res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Forbidden.");
+    }
+
+    [Fact]
+    public async Task CreateForWaiter_WithoutUserHeader_ShouldReturn401()
+    {
+        _factory.ReservationService.Reset();
+
+        var res = await _client.PostAsJsonAsync("/reservations/waiter", new
+        {
+            locationId = "loc-1",
+            tableNumber = 3,
+            date = "2030-03-05",
+            timeFrom = "12:00",
+            timeTo = "13:00",
+            guestsCount = 2,
+            customerId = "customer-1"
+        });
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task CreateForWaiter_AsWaiter_ForExistingCustomer_ShouldReturn201()
+    {
+        _factory.ReservationService.Reset();
+
+        var request = Authed(HttpMethod.Post, "/reservations/waiter", userId: "waiter-1", role: "WAITER");
+        request.Content = JsonContent.Create(new
+        {
+            locationId = "loc-1",
+            tableNumber = 3,
+            date = "2030-03-05",
+            timeFrom = "12:00",
+            timeTo = "13:00",
+            guestsCount = 2,
+            customerId = "customer-1",
+            visitorName = (string?)null
+        });
+
+        var res = await _client.SendAsync(request);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+
+        var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.GetPropertyIgnoreCase("locationId").GetString().Should().Be("loc-1");
+        data.GetPropertyIgnoreCase("customerName").GetString().Should().Be("Customer customer-1");
+        data.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Waiter waiter-1");
+        data.GetPropertyIgnoreCase("locationAddress").GetString().Should().Be("Main street 1");
+        data.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(3);
+        data.GetPropertyIgnoreCase("guestsCount").GetInt32().Should().Be(2);
+        data.GetPropertyIgnoreCase("actualStartTime").ValueKind.Should().Be(JsonValueKind.Null);
+        data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
+        data.GetPropertyIgnoreCase("isCreatedByWaiter").GetBoolean().Should().BeTrue();
+        data.GetPropertyIgnoreCase("visitorName").ValueKind.Should().Be(JsonValueKind.Null);
+
+        _factory.ReservationService.LastCreateForWaiterActorUserId.Should().Be("waiter-1");
+        _factory.ReservationService.LastCreateForWaiterDto.Should().NotBeNull();
+        _factory.ReservationService.LastCreateForWaiterDto!.CustomerId.Should().Be("customer-1");
+        _factory.ReservationService.LastCreateForWaiterDto!.VisitorName.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CreateForWaiter_AsWaiter_ForAnonymousVisitor_ShouldReturn201()
+    {
+        _factory.ReservationService.Reset();
+
+        var request = Authed(HttpMethod.Post, "/reservations/waiter", userId: "waiter-1", role: "WAITER");
+        request.Content = JsonContent.Create(new
+        {
+            locationId = "loc-1",
+            tableNumber = 3,
+            date = "2030-03-05",
+            timeFrom = "12:00",
+            timeTo = "13:00",
+            guestsCount = 2,
+            customerId = (string?)null,
+            visitorName = "Anna Visitor"
+        });
+
+        var res = await _client.SendAsync(request);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+
+        var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.GetPropertyIgnoreCase("customerName").ValueKind.Should().Be(JsonValueKind.Null);
+        data.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Waiter waiter-1");
+        data.GetPropertyIgnoreCase("actualStartTime").ValueKind.Should().Be(JsonValueKind.Null);
+        data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
+        data.GetPropertyIgnoreCase("isCreatedByWaiter").GetBoolean().Should().BeTrue();
+        data.GetPropertyIgnoreCase("visitorName").GetString().Should().Be("Anna Visitor");
+
+        _factory.ReservationService.LastCreateForWaiterActorUserId.Should().Be("waiter-1");
+        _factory.ReservationService.LastCreateForWaiterDto.Should().NotBeNull();
+        _factory.ReservationService.LastCreateForWaiterDto!.CustomerId.Should().BeNull();
+        _factory.ReservationService.LastCreateForWaiterDto!.VisitorName.Should().Be("Anna Visitor");
+    }
+
+    [Fact]
+    public async Task CreateForWaiter_AsNonWaiter_ShouldReturn403()
+    {
+        _factory.ReservationService.Reset();
+
+        var request = Authed(HttpMethod.Post, "/reservations/waiter", userId: "customer-1", role: "CUSTOMER");
+        request.Content = JsonContent.Create(new
+        {
+            locationId = "loc-1",
+            tableNumber = 3,
+            date = "2030-03-05",
+            timeFrom = "12:00",
+            timeTo = "13:00",
+            guestsCount = 2,
+            customerId = "customer-1"
+        });
+
+        var res = await _client.SendAsync(request);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Forbidden.");
+    }
+
+    [Fact]
     public async Task Delete_AsOwner_ShouldReturn200_AndSuccessMessage()
     {
         _factory.ReservationService.Reset();
@@ -192,18 +383,18 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
     }
 
     [Fact]
-    public async Task Delete_WhenServiceReturnsFalse_ShouldReturn500()
+    public async Task Delete_WhenServiceFails_ShouldReturn400()
     {
         _factory.ReservationService.Reset();
         _factory.ReservationService.CancelShouldSucceed = false;
 
         var res = await _client.SendAsync(Authed(HttpMethod.Delete, "/reservations/r-customer-1", userId: "customer-1"));
 
-        res.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
         doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
-        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("During reservation cancellation something went wrong");
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Failed to cancel reservation.");
     }
 
     [Fact]
@@ -269,11 +460,102 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
 
         var data = doc.RootElement.GetPropertyIgnoreCase("data");
         data.GetPropertyIgnoreCase("id").GetString().Should().Be("r-created-1");
+        data.GetPropertyIgnoreCase("customerName").GetString().Should().Be("Customer customer-77");
+        data.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Auto Waiter");
         data.GetPropertyIgnoreCase("locationId").GetString().Should().Be("loc-10");
         data.GetPropertyIgnoreCase("tableNumber").GetInt32().Should().Be(4);
         data.GetPropertyIgnoreCase("guestsCount").GetInt32().Should().Be(3);
         data.GetPropertyIgnoreCase("status").GetString().Should().Be("Reserved");
+        data.GetPropertyIgnoreCase("actualStartTime").ValueKind.Should().Be(JsonValueKind.Null);
+        data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
         data.GetPropertyIgnoreCase("startDateTime").GetString().Should().Be("2026-04-01T12:00:00.0000000Z");
         data.GetPropertyIgnoreCase("endDateTime").GetString().Should().Be("2026-04-01T13:30:00.0000000Z");
     }
+
+
+    [Fact]
+    public async Task StartReservation_WithoutUserHeader_ShouldReturn401()
+    {
+        _factory.ReservationService.Reset();
+
+        var res = await _client.PostAsync("/reservations/r-customer-1/start", content: null);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task StartReservation_AsNonWaiter_ShouldReturn403()
+    {
+        _factory.ReservationService.Reset();
+
+        var res = await _client.SendAsync(Authed(HttpMethod.Post, "/reservations/r-customer-1/start", userId: "customer-1", role: "CUSTOMER"));
+
+        res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Forbidden.");
+    }
+
+    [Fact]
+    public async Task StartReservation_AsAssignedWaiter_ShouldReturn200_AndSetActualStartTime()
+    {
+        _factory.ReservationService.Reset();
+
+        var res = await _client.SendAsync(Authed(HttpMethod.Post, "/reservations/r-customer-1/start", userId: "waiter-1", role: "WAITER"));
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.ReservationService.LastLifecycleReservationId.Should().Be("r-customer-1");
+        _factory.ReservationService.LastLifecycleWaiterId.Should().Be("waiter-1");
+        _factory.ReservationService.LastLifecycleAction.Should().Be("start");
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.GetPropertyIgnoreCase("status").GetString().Should().Be("InProgress");
+        data.GetPropertyIgnoreCase("actualStartTime").GetString().Should().NotBeNullOrWhiteSpace();
+        data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task MarkMealsServed_AsAssignedWaiter_ShouldReturn200_AndSetMealsServedStatus()
+    {
+        _factory.ReservationService.Reset();
+
+        var reservation = _factory.ReservationService.SeedReservations.Single(x => x.Id == "r-customer-1");
+        reservation.Status = Restaurant.Core.Models.ReservationStatus.InProgress;
+        reservation.ActualStartTime = DateTimeOffset.UtcNow.AddMinutes(-30).ToString("O");
+
+        var res = await _client.SendAsync(Authed(HttpMethod.Post, "/reservations/r-customer-1/meals-served", userId: "waiter-1", role: "WAITER"));
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.ReservationService.LastLifecycleAction.Should().Be("meals-served");
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.GetPropertyIgnoreCase("status").GetString().Should().Be("MealsServed");
+        data.GetPropertyIgnoreCase("actualStartTime").GetString().Should().NotBeNullOrWhiteSpace();
+        data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task FinishReservation_AsAssignedWaiter_ShouldReturn200_AndSetActualEndTime()
+    {
+        _factory.ReservationService.Reset();
+
+        var reservation = _factory.ReservationService.SeedReservations.Single(x => x.Id == "r-customer-1");
+        reservation.Status = Restaurant.Core.Models.ReservationStatus.MealsServed;
+        reservation.ActualStartTime = DateTimeOffset.UtcNow.AddHours(-1).ToString("O");
+
+        var res = await _client.SendAsync(Authed(HttpMethod.Post, "/reservations/r-customer-1/finish", userId: "waiter-1", role: "WAITER"));
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.ReservationService.LastLifecycleAction.Should().Be("finish");
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.GetPropertyIgnoreCase("status").GetString().Should().Be("Finished");
+        data.GetPropertyIgnoreCase("actualStartTime").GetString().Should().NotBeNullOrWhiteSpace();
+        data.GetPropertyIgnoreCase("actualEndTime").GetString().Should().NotBeNullOrWhiteSpace();
+    }
+
 }

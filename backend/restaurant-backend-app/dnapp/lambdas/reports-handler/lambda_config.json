@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "name": "reports-handler",
+  "func_name": "Restaurant.Reports.Handler::Restaurant.ReportsHandler.ReportsHandler::FunctionHandler",
+  "resource_type": "lambda",
+  "iam_role_name": "reports-handler-role",
+  "runtime": "dotnet8",
+  "memory": 512,
+  "timeout": 30,
+  "lambda_path": "lambdas\\reports-handler",
+  "dependencies": [],
+  "event_sources": [
+    {
+      "resource_type": "sqs_trigger",
+      "target_queue": "reservation-events-queue",
+      "batch_size": 10
+    }
+  ],
+  "env_variables": {
+    "SQS_QUEUE_URL": "https://sqs.eu-west-2.amazonaws.com/864899830479/reservation-events-queue"
+  },
+  "publish_version": true,
+  "alias": "${lambdas_alias_name}",
+  "url_config": {},
+  "ephemeral_storage": 512,
+  "tags": {}
+}

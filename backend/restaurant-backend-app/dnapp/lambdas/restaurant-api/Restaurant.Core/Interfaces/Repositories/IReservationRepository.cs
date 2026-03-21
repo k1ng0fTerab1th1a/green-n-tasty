@@ -17,7 +17,9 @@ public interface IReservationRepository
         string? startFromIso = null,
         string? startToIso = null,
         CancellationToken ct = default);
+
     Task<bool> CreateWithSlotsAsync(Reservation reservation, DateOnly date, List<string> slots, CancellationToken ct = default);
+
     Task<IReadOnlyList<Reservation>> QueryByTableAsync(
         string tableKey,
         string startFromIso,
@@ -33,5 +35,12 @@ public interface IReservationRepository
         List<string> oldSlots,
         string oldTableKey,
         DateTimeOffset oldStart,
+        CancellationToken ct = default);
+
+    Task<bool> UpdateLifecycleAsync(
+        Reservation reservation,
+        ReservationStatus expectedCurrentStatus,
+        ReservationStatus newStatus,
+        List<string>? slotsToRelease = null,
         CancellationToken ct = default);
 }

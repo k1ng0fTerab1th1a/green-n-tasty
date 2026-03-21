@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "name": "reports-sender",
+  "func_name": "Restaurant.Reports.Sender::Restaurant.ReportsSender.ReportsSender::FunctionHandler",
+  "resource_type": "lambda",
+  "iam_role_name": "reports-sender-role",
+  "runtime": "dotnet8",
+  "memory": 1024,
+  "timeout": 100,
+  "lambda_path": "lambdas\\reports-sender",
+  "dependencies": [],
+  "event_sources": [
+    {
+      "resource_type": "eventbridge_rule_trigger",
+      "target_rule": "reports-sender-schedule"
+    }
+  ],
+  "env_variables": {},
+  "publish_version": true,
+  "alias": "${lambdas_alias_name}",
+  "url_config": {},
+  "ephemeral_storage": 512,
+  "tags": {}
+}

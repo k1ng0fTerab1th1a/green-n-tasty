@@ -12,6 +12,7 @@ public sealed partial class ReservationServiceTests
     private readonly Mock<IWaiterScheduleRepository> _waiterScheduleRepo;
     private readonly Mock<ILocationRepository> _locationRepo;
     private readonly Mock<ITableRepository> _tableRepo;
+    private readonly Mock<IUserRepository> _userRepo;
     private readonly ReservationService _sut;
 
     public ReservationServiceTests()
@@ -20,8 +21,14 @@ public sealed partial class ReservationServiceTests
         _waiterScheduleRepo = new Mock<IWaiterScheduleRepository>(MockBehavior.Strict);
         _locationRepo = new Mock<ILocationRepository>(MockBehavior.Strict);
         _tableRepo = new Mock<ITableRepository>(MockBehavior.Strict);
+        _userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
 
-        _sut = new ReservationService(_repo.Object, _waiterScheduleRepo.Object, _locationRepo.Object, _tableRepo.Object);
+        _sut = new ReservationService(
+            _repo.Object,
+            _waiterScheduleRepo.Object,
+            _locationRepo.Object,
+            _tableRepo.Object,
+            _userRepo.Object);
     }
 
     private static CreateReservationDTO BuildDto(DateOnly date, TimeOnly from, TimeOnly to)
@@ -40,5 +47,25 @@ public sealed partial class ReservationServiceTests
             TotalCapacity = 120,
             AverageOccupancy = 0.35,
             Rating = 4.6
+        };
+
+    private static User BuildWaiter(string userId)
+        => new()
+        {
+            UserId = userId,
+            FirstName = "Waiter",
+            LastName = "User",
+            Email = "waiter@example.com",
+            Role = "WAITER"
+        };
+
+    private static User BuildCustomer(string userId)
+        => new()
+        {
+            UserId = userId,
+            FirstName = "Customer",
+            LastName = "User",
+            Email = "customer@example.com",
+            Role = "CUSTOMER"
         };
 }

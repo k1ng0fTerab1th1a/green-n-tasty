@@ -2,7 +2,7 @@ using Amazon;
 using Amazon.CognitoIdentityProvider;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
-using Restaurant.Core.Exceptions;
+using Restaurant.Core.Errors;
 using Restaurant.Infrastructure.Services;
 
 namespace Restaurant.Infrastructure.IntegrationTests;
@@ -20,17 +20,19 @@ public sealed class CognitoServiceLiveIntegrationTests
         var userDeleted = false;
         try
         {
-            var userSub = await sut.SignUpAsync(user.Email, user.Password, "Live", "Test", role: "CUSTOMER");
-            userSub.Should().NotBeNullOrWhiteSpace();
+            var signUpResult = await sut.SignUpAsync(user.Email, user.Password, "Live", "Test", role: "CUSTOMER");
+            signUpResult.IsSuccess.Should().BeTrue();
+            signUpResult.Value.Should().NotBeNullOrWhiteSpace();
 
-            var (idToken, refreshToken) = await sut.SignInAsync(user.Email, user.Password);
-            idToken.Should().NotBeNullOrWhiteSpace();
-            refreshToken.Should().NotBeNullOrWhiteSpace();
+            var signInResult = await sut.SignInAsync(user.Email, user.Password);
+            signInResult.IsSuccess.Should().BeTrue();
+            signInResult.Value.IdToken.Should().NotBeNullOrWhiteSpace();
+            signInResult.Value.RefreshToken.Should().NotBeNullOrWhiteSpace();
 
-            var accessToken = await sut.RefreshTokenAsync(refreshToken);
+            var accessToken = await sut.RefreshTokenAsync(signInResult.Value.RefreshToken);
             accessToken.Should().NotBeNullOrWhiteSpace();
 
-            await sut.SignOutAsync(refreshToken);
+            await sut.SignOutAsync(signInResult.Value.RefreshToken);
 
             await sut.DeleteUserAsync(user.Email);
             userDeleted = true;
@@ -56,8 +58,9 @@ public sealed class CognitoServiceLiveIntegrationTests
 
         try
         {
-            await sut.Invoking(x => x.SignUpAsync(user.Email, user.Password, "Live", "Duplicate", role: "CUSTOMER"))
-                .Should().ThrowAsync<UserAlreadyExistsException>();
+            var result = await sut.SignUpAsync(user.Email, user.Password, "Live", "Duplicate", role: "CUSTOMER");
+            result.IsFailed.Should().BeTrue();
+            result.Errors[0].Should().Be(AuthErrors.UserAlreadyExists);
         }
         finally
         {
@@ -77,8 +80,9 @@ public sealed class CognitoServiceLiveIntegrationTests
 
         try
         {
-            await sut.Invoking(x => x.SignInAsync(user.Email, "Wrong123!Password"))
-                .Should().ThrowAsync<InvalidCredentialsException>();
+            var result = await sut.SignInAsync(user.Email, "Wrong123!Password");
+            result.IsFailed.Should().BeTrue();
+            result.Errors[0].Should().Be(AuthErrors.InvalidCredentials);
         }
         finally
         {
@@ -94,8 +98,9 @@ public sealed class CognitoServiceLiveIntegrationTests
         var sut = CreateSut(settings);
         var missingEmail = $"missing-live-{Guid.NewGuid():N}@{settings.EmailDomain}";
 
-        await sut.Invoking(x => x.SignInAsync(missingEmail, settings.Password))
-            .Should().ThrowAsync<InvalidCredentialsException>();
+        var result = await sut.SignInAsync(missingEmail, settings.Password);
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(AuthErrors.InvalidCredentials);
     }
 
     [LiveCognitoFact]
@@ -107,10 +112,13 @@ public sealed class CognitoServiceLiveIntegrationTests
         var user = CreateTestUser(settings);
 
         await sut.SignUpAsync(user.Email, user.Password, "Live", "Delete", role: "CUSTOMER");
-        await sut.DeleteUserAsync(user.Email);
 
-        await sut.Invoking(x => x.DeleteUserAsync(user.Email))
-            .Should().ThrowAsync<Amazon.CognitoIdentityProvider.Model.UserNotFoundException>();
+        var deleteResult = await sut.DeleteUserAsync(user.Email);
+        deleteResult.IsSuccess.Should().BeTrue();
+
+        var result = await sut.DeleteUserAsync(user.Email);
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(AuthErrors.UserNotFound);
     }
 
     [LiveCognitoFact]
@@ -143,8 +151,9 @@ public sealed class CognitoServiceLiveIntegrationTests
         var settings = GetRequiredSettings();
         var sut = CreateSut(settings);
 
-        await sut.Invoking(x => x.SignOutAsync("not-a-valid-refresh-token"))
-            .Should().ThrowAsync<AuthException>();
+        var result = await sut.SignOutAsync("not-a-valid-refresh-token");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(AuthErrors.SignOutFailed);
     }
 
     private static LiveCognitoSettings GetRequiredSettings()

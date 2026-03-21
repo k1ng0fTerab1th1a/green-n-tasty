@@ -1,4 +1,5 @@
-﻿using Restaurant.Core.DTOs;
+﻿using FluentResults;
+using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 
@@ -6,7 +7,7 @@ namespace Restaurant.Core.Services;
 
 public class FeedbackService(IFeedbackRepository feedbackRepository) : IFeedbackService
 {
-    public async Task<FeedbackPaginatedDto> GetFeedbacksForLocation(string locationId, int size, string type, List<string> sort, string? pageToken = null)
+    public async Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(string locationId, int size, string type, List<string> sort, string? pageToken = null)
     {
         FeedbackPaginatedDto result = new FeedbackPaginatedDto();
         var receivedFeedbacks = await feedbackRepository.GetByLocationAsync(locationId, size, type, sort, pageToken);
@@ -23,6 +24,6 @@ public class FeedbackService(IFeedbackRepository feedbackRepository) : IFeedback
                 result.Content.Add(feedback);
             }
         }
-        return result;
+        return Result.Ok(result);
     }
 }
