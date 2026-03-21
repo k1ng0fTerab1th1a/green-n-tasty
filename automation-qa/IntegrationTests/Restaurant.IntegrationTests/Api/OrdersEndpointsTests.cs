@@ -163,7 +163,7 @@ public sealed class OrdersEndpointsTests : IClassFixture<CustomWebApplicationFac
             TableNumber = 3,
             GuestsCount = 2,
             Status = OrderStatus.Open,
-            DishesJson = "[{\"dishId\":\"dish-1\",\"name\":\"Pasta\",\"description\":\"Hot\",\"photoUrl\":\"img\",\"priceAtOrder\":12.5,\"quantity\":2}]",
+            DishesJson = "[{\"DishId\":\"dish-1\",\"Name\":\"Pasta\",\"Description\":\"Hot\",\"PhotoUrl\":\"img\",\"PriceAtOrder\":12.5,\"Quantity\":2}]",
             TotalAmount = 25f,
             CreatedAt = "2026-03-01T00:00:00.0000000Z",
             CompletedAt = null
