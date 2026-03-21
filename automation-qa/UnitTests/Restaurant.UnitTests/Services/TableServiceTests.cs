@@ -1,5 +1,4 @@
 ﻿using FluentAssertions;
-using FluentResults;
 using Moq;
 using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;

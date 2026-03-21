@@ -1,10 +1,8 @@
 using Amazon;
 using Amazon.CognitoIdentityProvider;
 using FluentAssertions;
-using FluentResults;
 using Microsoft.Extensions.Configuration;
 using Restaurant.Core.Errors;
-using Restaurant.Core.Exceptions;
 using Restaurant.Infrastructure.Services;
 
 namespace Restaurant.Infrastructure.IntegrationTests;

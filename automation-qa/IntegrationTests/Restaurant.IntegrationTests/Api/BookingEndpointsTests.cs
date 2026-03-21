@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Restaurant.Api.Tests;
-using Restaurant.Core.DTOs;
 using Restaurant.Core.Errors;
 using System.Net;
 using System.Text.Json;
@@ -26,7 +25,7 @@ public sealed class BookingEndpointsTests : IClassFixture<CustomWebApplicationFa
             req.Headers.Add("X-Role", role);
         return req;
     }
-    
+
     [Fact]
     public async Task GetAvailableTables_WithoutAuthHeader_ShouldReturn200()
     {

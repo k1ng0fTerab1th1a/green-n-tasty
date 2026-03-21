@@ -1,5 +1,4 @@
-﻿using FluentResults;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Api.Extensions;
 using Restaurant.Core.DTOs;

@@ -2,7 +2,7 @@
 
 public static class TableErrors
 {
-    public static BusinessError RequestedSlotsFromPast => 
+    public static BusinessError RequestedSlotsFromPast =>
         new("Cannot find available slots in the past.", ErrorType.Validation);
 
     public static BusinessError RequestedSlotsFromFarFuture =>
