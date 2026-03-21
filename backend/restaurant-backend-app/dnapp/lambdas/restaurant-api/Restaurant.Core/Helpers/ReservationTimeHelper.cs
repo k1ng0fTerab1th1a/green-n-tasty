@@ -1,4 +1,5 @@
-using Restaurant.Core.Exceptions;
+using FluentResults;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Models;
 using TimeZoneConverter;
 
@@ -6,7 +7,7 @@ namespace Restaurant.Core.Helpers;
 
 internal static class ReservationTimeHelper
 {
-    internal static void ValidateReservationTime(TimeOnly from, TimeOnly to, DateOnly date, Location location)
+    internal static Result ValidateReservationTime(TimeOnly from, TimeOnly to, DateOnly date, Location location)
     {
         var openTime = TimeOnly.Parse(location.OpenTime);
         var closeTime = TimeOnly.Parse(location.CloseTime);
@@ -21,23 +22,25 @@ internal static class ReservationTimeHelper
             : to > openTime && to <= closeTime;
 
         if (!fromValid || !toValid)
-            throw new BusinessException($"Reservation must be within working hours ({location.OpenTime} - {location.CloseTime}).");
+            return Result.Fail(ReservationErrors.OutsideWorkingHours(location.OpenTime, location.CloseTime));
 
         if (from.Minute % 15 != 0 || from.Second != 0)
-            throw new BusinessException("Start time must be a multiple of 15 minutes.");
+            return Result.Fail(ReservationErrors.StartTimeNotAligned);
 
         if (to.Minute % 15 != 0 || to.Second != 0)
-            throw new BusinessException("End time must be a multiple of 15 minutes.");
+            return Result.Fail(ReservationErrors.EndTimeNotAligned);
 
         var duration = CalculateDuration(from, to);
         if (duration < 60)
-            throw new BusinessException("Minimum booking duration is 60 minutes.");
+            return Result.Fail(ReservationErrors.DurationTooShort);
 
         if (duration > 6 * 60)
-            throw new BusinessException("Maximum booking duration is 6 hours.");
+            return Result.Fail(ReservationErrors.DurationTooLong);
 
         if (date.ToDateTime(from) <= DateTime.UtcNow)
-            throw new BusinessException("Cannot book for a past date or time.");
+            return Result.Fail(ReservationErrors.PastDateTime);
+
+        return Result.Ok();
     }
 
     internal static int CalculateDuration(TimeOnly from, TimeOnly to)

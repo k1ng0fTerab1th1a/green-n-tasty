@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using Moq;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 using Restaurant.Core.Services;
@@ -34,8 +35,8 @@ public sealed class LocationServiceTests
 
         var result = await sut.GetLocationsAsync(CancellationToken.None);
 
-        result.Should().HaveCount(1);
-        result[0].Id.Should().Be("loc-1");
+        result.Value.Should().HaveCount(1);
+        result.Value[0].Id.Should().Be("loc-1");
 
         repo.Verify(r => r.GetLocationsAsync(It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
@@ -67,8 +68,8 @@ public sealed class LocationServiceTests
 
         var result = await sut.GetLocationOptionsAsync(CancellationToken.None);
 
-        result.Should().HaveCount(1);
-        result[0].Address.Should().Be("Main street 1");
+        result.Value.Should().HaveCount(1);
+        result.Value[0].Address.Should().Be("Main street 1");
 
         repo.Verify(r => r.GetLocationOptionsAsync(It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
@@ -97,16 +98,16 @@ public sealed class LocationServiceTests
 
         var result = await sut.GetByIdAsync("loc-42", CancellationToken.None);
 
-        result.Should().NotBeNull();
-        result!.Id.Should().Be("loc-42");
-        result.Address.Should().Be("Berlin, Test str 1");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Id.Should().Be("loc-42");
+        result.Value.Address.Should().Be("Berlin, Test str 1");
 
         repo.Verify(r => r.GetByIdAsync("loc-42", It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task GetByIdAsync_WhenLocationDoesNotExist_ShouldReturnNull()
+    public async Task GetByIdAsync_WhenLocationDoesNotExist_ShouldReturnFailedResult()
     {
         var repo = new Mock<ILocationRepository>(MockBehavior.Strict);
 
@@ -117,7 +118,9 @@ public sealed class LocationServiceTests
 
         var result = await sut.GetByIdAsync("missing-id", CancellationToken.None);
 
-        result.Should().BeNull();
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().BeOfType<BusinessError>();
+        ((BusinessError)result.Errors[0]).Type.Should().Be(ErrorType.NotFound);
 
         repo.Verify(r => r.GetByIdAsync("missing-id", It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
@@ -135,7 +138,7 @@ public sealed class LocationServiceTests
 
         var result = await sut.GetLocationsAsync(CancellationToken.None);
 
-        result.Should().BeEmpty();
+        result.Value.Should().BeEmpty();
         repo.Verify(r => r.GetLocationsAsync(It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
     }
@@ -152,7 +155,7 @@ public sealed class LocationServiceTests
 
         var result = await sut.GetLocationOptionsAsync(CancellationToken.None);
 
-        result.Should().BeEmpty();
+        result.Value.Should().BeEmpty();
         repo.Verify(r => r.GetLocationOptionsAsync(It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
     }

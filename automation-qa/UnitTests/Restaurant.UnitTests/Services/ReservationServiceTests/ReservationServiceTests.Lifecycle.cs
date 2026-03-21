@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
 using Moq;
-using Restaurant.Core.Exceptions;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Models;
 
 namespace Restaurant.UnitTests.Services;
@@ -23,20 +23,20 @@ public sealed partial class ReservationServiceTests
     }
 
     [Fact]
-    public async Task StartReservationAsync_WhenReservationNotFound_ShouldReturnNull()
+    public async Task StartReservationAsync_WhenReservationNotFound_ShouldReturnFailedResult()
     {
         _repo.Setup(r => r.GetByIdAsync("missing", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Reservation?)null);
 
         var result = await _sut.StartReservationAsync("missing", "waiter-1", default);
 
-        result.Should().BeNull();
+        result.IsFailed.Should().BeTrue();
         _repo.Verify(r => r.GetByIdAsync("missing", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task StartReservationAsync_WhenStatusIsNotReserved_ShouldThrowBusinessException()
+    public async Task StartReservationAsync_WhenStatusIsNotReserved_ShouldReturnNotStartableError()
     {
         var reservation = new Reservation
         {
@@ -58,10 +58,10 @@ public sealed partial class ReservationServiceTests
         _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
 
-        var act = async () => await _sut.StartReservationAsync("r1", "waiter-1", default);
+        var result = await _sut.StartReservationAsync("r1", "waiter-1", default);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Only reserved reservations can be started.");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Message.Should().Be(ReservationErrors.NotStartable.Message);
 
         _repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
@@ -99,10 +99,10 @@ public sealed partial class ReservationServiceTests
 
         var result = await _sut.StartReservationAsync("r1", "waiter-1", default);
 
-        result.Should().NotBeNull();
-        result!.Status.Should().Be(ReservationStatus.InProgress);
-        result.ActualStartTime.Should().NotBeNullOrWhiteSpace();
-        result.ActualEndTime.Should().BeNull();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Status.Should().Be(ReservationStatus.InProgress);
+        result.Value.ActualStartTime.Should().NotBeNullOrWhiteSpace();
+        result.Value.ActualEndTime.Should().BeNull();
 
         _repo.Verify(r => r.UpdateLifecycleAsync(
             reservation,
@@ -113,20 +113,20 @@ public sealed partial class ReservationServiceTests
     }
 
     [Fact]
-    public async Task MarkMealsServedAsync_WhenReservationNotFound_ShouldReturnNull()
+    public async Task MarkMealsServedAsync_WhenReservationNotFound_ShouldReturnFailedResult()
     {
         _repo.Setup(r => r.GetByIdAsync("missing", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Reservation?)null);
 
         var result = await _sut.MarkMealsServedAsync("missing", "waiter-1", default);
 
-        result.Should().BeNull();
+        result.IsFailed.Should().BeTrue();
         _repo.Verify(r => r.GetByIdAsync("missing", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task MarkMealsServedAsync_WhenStatusIsNotInProgress_ShouldThrowBusinessException()
+    public async Task MarkMealsServedAsync_WhenStatusIsNotInProgress_ShouldReturnNotMarkableError()
     {
         var reservation = new Reservation
         {
@@ -149,10 +149,10 @@ public sealed partial class ReservationServiceTests
         _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
 
-        var act = async () => await _sut.MarkMealsServedAsync("r1", "waiter-1", default);
+        var result = await _sut.MarkMealsServedAsync("r1", "waiter-1", default);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Only in-progress reservations can be marked as meals served.");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Message.Should().Be(ReservationErrors.NotMarkable.Message);
     }
 
     [Fact]
@@ -188,27 +188,27 @@ public sealed partial class ReservationServiceTests
 
         var result = await _sut.MarkMealsServedAsync("r1", "waiter-1", default);
 
-        result.Should().NotBeNull();
-        result!.Status.Should().Be(ReservationStatus.MealsServed);
-        result.ActualStartTime.Should().NotBeNullOrWhiteSpace();
-        result.ActualEndTime.Should().BeNull();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Status.Should().Be(ReservationStatus.MealsServed);
+        result.Value.ActualStartTime.Should().NotBeNullOrWhiteSpace();
+        result.Value.ActualEndTime.Should().BeNull();
     }
 
     [Fact]
-    public async Task FinishReservationAsync_WhenReservationNotFound_ShouldReturnNull()
+    public async Task FinishReservationAsync_WhenReservationNotFound_ShouldReturnFailedResult()
     {
         _repo.Setup(r => r.GetByIdAsync("missing", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Reservation?)null);
 
         var result = await _sut.FinishReservationAsync("missing", "waiter-1", default);
 
-        result.Should().BeNull();
+        result.IsFailed.Should().BeTrue();
         _repo.Verify(r => r.GetByIdAsync("missing", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task FinishReservationAsync_WhenStatusIsNotMealsServed_ShouldThrowBusinessException()
+    public async Task FinishReservationAsync_WhenStatusIsNotMealsServed_ShouldReturnNotFinishableError()
     {
         var reservation = new Reservation
         {
@@ -231,10 +231,10 @@ public sealed partial class ReservationServiceTests
         _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
 
-        var act = async () => await _sut.FinishReservationAsync("r1", "waiter-1", default);
+        var result = await _sut.FinishReservationAsync("r1", "waiter-1", default);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Only meals-served reservations can be finished.");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Message.Should().Be(ReservationErrors.NotFinishable.Message);
     }
 
     [Fact]
@@ -274,10 +274,10 @@ public sealed partial class ReservationServiceTests
 
         var result = await _sut.FinishReservationAsync("r1", "waiter-1", default);
 
-        result.Should().NotBeNull();
-        result!.Status.Should().Be(ReservationStatus.Finished);
-        result.ActualStartTime.Should().NotBeNullOrWhiteSpace();
-        result.ActualEndTime.Should().NotBeNullOrWhiteSpace();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Status.Should().Be(ReservationStatus.Finished);
+        result.Value.ActualStartTime.Should().NotBeNullOrWhiteSpace();
+        result.Value.ActualEndTime.Should().NotBeNullOrWhiteSpace();
 
         _repo.Verify(r => r.UpdateLifecycleAsync(
             reservation,

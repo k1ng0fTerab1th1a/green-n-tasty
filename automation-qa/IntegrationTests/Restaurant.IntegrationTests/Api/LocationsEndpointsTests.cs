@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
-using Restaurant.Api.Tests;
 using Microsoft.AspNetCore.Http;
+using Restaurant.Api.Tests;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Models;
 using System.Net;

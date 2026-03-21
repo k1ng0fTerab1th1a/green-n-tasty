@@ -1,6 +1,7 @@
 ﻿using Amazon.CognitoIdentityProvider;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
+using FluentResults;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
 using Restaurant.Api;
 using Restaurant.Core.DTOs;
-using Restaurant.Core.Exceptions;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
 using Restaurant.Core.SharedModels;
@@ -76,8 +77,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         public AuthResult SignInResponse { get; set; } = new("id-token", "refresh-token", "John Doe", "CUSTOMER");
 
-        public Exception? SignUpException { get; set; }
-        public Exception? SignInException { get; set; }
+        public BusinessError? SignUpFailResult { get; set; }
+        public BusinessError? SignInFailResult { get; set; }
 
         public string? LastSignUpEmail { get; private set; }
         public string? LastSignUpPassword { get; private set; }
@@ -89,8 +90,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public void Reset()
         {
             SignInResponse = new AuthResult("id-token", "refresh-token", "John Doe", "CUSTOMER");
-            SignUpException = null;
-            SignInException = null;
+            SignUpFailResult = null;
+            SignInFailResult = null;
             LastSignUpEmail = null;
             LastSignUpPassword = null;
             LastSignUpFirstName = null;
@@ -99,28 +100,28 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastSignInPassword = null;
         }
 
-        public Task SignUpAsync(string email, string password, string firstName, string lastName)
+        public Task<Result> SignUpAsync(string email, string password, string firstName, string lastName)
         {
             LastSignUpEmail = email;
             LastSignUpPassword = password;
             LastSignUpFirstName = firstName;
             LastSignUpLastName = lastName;
 
-            if (SignUpException is not null)
-                throw SignUpException;
+            if (SignUpFailResult is not null)
+                return Task.FromResult(Result.Fail(SignUpFailResult));
 
-            return Task.CompletedTask;
+            return Task.FromResult(Result.Ok());
         }
 
-        public Task<AuthResult> SignInAsync(string email, string password)
+        public Task<Result<AuthResult>> SignInAsync(string email, string password)
         {
             LastSignInEmail = email;
             LastSignInPassword = password;
 
-            if (SignInException is not null)
-                throw SignInException;
+            if (SignInFailResult is not null)
+                return Task.FromResult(Result.Fail<AuthResult>(SignInFailResult));
 
-            return Task.FromResult(SignInResponse);
+            return Task.FromResult(Result.Ok(SignInResponse));
         }
     }
 
@@ -128,7 +129,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         public string RefreshTokenResponse { get; set; } = "new-access-token";
         public Exception? RefreshTokenException { get; set; }
-        public Exception? SignOutException { get; set; }
+        public BusinessError? SignOutFailResult { get; set; }
         public string? LastRefreshTokenInput { get; private set; }
         public string? LastSignOutRefreshToken { get; private set; }
 
@@ -136,20 +137,20 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             RefreshTokenResponse = "new-access-token";
             RefreshTokenException = null;
-            SignOutException = null;
+            SignOutFailResult = null;
             LastRefreshTokenInput = null;
             LastSignOutRefreshToken = null;
         }
 
         public string GetUserPoolId() => "test-pool";
 
-        public Task<string> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER")
+        public Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER")
             => throw new NotImplementedException();
 
-        public Task<(string IdToken, string RefreshToken)> SignInAsync(string email, string password)
+        public Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password)
             => throw new NotImplementedException();
 
-        public Task DeleteUserAsync(string email)
+        public Task<Result> DeleteUserAsync(string email)
             => throw new NotImplementedException();
 
         public Task<string> RefreshTokenAsync(string refreshToken)
@@ -162,14 +163,14 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(RefreshTokenResponse);
         }
 
-        public Task SignOutAsync(string refreshToken)
+        public Task<Result> SignOutAsync(string refreshToken)
         {
             LastSignOutRefreshToken = refreshToken;
 
-            if (SignOutException is not null)
-                throw SignOutException;
+            if (SignOutFailResult is not null)
+                return Task.FromResult(Result.Fail(SignOutFailResult));
 
-            return Task.CompletedTask;
+            return Task.FromResult(Result.Ok());
         }
     }
 
@@ -276,22 +277,22 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult<IReadOnlyList<Reservation>>(result);
         }
 
-        public Task<Reservation?> GetByIdAsync(string id, string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
+        public Task<Result<Reservation>> GetByIdAsync(string id, string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
         {
             var entity = SeedReservations.SingleOrDefault(x => x.Id == id);
             if (entity is null)
-                return Task.FromResult<Reservation?>(null);
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.ReservationNotFound));
 
             var allowed = entity.CustomerId == actorUserId
                           || (actorIsWaiter && entity.WaiterId == actorUserId);
 
             if (!allowed)
-                throw new UnauthorizedAccessException("Forbidden.");
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.Forbidden));
 
-            return Task.FromResult<Reservation?>(entity);
+            return Task.FromResult(Result.Ok(entity));
         }
 
-        public Task<bool> CancelReservation(string reservationId, string userId, bool isWaiter, CancellationToken ct = default)
+        public Task<Result> CancelReservation(string reservationId, string userId, bool isWaiter, CancellationToken ct = default)
         {
             LastCancelReservationId = reservationId;
             LastCancelUserId = userId;
@@ -299,21 +300,21 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             var entity = SeedReservations.SingleOrDefault(x => x.Id == reservationId);
             if (entity is null)
-                return Task.FromResult(false);
+                return Task.FromResult(Result.Fail(ReservationErrors.ReservationNotFound));
 
             var allowed = entity.CustomerId == userId || (isWaiter && entity.WaiterId == userId);
             if (!allowed)
-                throw new UnauthorizedAccessException("Forbidden.");
+                return Task.FromResult(Result.Fail(ReservationErrors.Forbidden));
 
             if (!CancelShouldSucceed)
-                return Task.FromResult(false);
+                return Task.FromResult(Result.Fail(ReservationErrors.CancellationFailed));
 
             entity.Status = ReservationStatus.Cancelled;
             entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
-            return Task.FromResult(true);
+            return Task.FromResult(Result.Ok());
         }
 
-        public Task<Reservation> CreateForClientAsync(string customerId, CreateReservationDTO dto, CancellationToken ct = default)
+        public Task<Result<Reservation>> CreateForClientAsync(string customerId, CreateReservationDTO dto, CancellationToken ct = default)
         {
             LastCreateCustomerId = customerId;
             LastCreateDto = dto;
@@ -345,10 +346,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             };
 
             SeedReservations.Add(created);
-            return Task.FromResult(created);
+            return Task.FromResult(Result.Ok(created));
         }
 
-        public Task<Reservation> CreateForWaiterAsync(string waiterId, CreateReservationForWaiterDTO dto, CancellationToken ct = default)
+        public Task<Result<Reservation>> CreateForWaiterAsync(string waiterId, CreateReservationForWaiterDTO dto, CancellationToken ct = default)
         {
             LastCreateForWaiterActorUserId = waiterId;
             LastCreateForWaiterDto = dto;
@@ -382,31 +383,31 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             SeedReservations.Add(reservation);
 
-            return Task.FromResult(reservation);
+            return Task.FromResult(Result.Ok(reservation));
         }
 
-        public Task<IReadOnlyList<WaiterCustomerLookupDTO>> SearchCustomersForWaiterAsync(string actorUserId, string query, CancellationToken ct = default)
+        public Task<Result<IReadOnlyList<WaiterCustomerLookupDTO>>> SearchCustomersForWaiterAsync(string actorUserId, string query, CancellationToken ct = default)
         {
             LastSearchActorUserId = actorUserId;
             LastSearchQuery = query;
 
             if (string.IsNullOrWhiteSpace(query))
-                return Task.FromResult<IReadOnlyList<WaiterCustomerLookupDTO>>(Array.Empty<WaiterCustomerLookupDTO>());
+                return Task.FromResult(Result.Ok<IReadOnlyList<WaiterCustomerLookupDTO>>(Array.Empty<WaiterCustomerLookupDTO>()));
 
             var result = CustomerLookupResults
                 .Where(x => x.Username.Contains(query, StringComparison.OrdinalIgnoreCase)
                          || x.MaskedEmail.Contains(query, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            return Task.FromResult<IReadOnlyList<WaiterCustomerLookupDTO>>(result);
+            return Task.FromResult(Result.Ok<IReadOnlyList<WaiterCustomerLookupDTO>>(result));
         }
 
-        public Task<Reservation?> UpdateReservationAsync(string actorUserId, bool isActorWaiter, UpdateReservationDTO dto, CancellationToken ct = default)
+        public Task<Result<Reservation>> UpdateReservationAsync(string actorUserId, bool isActorWaiter, UpdateReservationDTO dto, CancellationToken ct = default)
         {
             throw new NotImplementedException();
         }
 
-        public Task<Reservation?> StartReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
+        public Task<Result<Reservation>> StartReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
         {
             LastLifecycleReservationId = reservationId;
             LastLifecycleWaiterId = waiterId;
@@ -414,18 +415,18 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             var entity = SeedReservations.SingleOrDefault(x => x.Id == reservationId);
             if (entity is null)
-                return Task.FromResult<Reservation?>(null);
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.ReservationNotFound));
 
             if (entity.WaiterId != waiterId)
-                throw new UnauthorizedAccessException("Forbidden.");
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.Forbidden));
 
             entity.Status = ReservationStatus.InProgress;
             entity.ActualStartTime = DateTimeOffset.UtcNow.ToString("O");
             entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
-            return Task.FromResult<Reservation?>(entity);
+            return Task.FromResult(Result.Ok(entity));
         }
 
-        public Task<Reservation?> MarkMealsServedAsync(string reservationId, string waiterId, CancellationToken ct = default)
+        public Task<Result<Reservation>> MarkMealsServedAsync(string reservationId, string waiterId, CancellationToken ct = default)
         {
             LastLifecycleReservationId = reservationId;
             LastLifecycleWaiterId = waiterId;
@@ -433,17 +434,17 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             var entity = SeedReservations.SingleOrDefault(x => x.Id == reservationId);
             if (entity is null)
-                return Task.FromResult<Reservation?>(null);
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.ReservationNotFound));
 
             if (entity.WaiterId != waiterId)
-                throw new UnauthorizedAccessException("Forbidden.");
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.Forbidden));
 
             entity.Status = ReservationStatus.MealsServed;
             entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
-            return Task.FromResult<Reservation?>(entity);
+            return Task.FromResult(Result.Ok(entity));
         }
 
-        public Task<Reservation?> FinishReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
+        public Task<Result<Reservation>> FinishReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
         {
             LastLifecycleReservationId = reservationId;
             LastLifecycleWaiterId = waiterId;
@@ -451,15 +452,15 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             var entity = SeedReservations.SingleOrDefault(x => x.Id == reservationId);
             if (entity is null)
-                return Task.FromResult<Reservation?>(null);
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.ReservationNotFound));
 
             if (entity.WaiterId != waiterId)
-                throw new UnauthorizedAccessException("Forbidden.");
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.Forbidden));
 
             entity.Status = ReservationStatus.Finished;
             entity.ActualEndTime = DateTimeOffset.UtcNow.ToString("O");
             entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
-            return Task.FromResult<Reservation?>(entity);
+            return Task.FromResult(Result.Ok(entity));
         }
     }
 
@@ -505,16 +506,19 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             });
         }
 
-        public Task<IReadOnlyList<Location>> GetLocationsAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyList<Location>>(Locations.ToList());
+        public Task<Result<IReadOnlyList<Location>>> GetLocationsAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Ok<IReadOnlyList<Location>>(Locations.ToList()));
 
-        public Task<IReadOnlyList<Location>> GetLocationOptionsAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyList<Location>>(Options.ToList());
+        public Task<Result<IReadOnlyList<Location>>> GetLocationOptionsAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Ok<IReadOnlyList<Location>>(Options.ToList()));
 
-        public Task<Location?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+        public Task<Result<Location>> GetByIdAsync(string id, CancellationToken cancellationToken = default)
         {
             LastGetByIdId = id;
-            return Task.FromResult<Location?>(Locations.SingleOrDefault(x => x.Id == id));
+            var location = Locations.SingleOrDefault(x => x.Id == id);
+            if (location is null)
+                return Task.FromResult(Result.Fail<Location>(LocationErrors.NotFound));
+            return Task.FromResult(Result.Ok(location));
         }
     }
 
@@ -549,7 +553,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             };
         }
 
-        public Task<FeedbackPaginatedDto> GetFeedbacksForLocation(
+        public Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(
             string locationId,
             int size,
             string type,
@@ -562,7 +566,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastSort = sort.ToList();
             LastPageToken = pageToken;
 
-            return Task.FromResult(Response);
+            return Task.FromResult(Result.Ok(Response));
         }
     }
 
@@ -583,26 +587,26 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             DishesByLocation["loc-1"] = Array.Empty<Dish>();
         }
 
-        public Task<IReadOnlyList<Dish>> GetSpecialityDishesByLocationIdAsync(
+        public Task<Result<IReadOnlyList<Dish>>> GetSpecialityDishesByLocationIdAsync(
             string locationId,
             CancellationToken cancellationToken = default)
         {
             LastLocationId = locationId;
 
             if (DishesByLocation.TryGetValue(locationId, out var dishes))
-                return Task.FromResult(dishes);
+                return Task.FromResult(Result.Ok(dishes));
 
-            return Task.FromResult<IReadOnlyList<Dish>>(Array.Empty<Dish>());
+            return Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(Array.Empty<Dish>()));
         }
 
-        public Task<IReadOnlyList<Dish>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyList<Dish>>(Array.Empty<Dish>());
+        public Task<Result<IReadOnlyList<Dish>>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(Array.Empty<Dish>()));
     }
 
     public sealed class FakeTableService : ITableService
     {
         public List<TableWithAvailableSlots> Response { get; } = new();
-        public Exception? Exception { get; set; }
+        public BusinessError? FailResult { get; set; }
 
         public DateOnly? LastDate { get; private set; }
         public TimeOnly? LastTime { get; private set; }
@@ -617,7 +621,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public void Reset()
         {
             Response.Clear();
-            Exception = null;
+            FailResult = null;
             LastDate = null;
             LastTime = null;
             LastLocationId = null;
@@ -637,7 +641,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             });
         }
 
-        public Task<IList<TableWithAvailableSlots>> GetAvailableTablesAsync(
+        public Task<Result<IList<TableWithAvailableSlots>>> GetAvailableTablesAsync(
             DateOnly date,
             TimeOnly? time,
             string? locationId,
@@ -649,10 +653,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastLocationId = locationId;
             LastCapacity = capacity;
 
-            if (Exception is not null)
-                throw Exception;
+            if (FailResult is not null)
+                return Task.FromResult(Result.Fail<IList<TableWithAvailableSlots>>(FailResult));
 
-            return Task.FromResult<IList<TableWithAvailableSlots>>(Response.ToList());
+            return Task.FromResult(Result.Ok<IList<TableWithAvailableSlots>>(Response.ToList()));
         }
     }
 }

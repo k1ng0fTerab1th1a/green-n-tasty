@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Moq;
-using Restaurant.Core.Exceptions;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Models;
 
 namespace Restaurant.UnitTests.Services;
@@ -8,16 +8,15 @@ namespace Restaurant.UnitTests.Services;
 public sealed partial class ReservationServiceTests
 {
     [Fact]
-    public async Task CancelReservation_WhenReservationNotFound_ShouldThrowArgumentNullException()
+    public async Task CancelReservation_WhenReservationNotFound_ShouldReturnNotFoundError()
     {
         _repo.Setup(r => r.GetByIdAsync("missing", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Reservation?)null);
 
-        var act = async () => await _sut.CancelReservation("missing", "customer-1", isWaiter: false, ct: default);
+        var result = await _sut.CancelReservation("missing", "customer-1", isWaiter: false, ct: default);
 
-        await act.Should().ThrowAsync<ArgumentNullException>()
-            .WithMessage("Reservation does not exist*");
-
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.ReservationNotFound);
         _repo.Verify(r => r.GetByIdAsync("missing", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
         _locationRepo.VerifyNoOtherCalls();
@@ -26,7 +25,7 @@ public sealed partial class ReservationServiceTests
     }
 
     [Fact]
-    public async Task CancelReservation_WhenStatusIsNotReserved_ShouldThrowBusinessException()
+    public async Task CancelReservation_WhenStatusIsNotReserved_ShouldReturnNotCancellableError()
     {
         var reservation = new Reservation
         {
@@ -47,17 +46,16 @@ public sealed partial class ReservationServiceTests
         _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
 
-        var act = async () => await _sut.CancelReservation("r1", "customer-1", isWaiter: false, ct: default);
+        var result = await _sut.CancelReservation("r1", "customer-1", isWaiter: false, ct: default);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Only reserved reservations can be cancelled.");
-
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.NotCancellable);
         _repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task CancelReservation_WhenLessThan30MinutesBeforeStart_ShouldThrowBusinessException()
+    public async Task CancelReservation_WhenLessThan30MinutesBeforeStart_ShouldReturnTooLateToCancelError()
     {
         var reservation = new Reservation
         {
@@ -78,17 +76,16 @@ public sealed partial class ReservationServiceTests
         _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
 
-        var act = async () => await _sut.CancelReservation("r1", "customer-1", isWaiter: false, ct: default);
+        var result = await _sut.CancelReservation("r1", "customer-1", isWaiter: false, ct: default);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Reservation cannot be cancelled less than 30 minutes before it starts.");
-
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.TooLateToCancel);
         _repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task CancelReservation_WhenRepositoryReturnsFalse_ShouldThrowBusinessException()
+    public async Task CancelReservation_WhenRepositoryReturnsFalse_ShouldReturnCancellationFailedError()
     {
         var start = DateTimeOffset.UtcNow.AddHours(2);
         var end = start.AddHours(1);
@@ -117,18 +114,17 @@ public sealed partial class ReservationServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var act = async () => await _sut.CancelReservation("r1", "customer-1", isWaiter: false, ct: default);
+        var result = await _sut.CancelReservation("r1", "customer-1", isWaiter: false, ct: default);
 
-        await act.Should().ThrowAsync<BusinessException>()
-            .WithMessage("Failed to cancel reservation.");
-
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.CancellationFailed);
         _repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
         _repo.Verify(r => r.CancelReservationAsync(reservation, It.IsAny<List<string>>(), It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task CancelReservation_WhenValid_ShouldReturnTrue_AndCallRepositoryWithGeneratedSlots()
+    public async Task CancelReservation_WhenValid_ShouldReturnOk_AndCallRepositoryWithGeneratedSlots()
     {
         var start = DateTimeOffset.UtcNow.AddHours(3);
         var end = start.AddHours(1);
@@ -159,7 +155,7 @@ public sealed partial class ReservationServiceTests
 
         var result = await _sut.CancelReservation("r1", "customer-1", isWaiter: false, ct: default);
 
-        result.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
         _repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
         _repo.Verify(r => r.CancelReservationAsync(reservation, It.IsAny<List<string>>(), It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();

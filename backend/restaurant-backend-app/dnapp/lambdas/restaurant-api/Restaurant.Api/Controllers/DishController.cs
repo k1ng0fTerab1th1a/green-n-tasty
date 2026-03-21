@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.Contracts.Responses;
+using Restaurant.Api.Extensions;
 using Restaurant.Api.Mappers;
 using Restaurant.Core.Interfaces.Services;
 
@@ -11,11 +12,13 @@ public class DishController(IDishService _dishService) : ControllerBase
 {
     [HttpGet("popular")]
     [ProducesResponseType(typeof(ApiResponse<List<DishShortResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetPopularDishes()
+    public async Task<ApiResponse<List<DishShortResponse>>> GetPopularDishes()
     {
-        var dishesEntities = await _dishService.GetPopularDishesAsync();
+        var result = await _dishService.GetPopularDishesAsync();
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<List<DishShortResponse>>();
 
-        var mappedDishes = dishesEntities.Select(dish => dish.ToShortResponse()).ToList();
+        var mappedDishes = result.Value.Select(dish => dish.ToShortResponse()).ToList();
 
         return ApiResponse<List<DishShortResponse>>.Success(StatusCodes.Status200OK, mappedDishes);
     }

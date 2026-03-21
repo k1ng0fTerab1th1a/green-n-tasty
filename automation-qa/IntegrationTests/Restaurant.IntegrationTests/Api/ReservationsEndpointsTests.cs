@@ -1,8 +1,8 @@
 ﻿using FluentAssertions;
 using Restaurant.Api.Tests;
 using System.Net;
-using System.Text;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 
 namespace Restaurant.IntegrationTests.Api;
@@ -383,18 +383,18 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
     }
 
     [Fact]
-    public async Task Delete_WhenServiceReturnsFalse_ShouldReturn500()
+    public async Task Delete_WhenServiceFails_ShouldReturn400()
     {
         _factory.ReservationService.Reset();
         _factory.ReservationService.CancelShouldSucceed = false;
 
         var res = await _client.SendAsync(Authed(HttpMethod.Delete, "/reservations/r-customer-1", userId: "customer-1"));
 
-        res.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
         doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
-        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("During reservation cancellation something went wrong");
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Failed to cancel reservation.");
     }
 
     [Fact]

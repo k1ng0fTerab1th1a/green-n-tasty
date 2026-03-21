@@ -1,7 +1,8 @@
 ﻿using Amazon.CognitoIdentityProvider;
 using Amazon.CognitoIdentityProvider.Model;
+using FluentResults;
 using Microsoft.Extensions.Configuration;
-using Restaurant.Core.Exceptions;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Services;
 
 namespace Restaurant.Infrastructure.Services;
@@ -25,7 +26,7 @@ public class CognitoService : ICognitoService
 
     public string GetUserPoolId() => _userPoolId;
 
-    public async Task<string> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER")
+    public async Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER")
     {
         try
         {
@@ -56,11 +57,11 @@ public class CognitoService : ICognitoService
         }
         catch (UsernameExistsException)
         {
-            throw new UserAlreadyExistsException();
+            return AuthErrors.UserAlreadyExists;
         }
     }
 
-    public async Task<(string IdToken, string RefreshToken)> SignInAsync(string email, string password)
+    public async Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password)
     {
         try
         {
@@ -81,15 +82,15 @@ public class CognitoService : ICognitoService
         }
         catch (NotAuthorizedException)
         {
-            throw new InvalidCredentialsException();
+            return AuthErrors.InvalidCredentials;
         }
         catch (UserNotFoundException)
         {
-            throw new InvalidCredentialsException();
+            return AuthErrors.InvalidCredentials;
         }
     }
 
-    public async Task DeleteUserAsync(string email)
+    public async Task<Result> DeleteUserAsync(string email)
     {
         try
         {
@@ -100,10 +101,11 @@ public class CognitoService : ICognitoService
             };
 
             await _client.AdminDeleteUserAsync(request);
+            return Result.Ok();
         }
         catch (UserNotFoundException)
         {
-            throw new UserNotFoundException($"User with email {email} not found.");
+            return AuthErrors.UserNotFound;
         }
     }
 
@@ -124,7 +126,7 @@ public class CognitoService : ICognitoService
         return response.AuthenticationResult.AccessToken;
     }
 
-    public async Task SignOutAsync(string refreshToken)
+    public async Task<Result> SignOutAsync(string refreshToken)
     {
         var request = new RevokeTokenRequest
         {
@@ -135,14 +137,15 @@ public class CognitoService : ICognitoService
         try
         {
             await _client.RevokeTokenAsync(request);
+            return Result.Ok();
         }
         catch (UnsupportedOperationException)
         {
-            throw new AuthException("Token revocation is not supported or enabled.");
+            throw;
         }
-        catch (Exception)
+        catch (AmazonCognitoIdentityProviderException)
         {
-            throw new AuthException("Failed to log out due to an internal authentication error.");
+            return AuthErrors.SignOutFailed;
         }
     }
 }
