@@ -1,4 +1,6 @@
+using Amazon;
 using Amazon.CognitoIdentityProvider;
+using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -74,6 +76,14 @@ public class Startup
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<IWaiterScheduleRepository, WaiterScheduleRepository>();
 
+        services.AddSingleton<IAmazonS3>(sp =>
+        {
+            var bucketRegion = RegionEndpoint.GetBySystemName(
+                Environment.GetEnvironmentVariable("AWS_REGION") ?? "eu-west-2"
+            );
+
+            return new AmazonS3Client(bucketRegion);
+        });
 
         services.AddAuthorization();
         services.AddCors(options =>
