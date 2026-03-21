@@ -184,11 +184,13 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public bool? LastCancelIsWaiter { get; private set; }
         public bool CancelShouldSucceed { get; set; }
         public List<WaiterCustomerLookupDTO> CustomerLookupResults { get; } = new();
-
         public string? LastSearchActorUserId { get; private set; }
         public string? LastSearchQuery { get; private set; }
         public string? LastCreateForWaiterActorUserId { get; private set; }
         public CreateReservationForWaiterDTO? LastCreateForWaiterDto { get; private set; }
+        public string? LastLifecycleReservationId { get; private set; }
+        public string? LastLifecycleWaiterId { get; private set; }
+        public string? LastLifecycleAction { get; private set; }
 
         public FakeReservationService()
         {
@@ -209,18 +211,25 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastSearchQuery = null;
             LastCreateForWaiterActorUserId = null;
             LastCreateForWaiterDto = null;
+            LastLifecycleReservationId = null;
+            LastLifecycleWaiterId = null;
+            LastLifecycleAction = null;
 
             SeedReservations.Add(new Reservation
             {
                 Id = "r-customer-1",
                 CustomerId = "customer-1",
+                CustomerName = "Anna Smith",
                 WaiterId = "waiter-1",
+                WaiterName = "Walter One",
                 LocationId = "loc-1",
                 LocationAddress = "Main street 1",
                 TableNumber = 3,
                 TableKey = "loc-1#3",
                 StartDateTime = "2026-03-05T10:00:00.0000000Z",
                 EndDateTime = "2026-03-05T11:30:00.0000000Z",
+                ActualStartTime = null,
+                ActualEndTime = null,
                 GuestsCount = 2,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = false,
@@ -233,13 +242,17 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             {
                 Id = "r-customer-2",
                 CustomerId = "customer-2",
+                CustomerName = "John Doe",
                 WaiterId = "waiter-1",
+                WaiterName = "Walter One",
                 LocationId = "loc-2",
                 LocationAddress = "Second street 2",
                 TableNumber = 7,
                 TableKey = "loc-2#7",
                 StartDateTime = "2026-03-06T12:00:00.0000000Z",
                 EndDateTime = "2026-03-06T13:30:00.0000000Z",
+                ActualStartTime = null,
+                ActualEndTime = null,
                 GuestsCount = 4,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = false,
@@ -313,13 +326,17 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             {
                 Id = "r-created-1",
                 CustomerId = customerId,
+                CustomerName = $"Customer {customerId}",
                 WaiterId = "waiter-auto",
+                WaiterName = "Auto Waiter",
                 LocationId = dto.LocationId,
                 LocationAddress = "Generated address",
                 TableNumber = dto.TableNumber,
                 TableKey = $"{dto.LocationId}#{dto.TableNumber}",
                 StartDateTime = start.ToString("O"),
                 EndDateTime = end.ToString("O"),
+                ActualStartTime = null,
+                ActualEndTime = null,
                 GuestsCount = dto.GuestsCount,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = false,
@@ -345,13 +362,17 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             {
                 Id = $"r-waiter-created-{SeedReservations.Count + 1}",
                 CustomerId = dto.CustomerId,
+                CustomerName = dto.CustomerId is null ? null : $"Customer {dto.CustomerId}",
                 WaiterId = waiterId,
+                WaiterName = $"Waiter {waiterId}",
                 LocationId = dto.LocationId,
                 LocationAddress = "Main street 1",
                 TableNumber = dto.TableNumber,
                 TableKey = $"{dto.LocationId}#{dto.TableNumber}",
                 StartDateTime = start.ToString("O"),
                 EndDateTime = end.ToString("O"),
+                ActualStartTime = null,
+                ActualEndTime = null,
                 GuestsCount = dto.GuestsCount,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = true,
@@ -385,12 +406,69 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             throw new NotImplementedException();
         }
+
+        public Task<Result<Reservation>> StartReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
+        {
+            LastLifecycleReservationId = reservationId;
+            LastLifecycleWaiterId = waiterId;
+            LastLifecycleAction = "start";
+
+            var entity = SeedReservations.SingleOrDefault(x => x.Id == reservationId);
+            if (entity is null)
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.ReservationNotFound));
+
+            if (entity.WaiterId != waiterId)
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.Forbidden));
+
+            entity.Status = ReservationStatus.InProgress;
+            entity.ActualStartTime = DateTimeOffset.UtcNow.ToString("O");
+            entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
+            return Task.FromResult(Result.Ok(entity));
+        }
+
+        public Task<Result<Reservation>> MarkMealsServedAsync(string reservationId, string waiterId, CancellationToken ct = default)
+        {
+            LastLifecycleReservationId = reservationId;
+            LastLifecycleWaiterId = waiterId;
+            LastLifecycleAction = "meals-served";
+
+            var entity = SeedReservations.SingleOrDefault(x => x.Id == reservationId);
+            if (entity is null)
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.ReservationNotFound));
+
+            if (entity.WaiterId != waiterId)
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.Forbidden));
+
+            entity.Status = ReservationStatus.MealsServed;
+            entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
+            return Task.FromResult(Result.Ok(entity));
+        }
+
+        public Task<Result<Reservation>> FinishReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
+        {
+            LastLifecycleReservationId = reservationId;
+            LastLifecycleWaiterId = waiterId;
+            LastLifecycleAction = "finish";
+
+            var entity = SeedReservations.SingleOrDefault(x => x.Id == reservationId);
+            if (entity is null)
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.ReservationNotFound));
+
+            if (entity.WaiterId != waiterId)
+                return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.Forbidden));
+
+            entity.Status = ReservationStatus.Finished;
+            entity.ActualEndTime = DateTimeOffset.UtcNow.ToString("O");
+            entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
+            return Task.FromResult(Result.Ok(entity));
+        }
     }
 
     public sealed class FakeLocationService : ILocationService
     {
         public List<Location> Locations { get; } = new();
         public List<Location> Options { get; } = new();
+        public string? LastGetByIdId { get; private set; }
 
         public FakeLocationService()
         {
@@ -401,6 +479,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             Locations.Clear();
             Options.Clear();
+            LastGetByIdId = null;
 
             var item = new Location
             {
@@ -432,6 +511,15 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public Task<Result<IReadOnlyList<Location>>> GetLocationOptionsAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(Result.Ok<IReadOnlyList<Location>>(Options.ToList()));
+
+        public Task<Result<Location>> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+        {
+            LastGetByIdId = id;
+            var location = Locations.SingleOrDefault(x => x.Id == id);
+            if (location is null)
+                return Task.FromResult(Result.Fail<Location>(LocationErrors.NotFound));
+            return Task.FromResult(Result.Ok(location));
+        }
     }
 
     public sealed class FakeFeedbackService : IFeedbackService

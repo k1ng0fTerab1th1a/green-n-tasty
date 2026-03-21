@@ -4,6 +4,7 @@ using Restaurant.Api.Extensions;
 using Restaurant.Api.Mappers;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Services;
+
 namespace Restaurant.Api.Controllers;
 
 [ApiController]
@@ -26,7 +27,6 @@ public sealed class LocationsController(IFeedbackService _feedbackService, ILoca
         return ApiResponse<FeedbackPaginatedDto>.Success(StatusCodes.Status200OK, result.Value);
     }
 
-
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<LocationResponse[]>), StatusCodes.Status200OK)]
     public async Task<ApiResponse<LocationResponse[]>> GetLocations(CancellationToken cancellationToken)
@@ -36,6 +36,18 @@ public sealed class LocationsController(IFeedbackService _feedbackService, ILoca
             return result.Errors[0].ToApiResponse<LocationResponse[]>();
 
         return ApiResponse<LocationResponse[]>.Success(StatusCodes.Status200OK, result.Value.Select(l => l.ToResponse()).ToArray());
+    }
+
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<LocationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<ApiResponse<LocationResponse>> GetLocationById([FromRoute] string id, CancellationToken cancellationToken)
+    {
+        var result = await _locationService.GetByIdAsync(id, cancellationToken);
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<LocationResponse>();
+
+        return ApiResponse<LocationResponse>.Success(StatusCodes.Status200OK, result.Value.ToResponse());
     }
 
     [HttpGet("{id}/speciality-dishes")]

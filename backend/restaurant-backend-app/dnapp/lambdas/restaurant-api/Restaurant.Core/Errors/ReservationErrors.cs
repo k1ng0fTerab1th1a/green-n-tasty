@@ -32,4 +32,15 @@ public static class ReservationErrors
     public static BusinessError DurationTooShort => new("Minimum booking duration is 60 minutes.", ErrorType.Validation);
     public static BusinessError DurationTooLong => new("Maximum booking duration is 6 hours.", ErrorType.Validation);
     public static BusinessError PastDateTime => new("Cannot book for a past date or time.", ErrorType.Validation);
+
+    public static BusinessError WaiterNotFound => new("Waiter not found.", ErrorType.NotFound);
+
+    public static BusinessError NotStartable => new("Only reserved reservations can be started.", ErrorType.Validation);
+    public static BusinessError StartFailed => new("Failed to start reservation.", ErrorType.Validation);
+
+    public static BusinessError NotMarkable => new("Only in-progress reservations can be marked as meals served.", ErrorType.Validation);
+    public static BusinessError MarkFailed => new("Failed to mark meals as served.", ErrorType.Validation);
+
+    public static BusinessError NotFinishable => new("Only meals-served reservations can be finished.", ErrorType.Validation);
+    public static BusinessError FinishFailed => new("Failed to finish reservation.", ErrorType.Validation);
 }

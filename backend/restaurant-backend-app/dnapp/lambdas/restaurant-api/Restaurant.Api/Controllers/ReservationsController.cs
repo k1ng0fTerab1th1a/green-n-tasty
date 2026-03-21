@@ -133,5 +133,55 @@ public sealed class ReservationsController : ControllerBase
 
         return ApiResponse<ReservationResponse>.Success(StatusCodes.Status200OK, result.Value.ToResponse());
     }
-}
 
+    [HttpPost("{id}/start")]
+    [ProducesResponseType(typeof(ApiResponse<ReservationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<ApiResponse<ReservationResponse>> StartReservation([FromRoute] string id, CancellationToken ct)
+    {
+        if (!User.IsWaiter())
+            return ApiResponse<ReservationResponse>.Fail(StatusCodes.Status403Forbidden, "Forbidden.");
+
+        var waiterId = User.GetUserId();
+        var result = await _reservationService.StartReservationAsync(id, waiterId, ct);
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<ReservationResponse>();
+
+        return ApiResponse<ReservationResponse>.Success(StatusCodes.Status200OK, result.Value.ToResponse());
+    }
+
+    [HttpPost("{id}/meals-served")]
+    [ProducesResponseType(typeof(ApiResponse<ReservationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<ApiResponse<ReservationResponse>> MarkMealsServed([FromRoute] string id, CancellationToken ct)
+    {
+        if (!User.IsWaiter())
+            return ApiResponse<ReservationResponse>.Fail(StatusCodes.Status403Forbidden, "Forbidden.");
+
+        var waiterId = User.GetUserId();
+        var result = await _reservationService.MarkMealsServedAsync(id, waiterId, ct);
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<ReservationResponse>();
+
+        return ApiResponse<ReservationResponse>.Success(StatusCodes.Status200OK, result.Value.ToResponse());
+    }
+
+    [HttpPost("{id}/finish")]
+    [ProducesResponseType(typeof(ApiResponse<ReservationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<ApiResponse<ReservationResponse>> FinishReservation([FromRoute] string id, CancellationToken ct)
+    {
+        if (!User.IsWaiter())
+            return ApiResponse<ReservationResponse>.Fail(StatusCodes.Status403Forbidden, "Forbidden.");
+
+        var waiterId = User.GetUserId();
+        var result = await _reservationService.FinishReservationAsync(id, waiterId, ct);
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<ReservationResponse>();
+
+        return ApiResponse<ReservationResponse>.Success(StatusCodes.Status200OK, result.Value.ToResponse());
+    }
+}

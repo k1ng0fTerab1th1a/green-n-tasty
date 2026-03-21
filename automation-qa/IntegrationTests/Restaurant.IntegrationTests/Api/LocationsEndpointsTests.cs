@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using Restaurant.Api.Tests;
+using Microsoft.AspNetCore.Http;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Models;
 using System.Net;
@@ -69,6 +70,77 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
         var data = doc.RootElement.GetPropertyIgnoreCase("data");
         data.ValueKind.Should().Be(JsonValueKind.Array);
         data.GetArrayLength().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetLocationById_WhenLocationExists_ShouldReturn200_AndMapAllFields()
+    {
+        _factory.LocationService.Reset();
+        _factory.LocationService.Locations.Clear();
+        _factory.LocationService.Locations.Add(new Location
+        {
+            Id = "loc-42",
+            Address = "Berlin, Test str 1",
+            TimeZone = "Europe/Berlin",
+            OpenTime = "09:00",
+            CloseTime = "23:00",
+            Description = "Panoramic hall",
+            TotalCapacity = 120,
+            AverageOccupancy = 0.354,
+            ImageUrl = "http://img/loc-42",
+            Rating = 4.64
+        });
+
+        var res = await _client.GetAsync("/locations/loc-42");
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.LocationService.LastGetByIdId.Should().Be("loc-42");
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+
+        var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.GetPropertyIgnoreCase("id").GetString().Should().Be("loc-42");
+        data.GetPropertyIgnoreCase("address").GetString().Should().Be("Berlin, Test str 1");
+        data.GetPropertyIgnoreCase("timeZone").GetString().Should().Be("Europe/Berlin");
+        data.GetPropertyIgnoreCase("openTime").GetString().Should().Be("09:00");
+        data.GetPropertyIgnoreCase("closeTime").GetString().Should().Be("23:00");
+        data.GetPropertyIgnoreCase("description").GetString().Should().Be("Panoramic hall");
+        data.GetPropertyIgnoreCase("totalCapacity").GetInt32().Should().Be(120);
+        data.GetPropertyIgnoreCase("averageOccupancy").GetDouble().Should().BeApproximately(0.354, 0.001);
+        data.GetPropertyIgnoreCase("imageUrl").GetString().Should().Be("http://img/loc-42");
+        data.GetPropertyIgnoreCase("rating").GetDouble().Should().BeApproximately(4.64, 0.01);
+    }
+
+    [Fact]
+    public async Task GetLocationById_WhenLocationDoesNotExist_ShouldReturn404()
+    {
+        _factory.LocationService.Reset();
+        _factory.LocationService.Locations.Clear();
+
+        var res = await _client.GetAsync("/locations/missing-id");
+
+        res.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        _factory.LocationService.LastGetByIdId.Should().Be("missing-id");
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Location not found.");
+    }
+
+    [Fact]
+    public async Task GetLocationById_WhenIdIsWhitespace_ShouldReturn400()
+    {
+        _factory.LocationService.Reset();
+
+        var res = await _client.GetAsync("/locations/%20");
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        _factory.LocationService.LastGetByIdId.Should().BeNull();
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("status").GetInt32().Should().Be(StatusCodes.Status400BadRequest);
+        doc.RootElement.GetPropertyIgnoreCase("title").GetString().Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]

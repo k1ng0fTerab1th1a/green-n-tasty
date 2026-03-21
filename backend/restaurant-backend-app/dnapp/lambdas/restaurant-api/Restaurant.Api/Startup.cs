@@ -38,7 +38,8 @@ public class Startup
                     ValidateIssuer = true,
                     ValidIssuer = cognitoIssuer,
                     ValidateLifetime = true,
-                    ValidateAudience = false
+                    ValidateAudience = false,
+                    RoleClaimType = "custom:role"
                 };
             });
 

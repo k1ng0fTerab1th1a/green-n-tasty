@@ -96,17 +96,27 @@ public sealed class ReservationService : IReservationService
         var schedule = await _waiterScheduleRepo.GetAsync($"{dto.LocationId}#{dto.TableNumber}", dto.Date.ToString("yyyy-MM-dd"), ct);
         if (schedule is null) return ReservationErrors.NoWaiterAssigned;
 
+        var waiter = await _userRepository.GetByIdAsync(schedule.WaiterId, ct);
+        if (waiter is null) return ReservationErrors.WaiterNotFound;
+
+        var customer = await _userRepository.GetByIdAsync(customerId, ct);
+        if (customer is null) return ReservationErrors.CustomerNotFound;
+
         var reservation = new Reservation
         {
             Id = Guid.NewGuid().ToString(),
             CustomerId = customerId,
+            CustomerName = $"{customer.FirstName} {customer.LastName}",
             WaiterId = schedule.WaiterId,
+            WaiterName = $"{waiter.FirstName} {waiter.LastName}",
             LocationId = dto.LocationId,
             LocationAddress = location.Address,
             TableNumber = dto.TableNumber,
             TableKey = $"{dto.LocationId}#{dto.TableNumber}",
             StartDateTime = start.ToString("yyyy-MM-ddTHH:mmzzz"),
             EndDateTime = end.ToString("yyyy-MM-ddTHH:mmzzz"),
+            ActualStartTime = null,
+            ActualEndTime = null,
             GuestsCount = dto.GuestsCount,
             Status = ReservationStatus.Reserved,
             IsCreatedByWaiter = false,
@@ -138,6 +148,7 @@ public sealed class ReservationService : IReservationService
         if ((customerId is null && visitorName is null) || (customerId is not null && visitorName is not null))
             return ReservationErrors.CustomerOrVisitorRequired;
 
+        string? customerName = null;
         if (customerId is not null)
         {
             var customer = await _userRepository.GetByIdAsync(customerId, ct);
@@ -145,6 +156,8 @@ public sealed class ReservationService : IReservationService
 
             if (!string.Equals(customer.Role, CustomerRole, StringComparison.OrdinalIgnoreCase))
                 return ReservationErrors.CustomerNotFound;
+
+            customerName = $"{customer.FirstName} {customer.LastName}";
         }
 
         var location = await _locationRepo.GetByIdAsync(dto.LocationId, ct);
@@ -169,13 +182,17 @@ public sealed class ReservationService : IReservationService
         {
             Id = Guid.NewGuid().ToString(),
             CustomerId = customerId,
+            CustomerName = customerName,
             WaiterId = waiterId,
+            WaiterName = $"{actor.FirstName} {actor.LastName}",
             LocationId = dto.LocationId,
             LocationAddress = location.Address,
             TableNumber = dto.TableNumber,
             TableKey = $"{dto.LocationId}#{dto.TableNumber}",
             StartDateTime = start.ToString("yyyy-MM-ddTHH:mmzzz"),
             EndDateTime = end.ToString("yyyy-MM-ddTHH:mmzzz"),
+            ActualStartTime = null,
+            ActualEndTime = null,
             GuestsCount = dto.GuestsCount,
             Status = ReservationStatus.Reserved,
             IsCreatedByWaiter = true,
@@ -287,5 +304,91 @@ public sealed class ReservationService : IReservationService
         if (updated is null) return ReservationErrors.UpdateFailed;
 
         return updated;
+    }
+
+    public async Task<Result<Reservation>> StartReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
+    {
+        var getResult = await GetByIdAsync(reservationId, waiterId, actorIsWaiter: true, ct);
+        if (getResult.IsFailed) return getResult;
+
+        var reservation = getResult.Value;
+
+        if (reservation.Status != ReservationStatus.Reserved)
+            return ReservationErrors.NotStartable;
+
+        var now = DateTimeOffset.UtcNow.ToString("O");
+        reservation.Status = ReservationStatus.InProgress;
+        reservation.ActualStartTime ??= now;
+        reservation.UpdatedAt = now;
+
+        var success = await _repo.UpdateLifecycleAsync(
+            reservation,
+            ReservationStatus.Reserved,
+            ReservationStatus.InProgress,
+            slotsToRelease: null,
+            ct);
+
+        if (!success)
+            return ReservationErrors.StartFailed;
+
+        return reservation;
+    }
+
+    public async Task<Result<Reservation>> MarkMealsServedAsync(string reservationId, string waiterId, CancellationToken ct = default)
+    {
+        var getResult = await GetByIdAsync(reservationId, waiterId, actorIsWaiter: true, ct);
+        if (getResult.IsFailed) return getResult;
+
+        var reservation = getResult.Value;
+
+        if (reservation.Status != ReservationStatus.InProgress)
+            return ReservationErrors.NotMarkable;
+
+        reservation.Status = ReservationStatus.MealsServed;
+        reservation.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
+
+        var success = await _repo.UpdateLifecycleAsync(
+            reservation,
+            ReservationStatus.InProgress,
+            ReservationStatus.MealsServed,
+            slotsToRelease: null,
+            ct);
+
+        if (!success)
+            return ReservationErrors.MarkFailed;
+
+        return reservation;
+    }
+
+    public async Task<Result<Reservation>> FinishReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
+    {
+        var getResult = await GetByIdAsync(reservationId, waiterId, actorIsWaiter: true, ct);
+        if (getResult.IsFailed) return getResult;
+
+        var reservation = getResult.Value;
+
+        if (reservation.Status != ReservationStatus.MealsServed)
+            return ReservationErrors.NotFinishable;
+
+        var actualEnd = DateTimeOffset.UtcNow.ToString("O");
+        reservation.Status = ReservationStatus.Finished;
+        reservation.ActualEndTime = actualEnd;
+        reservation.UpdatedAt = actualEnd;
+
+        var slots = ReservationTimeHelper.GenerateSlots(
+            DateTimeOffset.Parse(reservation.StartDateTime),
+            DateTimeOffset.Parse(reservation.EndDateTime));
+
+        var success = await _repo.UpdateLifecycleAsync(
+            reservation,
+            ReservationStatus.MealsServed,
+            ReservationStatus.Finished,
+            slots,
+            ct);
+
+        if (!success)
+            return ReservationErrors.FinishFailed;
+
+        return reservation;
     }
 }
