@@ -20,43 +20,40 @@ export default function ReservationForm({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
 
-    const cleanTimeStr = (str) => str ? str.toLowerCase().replace(/\./g, '') : "";
+    const cleanTimeStr = (str) => str ? str.trim() : "";
 
     const rangeStart = useMemo(() => {
         const start = isEditMode
-            ? (tableInfo?.workingHoursStart || "10:00 am")
+            ? (tableInfo?.workingHoursStart || "10:00")
             : (selectedSlot?.split(" - ")[0] || tableInfo?.timeFrom || "");
         return cleanTimeStr(start);
     }, [isEditMode, tableInfo, selectedSlot]);
 
     const rangeEnd = useMemo(() => {
         const end = isEditMode
-            ? (tableInfo?.workingHoursEnd || "11:00 pm")
+            ? (tableInfo?.workingHoursEnd || "22:00")
             : (selectedSlot?.split(" - ")[1] || tableInfo?.timeTo || "");
         return cleanTimeStr(end);
     }, [isEditMode, tableInfo, selectedSlot]);
 
-    const [timeFrom, setTimeFrom] = useState(cleanTimeStr(tableInfo?.timeFrom) || rangeStart);
-    const [timeTo, setTimeTo] = useState(cleanTimeStr(tableInfo?.timeTo) || rangeEnd);
+    const [timeFrom, setTimeFrom] = useState("");
+    const [timeTo, setTimeTo] = useState("");
 
     useEffect(() => {
         if (isOpen && tableInfo) {
             setGuests(tableInfo.guestsCount || 1);
-            setTimeFrom(cleanTimeStr(tableInfo.timeFrom));
-            setTimeTo(cleanTimeStr(tableInfo.timeTo));
+            setTimeFrom(cleanTimeStr(tableInfo.timeFrom) || rangeStart);
+            setTimeTo(cleanTimeStr(tableInfo.timeTo) || rangeEnd);
             setError("");
         }
-    }, [isOpen, tableInfo]);
+    }, [isOpen, tableInfo, rangeStart, rangeEnd]);
 
     const generateTimeSteps = (startStr, endStr) => {
         if (!startStr || !endStr) return [];
         const steps = [];
 
         const parseTimeToDate = (timeStr) => {
-            const [time, modifier] = timeStr.split(" ");
-            let [hours, minutes] = time.split(":");
-            if (hours === "12") hours = modifier === "am" ? "00" : "12";
-            else if (modifier === "pm") hours = parseInt(hours, 10) + 12;
+            const [hours, minutes] = timeStr.split(":");
             const d = new Date();
             d.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
             return d;
@@ -64,18 +61,18 @@ export default function ReservationForm({
 
         try {
             let current = parseTimeToDate(startStr);
-            const end = parseTimeToDate(endStr);
+            let end = parseTimeToDate(endStr);
 
             if (end < current) {
                 end.setDate(end.getDate() + 1);
             }
 
             while (current <= end) {
-                const label = current.toLocaleTimeString("en-US", {
-                    hour: "numeric",
+                const label = current.toLocaleTimeString(undefined, {
+                    hour: "2-digit",
                     minute: "2-digit",
-                    hour12: true,
-                }).toLowerCase().replace(/\./g, ''); // Форматуємо без крапок
+                    hour12: false,
+                });
 
                 steps.push({ value: label, label: label });
                 current.setMinutes(current.getMinutes() + 15);
@@ -98,44 +95,31 @@ export default function ReservationForm({
         setError("");
 
         try {
+            const reservationData = {
+                guestNumber: guests,
+                tableNumber: tableInfo.tableNumber,
+                date: tableInfo.date,
+                timeFrom: timeFrom,
+                timeTo: timeTo,
+            };
+
             if (isEditMode) {
-                const updateData = {
-                    id: tableInfo.id,
-                    guestNumber: guests,
-                    tableNumber: tableInfo.tableNumber,
-                    date: tableInfo.date,
-                    timeFrom: timeFrom,
-                    timeTo: timeTo,
-                };
-                await updateReservation(updateData);
-                onSuccess(updateData);
+                await updateReservation({ ...reservationData, id: tableInfo.id });
+                onSuccess({ ...reservationData, id: tableInfo.id });
             } else {
                 if (!tableInfo?.locationId) {
                     setError("Error: Location ID is missing.");
                     setIsSubmitting(false);
                     return;
                 }
-
-                const reservationData = {
-                    locationId: tableInfo.locationId,
-                    tableNumber: tableInfo.tableNumber,
-                    date: tableInfo.date,
-                    timeFrom: timeFrom,
-                    timeTo: timeTo,
-                    guestsCount: guests
-                };
-
-                await createReservation(reservationData);
-                onSuccess(reservationData);
+                const createData = { ...reservationData, locationId: tableInfo.locationId, guestsCount: guests };
+                await createReservation(createData);
+                onSuccess(createData);
             }
             onClose();
         } catch (err) {
-            if (err.response && err.response.data) {
-                const serverData = err.response.data;
-                setError(serverData.message || serverData.title || "Operation failed.");
-            } else {
-                setError("Network error. Please check your connection.");
-            }
+            const serverData = err.response?.data;
+            setError(serverData?.message || serverData?.title || "Operation failed.");
         } finally {
             setIsSubmitting(false);
         }
