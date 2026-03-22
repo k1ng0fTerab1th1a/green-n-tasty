@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { signOut as signOutRequest } from "../services/auth";
+import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
+import { signOut as signOutRequest, refreshTokens } from "../services/auth";
 import { tokenStorage } from "../services/tokenStorage";
 
 const AuthContext = createContext(null);
@@ -12,30 +12,15 @@ export function AuthProvider({ children }) {
         email: "",
     });
 
-    useEffect(() => {
-        const session = tokenStorage.getSession();
+    const refresh = useCallback(async () => {
+        const { refreshToken } = tokenStorage.getSession();
+        if (!refreshToken) return;
 
-        if (session.idToken) {
-            setAuth({
-                isAuth: true,
-                username: session.username || "",
-                role: session.role || "",
-                email: session.email || "",
-            });
-        }
-    }, []);
+        try {
+            const res = await refreshTokens(refreshToken);
+            const { idToken, refreshToken: newRefreshToken, username, role, email } = res.data.data;
 
-    const value = useMemo(() => ({
-        auth,
-
-        signInSuccess: ({ idToken, refreshToken, username, role, email }) => {
-            tokenStorage.setSession({
-                idToken,
-                refreshToken,
-                username,
-                role,
-                email,
-            });
+            tokenStorage.setSession({ idToken, refreshToken: newRefreshToken, username, role, email });
 
             setAuth({
                 isAuth: true,
@@ -43,25 +28,62 @@ export function AuthProvider({ children }) {
                 role: role || "",
                 email: email || "",
             });
-        },
+            return idToken;
+        } catch (err) {
+            console.error("Silent refresh failed:", err);
+            tokenStorage.clear();
+            setAuth({ isAuth: false, username: "", role: "", email: "" });
+        }
+    }, []);
 
+    useEffect(() => {
+        if (!auth.isAuth) return;
+
+        const { idToken } = tokenStorage.getSession();
+        const remainingTime = getTokenRemainingTime(idToken);
+        const refreshDelay = Math.max(remainingTime - 60000, 0);
+
+        const timeoutId = setTimeout(() => {
+            refresh();
+        }, refreshDelay);
+
+        return () => clearTimeout(timeoutId);
+    }, [auth, refresh]);
+
+    useEffect(() => {
+        const session = tokenStorage.getSession();
+
+        if (session.idToken) {
+            const remaining = getTokenRemainingTime(session.idToken);
+
+            if (remaining <= 0) {
+                refresh();
+            } else {
+                setAuth({
+                    isAuth: true,
+                    username: session.username || "",
+                    role: session.role || "",
+                    email: session.email || "",
+                });
+            }
+        }
+    }, [refresh]);
+
+    const value = useMemo(() => ({
+        auth,
+        signInSuccess: ({ idToken, refreshToken, username, role, email }) => {
+            tokenStorage.setSession({ idToken, refreshToken, username, role, email });
+            setAuth({ isAuth: true, username: username || "", role: role || "", email: "" });
+        },
         signOut: async () => {
             const { refreshToken } = tokenStorage.getSession();
-
             try {
-                if (refreshToken) {
-                    await signOutRequest(refreshToken);
-                }
+                if (refreshToken) await signOutRequest(refreshToken);
             } catch (err) {
                 console.error("Sign out request failed:", err);
             } finally {
                 tokenStorage.clear();
-                setAuth({
-                    isAuth: false,
-                    username: "",
-                    role: "",
-                    email: "",
-                });
+                setAuth({ isAuth: false, username: "", role: "", email: "" });
             }
         },
     }), [auth]);
@@ -71,10 +93,17 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
     const context = useContext(AuthContext);
-
-    if (!context) {
-        throw new Error("useAuth must be used within AuthProvider");
-    }
-
+    if (!context) throw new Error("useAuth must be used within AuthProvider");
     return context;
 }
+
+const getTokenRemainingTime = (token) => {
+    if (!token) return 0;
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const exp = payload.exp * 1000;
+        return exp - Date.now();
+    } catch (e) {
+        return 0;
+    }
+};

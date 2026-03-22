@@ -14,6 +14,11 @@ export async function getLocationById(locationId) {
     return unwrap(response);
 }
 
+export async function getLocationsSelectOptions() {
+    const response = await api.get("/locations/select-options");
+    return unwrap(response);
+}
+
 export async function getLocationSpecialityDishes(locationId) {
     const response = await api.get(`/locations/${locationId}/speciality-dishes`);
     return unwrap(response);

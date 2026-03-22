@@ -30,7 +30,6 @@ export default function BookingCard({
                     <img src={pinIcon} alt="" className={styles.icon} />
                     <span className="body-bold">{address}</span>
                 </div>
-                {/* Застосовуємо нормалізований клас */}
                 <div className={`${styles.badge} ${statusClass}`}>
                     <span className="caption">{status}</span>
                 </div>
@@ -72,25 +71,14 @@ export default function BookingCard({
                     </>
                 )}
 
-                {statusKey === "inprogress" && (
+                {(statusKey === "inprogress" || statusKey === "finished") && (
                     <Button
                         variant="secondary"
                         size="lg"
                         fullWidth
                         onClick={onFeedback}
                     >
-                        Leave Feedback
-                    </Button>
-                )}
-
-                {statusKey === "finished" && (
-                    <Button
-                        variant="secondary"
-                        size="lg"
-                        fullWidth
-                        onClick={onFeedback}
-                    >
-                        {hasFeedback ? "Update Feedback" : "Leave Feedback"}
+                        {statusKey === "finished" && hasFeedback ? "Update Feedback" : "Leave Feedback"}
                     </Button>
                 )}
             </div>
