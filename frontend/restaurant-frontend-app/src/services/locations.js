@@ -10,9 +10,8 @@ export async function getLocations() {
 }
 
 export async function getLocationById(locationId) {
-    const locations = await getLocations();
-    if (!Array.isArray(locations)) return null;
-    return locations.find((item) => String(item.id) === String(locationId)) || null;
+    const response = await api.get(`/locations/${locationId}`);
+    return unwrap(response);
 }
 
 export async function getLocationSpecialityDishes(locationId) {
@@ -20,9 +19,23 @@ export async function getLocationSpecialityDishes(locationId) {
     return unwrap(response);
 }
 
-export async function getLocationFeedbacks(locationId, type) {
+export async function getLocationFeedbacks(locationId, type, sort = [], size = 20, pageToken = null) {
     const response = await api.get(`/locations/${locationId}/feedbacks`, {
-        params: { type }
+        params: {
+            type,
+            sort,
+            size,
+            pageToken
+        },
+        paramsSerializer: {
+            indexes: null
+        }
     });
-    return response.data?.data?.content ?? [];
+
+    const wrappedData = unwrap(response);
+    return {
+        items: wrappedData?.content ?? [],
+        totalElements: wrappedData?.size ?? 0,
+        nextPageToken: wrappedData?.nextPageToken ?? null
+    };
 }
