@@ -12,10 +12,10 @@ namespace Restaurant.Infrastructure.Repositories;
 public class FeedbackRepository(IDynamoDBContext context,
     IAmazonDynamoDB client) : IFeedbackRepository
 {
-    public async Task SaveAsync(Feedback feedback)
+    public async Task SaveAsync(Feedback feedback, CancellationToken ct = default)
     {
         feedback.LocationIdAndType = $"{feedback.LocationId}#{feedback.Type}";
-        await context.SaveAsync(feedback);
+        await context.SaveAsync(feedback, ct);
     }
 
     public async Task<FeedbackPaginatedDBResponseDto> GetByLocationAsync(string locationId,
@@ -72,5 +72,18 @@ public class FeedbackRepository(IDynamoDBContext context,
             Feedbacks = response.Items.Select(item => context.FromDocument<Feedback>(Document.FromAttributeMap(item))).ToList(),
             NextPageToken = nextToken
         };
+    }
+    
+    public async Task SaveBatchAsync(IEnumerable<Feedback> feedbacks, CancellationToken ct = default)
+    {
+        var batch = context.CreateBatchWrite<Feedback>();
+
+        foreach (var feedback in feedbacks)
+        {
+            feedback.LocationIdAndType = $"{feedback.LocationId}#{feedback.Type}";
+            batch.AddPutItem(feedback);
+        }
+
+        await batch.ExecuteAsync(ct);
     }
 }

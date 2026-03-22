@@ -12,12 +12,16 @@ using Xunit;
 public class FeedbackServiceTests
 {
     private readonly Mock<IFeedbackRepository> _repo;
+    private readonly Mock<IReservationRepository> _resRepo;
+    private readonly Mock<IUserRepository> _userRepo;
     private readonly FeedbackService _sut;
 
     public FeedbackServiceTests()
     {
         _repo = new Mock<IFeedbackRepository>(MockBehavior.Strict);
-        _sut = new FeedbackService(_repo.Object);
+        _resRepo = new Mock<IReservationRepository>(MockBehavior.Strict);
+        _userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
+        _sut = new FeedbackService(_repo.Object, _resRepo.Object, _userRepo.Object);
     }
 
     [Fact]

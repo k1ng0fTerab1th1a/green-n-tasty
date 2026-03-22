@@ -568,6 +568,11 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             return Task.FromResult(Result.Ok(Response));
         }
+
+        public Task<Result> SaveAuthorisedFeedback(CreateFeedbackDTO dto, string userId, CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public sealed class FakeDishService : IDishService

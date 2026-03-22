@@ -7,4 +7,6 @@ public interface IFeedbackService
 {
     Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(string locationId, int size, string type,
         List<string> sort, string? pageToken = null);
+
+    Task<Result> SaveAuthorisedFeedback(CreateFeedbackDTO dto, string userId, CancellationToken ct = default);
 }

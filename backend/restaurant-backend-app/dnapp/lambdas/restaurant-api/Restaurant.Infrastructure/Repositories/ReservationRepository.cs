@@ -50,7 +50,7 @@ public sealed class ReservationRepository : IReservationRepository
             search = _context.QueryAsync<Reservation>(
                 customerId,
                 QueryOperator.Between,
-                new[] { startFromIso!, startToIso! },
+                new[] { startFromIso, startToIso },
                 op);
         }
         else
@@ -78,7 +78,7 @@ public sealed class ReservationRepository : IReservationRepository
             search = _context.QueryAsync<Reservation>(
                 waiterId,
                 QueryOperator.Between,
-                new[] { startFromIso!, startToIso! },
+                new[] { startFromIso, startToIso },
                 op);
         }
         else

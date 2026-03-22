@@ -2,10 +2,12 @@
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
+using Restaurant.Core.Models;
 
 namespace Restaurant.Core.Services;
 
-public class FeedbackService(IFeedbackRepository feedbackRepository) : IFeedbackService
+public class FeedbackService(IFeedbackRepository feedbackRepository, IReservationRepository reservationRepository, 
+    IUserRepository userRepository) : IFeedbackService
 {
     public async Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(string locationId, int size, string type, List<string> sort, string? pageToken = null)
     {
@@ -25,5 +27,76 @@ public class FeedbackService(IFeedbackRepository feedbackRepository) : IFeedback
             }
         }
         return Result.Ok(result);
+    }
+
+    public async Task<Result> SaveAnonymousFeedback(CreateFeedbackDTO req, CancellationToken ct = default)
+    {
+        return null;
+    }
+
+    public async Task<Result> SaveAuthorisedFeedback(CreateFeedbackDTO dto, string userId, CancellationToken ct = 
+            default)
+    {
+        var reservation = await reservationRepository.GetByIdAsync(dto.ReservationId, ct);
+        if (reservation == null)
+            return Result.Fail("Reservation not found");
+
+        if (reservation.CustomerId != userId)
+            return Result.Fail("This reservation does not belong to you");
+
+        var user = await userRepository.GetByIdAsync(userId, ct);
+        List<Feedback> feedbacksToSave = new List<Feedback>();
+
+        if (dto.ServiceRating.HasValue)
+        {
+            if (reservation.Status < ReservationStatus.InProgress)
+            {
+                return Result.Fail("Service feedback is only available once the reservation is in progres");
+            }
+            
+            var serviceFeedback = new Feedback
+            {
+                Id = Guid.NewGuid().ToString(),
+                Rate = dto.ServiceRating.Value,
+                Comment = dto.ServiceComment ?? string.Empty,
+                UserId = userId,
+                UserName = user?.FirstName + user?.LastName,
+                UserAvatarUrl = user?.ImageUrl ?? string.Empty,
+                Date = DateTime.UtcNow.ToString("o"),
+                LocationId = reservation.LocationId,
+                LocationIdAndType = $"{reservation.LocationId}#waiter",
+                Type = "waiter"
+            };
+            
+            feedbacksToSave.Add(serviceFeedback);
+        }
+        
+        if (dto.CuisineRating.HasValue)
+        {
+            if (reservation.Status < ReservationStatus.MealsServed)
+                return Result.Fail("Cuisine feedback is only available once meals have been served");
+
+            var cuisineFeedback = new Feedback
+            {
+                Id = Guid.NewGuid().ToString(),
+                Rate = dto.CuisineRating.Value,
+                Comment = dto.CuisineComment ?? string.Empty,
+                UserId = userId,
+                UserName = user?.FirstName + user?.LastName,
+                UserAvatarUrl = user?.ImageUrl ?? string.Empty,
+                Date = DateTime.UtcNow.ToString("o"),
+                LocationId = reservation.LocationId,
+                LocationIdAndType = $"{reservation.LocationId}#kitchen",
+                Type = "kitchen"
+            };
+
+            feedbacksToSave.Add(cuisineFeedback);
+        }
+        
+        if (!feedbacksToSave.Any())
+            return Result.Fail("No feedback provided");
+
+        await feedbackRepository.SaveBatchAsync(feedbacksToSave, ct);
+        return Result.Ok();
     }
 }
