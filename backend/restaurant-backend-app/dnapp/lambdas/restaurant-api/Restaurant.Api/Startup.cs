@@ -1,6 +1,7 @@
 using Amazon;
 using Amazon.CognitoIdentityProvider;
 using Amazon.S3;
+using Amazon.SQS;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -39,7 +40,8 @@ public class Startup
                     ValidateIssuer = true,
                     ValidIssuer = cognitoIssuer,
                     ValidateLifetime = true,
-                    ValidateAudience = false
+                    ValidateAudience = false,
+                    RoleClaimType = "custom:role"
                 };
             });
 
@@ -57,6 +59,8 @@ public class Startup
 
             return new AmazonCognitoIdentityProviderClient(config);
         });
+        services.AddSingleton<IAmazonSQS>(_ => new AmazonSQSClient());
+        services.AddScoped<IEventPublisher, SqsEventPublisher>();
 
         services.AddScoped<ICognitoService, CognitoService>();
         services.AddScoped<IAuthService, AuthService>();

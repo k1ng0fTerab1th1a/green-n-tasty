@@ -1,5 +1,3 @@
-using Xunit;
-
 namespace Restaurant.Infrastructure.IntegrationTests;
 
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]

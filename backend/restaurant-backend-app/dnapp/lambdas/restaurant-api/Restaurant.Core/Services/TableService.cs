@@ -1,5 +1,6 @@
+using FluentResults;
 using Restaurant.Core.DTOs;
-using Restaurant.Core.Exceptions;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
@@ -15,7 +16,7 @@ public class TableService(
     private const int IGNORE_SLOT_IF_LESS_THAN_MINUTES = 60;
     private const int FORBID_IF_IN_FUTURE_MORE_THAN_DAYS = 14;
 
-    public async Task<IList<TableWithAvailableSlots>> GetAvailableTablesAsync(
+    public async Task<Result<IList<TableWithAvailableSlots>>> GetAvailableTablesAsync(
         DateOnly date,
         TimeOnly? time,
         string? locationId,
@@ -25,11 +26,11 @@ public class TableService(
         int daysInFuture = date.DayNumber - DateOnly.FromDateTime(DateTime.UtcNow).DayNumber;
         if (daysInFuture < 0)
         {
-            throw new BusinessException("Cannot find available slots in the past.");
+            return TableErrors.RequestedSlotsFromPast;
         }
         if (daysInFuture > FORBID_IF_IN_FUTURE_MORE_THAN_DAYS)
         {
-            throw new BusinessException("The date requested is too far in the future.");
+            return TableErrors.RequestedSlotsFromFarFuture;
         }
 
         IReadOnlyList<Table> tables = string.IsNullOrWhiteSpace(locationId)
