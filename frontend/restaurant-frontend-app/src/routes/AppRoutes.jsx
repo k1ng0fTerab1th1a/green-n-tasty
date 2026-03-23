@@ -7,6 +7,7 @@ import LocationPage from "../pages/Location/index.js";
 import ProfilePage from "../pages/ProfilePage/index.js";
 import SearchPage from "../pages/SearchPage/index.js";
 import ReservationsPage from "../pages/ReservationsPage/ReservationsPage.jsx";
+import MenuPage from "../pages/MenuPage/MenuPage.jsx";
 
 export default function AppRoutes() {
     return (
@@ -19,6 +20,7 @@ export default function AppRoutes() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/reservations" element={<ReservationsPage />} />
+            <Route path="/menu" element={<MenuPage />} />
         </Routes>
     );
 }

@@ -28,3 +28,4 @@ export { default as AvailableSlotsModal } from "./AvailableSlotsModal/AvailableS
 export { default as ConfirmationModal } from "./ConfirmationModal/ConfirmationModal";
 export { default as ReservationForm } from "./ReservationForm/ReservationForm";
 export { default as PageBanner } from "./PageBanner/PageBanner"
+export { default as Breadcrumbs } from "./Breadcrumbs/Breadcrumbs"
