@@ -40,6 +40,7 @@ public class DynamoDbFixture : IAsyncLifetime
         await EnsureLocationsTableAsync();
         await EnsureTablesTableAsync();
         await EnsureTableDaysTableAsync();
+        await EnsureDishesTableAsync();
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -363,4 +364,111 @@ public class DynamoDbFixture : IAsyncLifetime
             await Task.Delay(500);
         }
     }
+
+    private async Task EnsureTablesTableAsync()
+    {
+        const string tableName = "Tables";
+
+        var existing = await Client.ListTablesAsync();
+        if (existing.TableNames.Contains(tableName))
+            return;
+
+        var request = new CreateTableRequest
+        {
+            TableName = tableName,
+            AttributeDefinitions = new List<AttributeDefinition>
+            {
+                new("locationId", ScalarAttributeType.S),
+                new("tableNumber", ScalarAttributeType.N)
+            },
+            KeySchema = new List<KeySchemaElement>
+            {
+                new("locationId", KeyType.HASH),
+                new("tableNumber", KeyType.RANGE)
+            },
+            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+        };
+
+        await Client.CreateTableAsync(request);
+
+        while (true)
+        {
+            var desc = await Client.DescribeTableAsync(tableName);
+            if (desc.Table.TableStatus == TableStatus.ACTIVE)
+                break;
+
+            await Task.Delay(500);
+        }
+    }
+
+    private async Task EnsureTableDaysTableAsync()
+    {
+        const string tableName = "TableDays";
+
+        var request = new CreateTableRequest
+        {
+            TableName = tableName,
+            AttributeDefinitions =
+            [
+                new AttributeDefinition("tableKey", ScalarAttributeType.S),
+                new AttributeDefinition("date", ScalarAttributeType.S)
+            ],
+            KeySchema =
+            [
+                new KeySchemaElement("tableKey", KeyType.HASH),
+                new KeySchemaElement("date", KeyType.RANGE)
+            ],
+            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+        };
+
+        await EnsureTableAsync(request);
+    }
+    
+    
+    private async Task EnsureDishesTableAsync()
+    {
+        const string tableName = "Dishes";
+ 
+        var request = new CreateTableRequest
+        {
+            TableName = tableName,
+            AttributeDefinitions = new List<AttributeDefinition>
+            {
+                new("id",                   ScalarAttributeType.S),
+                new("popularityFlag",       ScalarAttributeType.S),
+                new("specialityForLocation", ScalarAttributeType.S)
+            },
+            KeySchema = new List<KeySchemaElement>
+            {
+                new("id", KeyType.HASH)
+            },
+            ProvisionedThroughput = new ProvisionedThroughput(5, 5),
+            GlobalSecondaryIndexes = new List<GlobalSecondaryIndex>
+            {
+                new()
+                {
+                    IndexName = "PopularDishesIndex",
+                    KeySchema = new List<KeySchemaElement>
+                    {
+                        new("popularityFlag", KeyType.HASH)
+                    },
+                    Projection            = new Projection { ProjectionType = ProjectionType.ALL },
+                    ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+                },
+                new()
+                {
+                    IndexName = "SpecialityIndex",
+                    KeySchema = new List<KeySchemaElement>
+                    {
+                        new("specialityForLocation", KeyType.HASH)
+                    },
+                    Projection            = new Projection { ProjectionType = ProjectionType.ALL },
+                    ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+                }
+            }
+        };
+ 
+        await EnsureTableAsync(request);
+    }
+
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { AvailableSlotsModal, ReservationForm, ConfirmationModal } from "../index.js";
+import { useAuth } from "../../auth/AuthContext";
+import { AvailableSlotsModal, ReservationForm, ConfirmationModal, Toast } from "../index.js";
 import styles from "./TableCard.module.css";
 
 import locationIcon from "../../assets/icons/pin.svg";
@@ -23,9 +24,15 @@ export default function TableCard({
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [finalReservationData, setFinalReservationData] = useState(null);
 
+    const { auth } = useAuth();
+    const [showAuthToast, setShowAuthToast] = useState(false);
+
     const handleSlotClick = (slot) => {
+        if (!auth.isAuth) {
+            setShowAuthToast(true);
+            return;
+        }
         setSelectedSlot(slot);
-        setIsSlotsModalOpen(false);
         setIsReserveModalOpen(true);
     };
 
@@ -70,7 +77,7 @@ export default function TableCard({
                         </button>
                     ))}
 
-                    {slots.length > 1 && (
+                    {slots.length > 5 && (
                         <button className={styles.showAll} onClick={() => setIsSlotsModalOpen(true)}>
                             <img src={plusIcon} alt="" className={styles.iconPlus} />
                             Show all
@@ -78,6 +85,14 @@ export default function TableCard({
                     )}
                 </div>
             </div>
+
+            <Toast
+                open={showAuthToast}
+                type="error"
+                title="Authorization required"
+                message="Please sign in to book a table."
+                onClose={() => setShowAuthToast(false)}
+            />
 
             <AvailableSlotsModal
                 isOpen={isSlotsModalOpen}
