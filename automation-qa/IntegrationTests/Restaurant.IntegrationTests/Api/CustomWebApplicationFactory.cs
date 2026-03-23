@@ -573,7 +573,13 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public sealed class FakeDishService : IDishService
     {
         public string? LastLocationId { get; private set; }
+        public string? LastDishId { get; private set; }
+        public string? LastMenuType { get; private set; }
+        public string? LastMenuSort { get; private set; }
         public Dictionary<string, IReadOnlyList<Dish>> DishesByLocation { get; } = new();
+        public List<Dish> PopularDishes { get; } = new();
+        public Dictionary<string, Dish> DishesById { get; } = new();
+        public List<DishBriefDTO> MenuDishes { get; } = new();
 
         public FakeDishService()
         {
@@ -583,8 +589,16 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public void Reset()
         {
             LastLocationId = null;
+            LastDishId = null;
+            LastMenuType = null;
+            LastMenuSort = null;
+
             DishesByLocation.Clear();
             DishesByLocation["loc-1"] = Array.Empty<Dish>();
+
+            PopularDishes.Clear();
+            DishesById.Clear();
+            MenuDishes.Clear();
         }
 
         public Task<Result<IReadOnlyList<Dish>>> GetSpecialityDishesByLocationIdAsync(
@@ -599,8 +613,24 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(Array.Empty<Dish>()));
         }
 
-        public Task<Result<IReadOnlyList<Dish>>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(Array.Empty<Dish>()));
+        public Task<IReadOnlyList<Dish>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<Dish>>(PopularDishes);
+
+        public Task<Dish?> GetDishByIdAsync(string dishId,
+            CancellationToken cancellationToken = default)
+        {
+            LastDishId = dishId;
+            DishesById.TryGetValue(dishId, out var dish);
+            return Task.FromResult(dish);
+        }
+
+        public Task<IReadOnlyList<DishBriefDTO>> GetMenuBriefDishesAsync(
+            string? type, string sort, CancellationToken cancellationToken = default)
+        {
+            LastMenuType = type;
+            LastMenuSort = sort;
+            return Task.FromResult<IReadOnlyList<DishBriefDTO>>(MenuDishes);
+        }
     }
 
     public sealed class FakeTableService : ITableService
