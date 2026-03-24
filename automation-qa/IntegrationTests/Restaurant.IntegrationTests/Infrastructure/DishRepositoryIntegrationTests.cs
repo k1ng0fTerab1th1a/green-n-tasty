@@ -2,8 +2,9 @@
 using FluentAssertions;
 using Restaurant.Core.Models;
 using Restaurant.Infrastructure.Repositories;
+using Restaurant.IntegrationTests.Infrastructure;
 
-namespace Restaurant.IntegrationTests.Infrastructure;
+namespace Restaurant.Infrastructure.IntegrationTests;
 
 public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
 {

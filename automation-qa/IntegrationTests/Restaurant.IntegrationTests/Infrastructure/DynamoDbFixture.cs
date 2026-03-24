@@ -428,6 +428,35 @@ public class DynamoDbFixture : IAsyncLifetime
     private async Task EnsureDishesTableAsync()
     {
         const string tableName = "Dishes";
+
+        var existing = await Client.ListTablesAsync();
+        if (existing.TableNames.Contains(tableName))
+        {
+            var table = await Client.DescribeTableAsync(tableName);
+            var existingIndexes = table.Table.GlobalSecondaryIndexes?
+                .Select(x => x.IndexName)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
+
+            var hasRequiredIndexes = existingIndexes.Contains("PopularDishesIndex")
+                && existingIndexes.Contains("SpecialityIndex");
+
+            if (hasRequiredIndexes)
+            {
+                await WaitForTableActiveAsync(tableName);
+                return;
+            }
+
+            await Client.DeleteTableAsync(tableName);
+
+            while (true)
+            {
+                var tables = await Client.ListTablesAsync();
+                if (!tables.TableNames.Contains(tableName))
+                    break;
+
+                await Task.Delay(500);
+            }
+        }
  
         var request = new CreateTableRequest
         {

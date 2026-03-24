@@ -1,6 +1,7 @@
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.Model;
+using System.Globalization;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
@@ -62,11 +63,12 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
         var request = new ScanRequest
         {
             TableName = "Dishes",
-            ProjectionExpression = "id, #n, dishType, price, imageUrl, #w, state",
+            ProjectionExpression = "id, #n, dishType, price, imageUrl, #w, #s",
             ExpressionAttributeNames = new Dictionary<string, string>
             {
                 { "#n", "name" },
-                { "#w", "weight" }
+                { "#w", "weight" },
+                { "#s", "state" }
             }
         };
 
@@ -105,9 +107,13 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
         Id       = item.TryGetValue("id", out var id)           ? id.S             : string.Empty,
         Name     = item.TryGetValue("name", out var name)       ? name.S           : string.Empty,
         DishType = item.TryGetValue("dishType", out var type)   ? type.S           : string.Empty,
-        Price    = item.TryGetValue("price", out var price)     ? float.Parse(price.N) : 0f,
+        Price    = item.TryGetValue("price", out var price)
+            ? float.Parse(price.N, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture)
+            : 0f,
         ImageUrl = item.TryGetValue("imageUrl", out var imgUrl) ? imgUrl.S         : null,
-        Weight   = item.TryGetValue("weight", out var weight)   ? int.Parse(weight.N) : null,
+        Weight   = item.TryGetValue("weight", out var weight)
+            ? int.Parse(weight.N, NumberStyles.Integer, CultureInfo.InvariantCulture)
+            : null,
         State    = item.TryGetValue("state", out var state)     ? state.S          : "ON"
     };
     

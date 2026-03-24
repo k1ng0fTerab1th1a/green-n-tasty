@@ -1,12 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Services;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Api.Extensions;
 using Restaurant.Api.Mappers;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
-using Restaurant.Core.Services;
+using Restaurant.Infrastructure.Services;
 
 namespace Restaurant.Api.Controllers;
 
@@ -28,21 +27,27 @@ public class DishController(IDishService _dishService, S3FileService _s3FileServ
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetDishById(string id, CancellationToken ct)
+    [ProducesResponseType(typeof(ApiResponse<Dish>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<ApiResponse<Dish>> GetDishById(string id, CancellationToken ct)
     {
-        var dish = await _dishService.GetDishByIdAsync(id, ct);
-        if (dish == null)
-            return ApiResponse<Dish>.Fail(404, $"Dish with the id of {id} was not found");
+        var result = await _dishService.GetDishByIdAsync(id, ct);
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<Dish>();
 
-        return ApiResponse<Dish>.Success(200, dish);
+        return ApiResponse<Dish>.Success(StatusCodes.Status200OK, result.Value);
     }
 
     [HttpGet("menu")]
-    public async Task<IActionResult> GetMenuDishes(CancellationToken ct, [FromQuery] string? type = null, string sort = 
+    [ProducesResponseType(typeof(ApiResponse<List<DishBriefDTO>>), StatusCodes.Status200OK)]
+    public async Task<ApiResponse<List<DishBriefDTO>>> GetMenuDishes(CancellationToken ct, [FromQuery] string? type = null, string sort = 
         "price,asc")
     {
-        var dishes = await _dishService.GetMenuBriefDishesAsync(type, sort, ct);
-        return ApiResponse<List<DishBriefDTO>>.Success(200, dishes.ToList());
+        var result = await _dishService.GetMenuBriefDishesAsync(type, sort, ct);
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<List<DishBriefDTO>>();
+
+        return ApiResponse<List<DishBriefDTO>>.Success(StatusCodes.Status200OK, result.Value.ToList());
     }
 
     [HttpGet("menu-file")]

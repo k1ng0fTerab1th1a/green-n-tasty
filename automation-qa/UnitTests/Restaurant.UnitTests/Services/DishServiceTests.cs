@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using Moq;
 using Restaurant.Core.DTOs;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 using Restaurant.Core.Services;
@@ -34,9 +35,10 @@ public class DishServiceTests
 
         var result = await _sut.GetPopularDishesAsync();
 
-        result.Should().HaveCount(2);
-        result[0].Id.Should().Be("dish-1");
-        result[1].Id.Should().Be("dish-2");
+           result.IsSuccess.Should().BeTrue();
+           result.Value.Should().HaveCount(2);
+           result.Value[0].Id.Should().Be("dish-1");
+           result.Value[1].Id.Should().Be("dish-2");
 
         _repo.Verify(r => r.GetPopularDishesAsync(It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
@@ -50,7 +52,8 @@ public class DishServiceTests
 
         var result = await _sut.GetPopularDishesAsync();
 
-        result.Should().BeEmpty();
+           result.IsSuccess.Should().BeTrue();
+           result.Value.Should().BeEmpty();
 
         _repo.Verify(r => r.GetPopularDishesAsync(It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
@@ -71,9 +74,10 @@ public class DishServiceTests
 
         var result = await _sut.GetSpecialityDishesByLocationIdAsync("loc-5");
 
-        result.Should().HaveCount(1);
-        result[0].Id.Should().Be("dish-10");
-        result[0].Name.Should().Be("House Steak");
+           result.IsSuccess.Should().BeTrue();
+           result.Value.Should().HaveCount(1);
+           result.Value[0].Id.Should().Be("dish-10");
+           result.Value[0].Name.Should().Be("House Steak");
 
         _repo.Verify(r => r.GetSpecialityDishesByLocationIdAsync("loc-5", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
@@ -87,7 +91,8 @@ public class DishServiceTests
 
         var result = await _sut.GetSpecialityDishesByLocationIdAsync("loc-empty");
 
-        result.Should().BeEmpty();
+           result.IsSuccess.Should().BeTrue();
+           result.Value.Should().BeEmpty();
 
         _repo.Verify(r => r.GetSpecialityDishesByLocationIdAsync("loc-empty", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
@@ -112,25 +117,27 @@ public class DishServiceTests
 
         var result = await _sut.GetDishByIdAsync("dish-42");
 
-        result.Should().NotBeNull();
-        result!.Id.Should().Be("dish-42");
-        result.Name.Should().Be("Wagyu Burger");
-        result.DishType.Should().Be("MAIN");
-        result.Price.Should().BeApproximately(55.0f, 0.001f);
+           result.IsSuccess.Should().BeTrue();
+           result.Value.Id.Should().Be("dish-42");
+           result.Value.Name.Should().Be("Wagyu Burger");
+           result.Value.DishType.Should().Be("MAIN");
+           result.Value.Price.Should().BeApproximately(55.0f, 0.001f);
 
         _repo.Verify(r => r.GetDishByIdAsync("dish-42", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task GetDishByIdAsync_WhenNotFound_ShouldReturnNull()
+    public async Task GetDishByIdAsync_WhenNotFound_ShouldReturnNotFoundError()
     {
         _repo.Setup(r => r.GetDishByIdAsync("nonexistent", It.IsAny<CancellationToken>()))
              .ReturnsAsync((Dish?)null);
 
         var result = await _sut.GetDishByIdAsync("nonexistent");
 
-        result.Should().BeNull();
+        result.IsFailed.Should().BeTrue();
+        result.Errors.Should().ContainSingle();
+        result.Errors[0].Should().BeEquivalentTo(DishErrors.NotFound);
 
         _repo.Verify(r => r.GetDishByIdAsync("nonexistent", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
@@ -152,9 +159,10 @@ public class DishServiceTests
 
         var result = await _sut.GetMenuBriefDishesAsync("SALAD", "price,asc");
 
-        result.Should().HaveCount(2);
-        result[0].Id.Should().Be("dish-m1");
-        result[1].Id.Should().Be("dish-m2");
+           result.IsSuccess.Should().BeTrue();
+           result.Value.Should().HaveCount(2);
+           result.Value[0].Id.Should().Be("dish-m1");
+           result.Value[1].Id.Should().Be("dish-m2");
 
         _repo.Verify(r => r.GetShortenedDishesAsync("SALAD", "price,asc", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
@@ -168,7 +176,8 @@ public class DishServiceTests
 
         var result = await _sut.GetMenuBriefDishesAsync(null, "name,desc");
 
-        result.Should().BeEmpty();
+           result.IsSuccess.Should().BeTrue();
+           result.Value.Should().BeEmpty();
 
         _repo.Verify(r => r.GetShortenedDishesAsync(null, "name,desc", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
@@ -182,7 +191,8 @@ public class DishServiceTests
 
         var result = await _sut.GetMenuBriefDishesAsync("MAIN", "price,asc");
 
-        result.Should().BeEmpty();
+           result.IsSuccess.Should().BeTrue();
+           result.Value.Should().BeEmpty();
 
         _repo.Verify(r => r.GetShortenedDishesAsync("MAIN", "price,asc", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
