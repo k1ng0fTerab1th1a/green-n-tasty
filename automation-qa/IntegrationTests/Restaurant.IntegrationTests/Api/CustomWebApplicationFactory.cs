@@ -613,23 +613,25 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(Array.Empty<Dish>()));
         }
 
-        public Task<IReadOnlyList<Dish>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyList<Dish>>(PopularDishes);
+        public Task<Result<IReadOnlyList<Dish>>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(PopularDishes));
 
-        public Task<Dish?> GetDishByIdAsync(string dishId,
+        public Task<Result<Dish>> GetDishByIdAsync(string dishId,
             CancellationToken cancellationToken = default)
         {
             LastDishId = dishId;
-            DishesById.TryGetValue(dishId, out var dish);
-            return Task.FromResult(dish);
+            if (DishesById.TryGetValue(dishId, out var dish))
+                return Task.FromResult(Result.Ok(dish));
+
+            return Task.FromResult(Result.Fail<Dish>(DishErrors.NotFound));
         }
 
-        public Task<IReadOnlyList<DishBriefDTO>> GetMenuBriefDishesAsync(
+        public Task<Result<IReadOnlyList<DishBriefDTO>>> GetMenuBriefDishesAsync(
             string? type, string sort, CancellationToken cancellationToken = default)
         {
             LastMenuType = type;
             LastMenuSort = sort;
-            return Task.FromResult<IReadOnlyList<DishBriefDTO>>(MenuDishes);
+            return Task.FromResult(Result.Ok<IReadOnlyList<DishBriefDTO>>(MenuDishes));
         }
     }
 
