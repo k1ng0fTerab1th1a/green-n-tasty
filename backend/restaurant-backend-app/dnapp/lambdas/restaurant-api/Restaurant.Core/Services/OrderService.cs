@@ -70,7 +70,7 @@ public class OrderService(IOrderRepository _orderRepo, IReservationRepository _r
             TableNumber = reservation.TableNumber,
             GuestsCount = reservation.GuestsCount,
             Status = OrderStatus.Open,
-            DishesJson = JsonSerializer.Serialize(dishSnapshots),
+            Dishes = dishSnapshots,
             TotalAmount = totalAmount,
             CreatedAt = DateTime.UtcNow.ToString("o"),
             CompletedAt = null

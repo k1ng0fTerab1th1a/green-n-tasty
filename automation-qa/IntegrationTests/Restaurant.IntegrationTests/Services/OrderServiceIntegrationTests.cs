@@ -6,7 +6,6 @@ using Restaurant.Core.Models;
 using Restaurant.Core.Services;
 using Restaurant.Infrastructure.Repositories;
 using Restaurant.IntegrationTests.Infrastructure;
-using System.Text.Json;
 
 namespace Restaurant.IntegrationTests.Services;
 
@@ -22,7 +21,7 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
 
         var orderRepo = new OrderRepository(fixture.Context, fixture.Client);
         var reservationRepo = new ReservationRepository(fixture.Context, fixture.Client);
-        var dishRepo = new DishRepository(fixture.Context);
+        var dishRepo = new DishRepository(fixture.Context, fixture.Client);
 
         _sut = new OrderService(orderRepo, reservationRepo, dishRepo);
     }
@@ -102,9 +101,8 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
         orders.Should().HaveCount(1);
         orders[0].TotalAmount.Should().Be(45f);
 
-        var snapshots = JsonSerializer.Deserialize<List<OrderDishSnapshot>>(orders[0].DishesJson);
-        snapshots.Should().NotBeNull();
-        snapshots!.Sum(x => x.Quantity).Should().Be(3);
+        orders[0].Dishes.Should().HaveCount(2);
+        orders[0].Dishes.Sum(x => x.Quantity).Should().Be(3);
     }
 
     private static CreateOrderDTO BuildDto(string reservationId, params (string dishId, int quantity)[] items)

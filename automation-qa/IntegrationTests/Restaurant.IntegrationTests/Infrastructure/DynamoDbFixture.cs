@@ -40,7 +40,6 @@ public class DynamoDbFixture : IAsyncLifetime
         await EnsureLocationsTableAsync();
         await EnsureTablesTableAsync();
         await EnsureTableDaysTableAsync();
-        await EnsureDishesTableAsync();
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -265,73 +264,6 @@ public class DynamoDbFixture : IAsyncLifetime
         await EnsureTableAsync(request);
     }
 
-    private async Task EnsureDishesTableAsync()
-    {
-        const string tableName = "Dishes";
-
-        var request = new CreateTableRequest
-        {
-            TableName = tableName,
-            AttributeDefinitions =
-            [
-                new AttributeDefinition("id", ScalarAttributeType.S)
-            ],
-            KeySchema =
-            [
-                new KeySchemaElement("id", KeyType.HASH)
-            ],
-            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
-        };
-
-        await EnsureTableAsync(request);
-    }
-
-    private async Task EnsureTablesTableAsync()
-    {
-        const string tableName = "Tables";
-
-        var request = new CreateTableRequest
-        {
-            TableName = tableName,
-            AttributeDefinitions =
-            [
-                new AttributeDefinition("locationId", ScalarAttributeType.S),
-                new AttributeDefinition("tableNumber", ScalarAttributeType.N)
-            ],
-            KeySchema =
-            [
-                new KeySchemaElement("locationId", KeyType.HASH),
-                new KeySchemaElement("tableNumber", KeyType.RANGE)
-            ],
-            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
-        };
-
-        await EnsureTableAsync(request);
-    }
-
-    private async Task EnsureTableDaysTableAsync()
-    {
-        const string tableName = "TableDays";
-
-        var request = new CreateTableRequest
-        {
-            TableName = tableName,
-            AttributeDefinitions =
-            [
-                new AttributeDefinition("tableKey", ScalarAttributeType.S),
-                new AttributeDefinition("date", ScalarAttributeType.S)
-            ],
-            KeySchema =
-            [
-                new KeySchemaElement("tableKey", KeyType.HASH),
-                new KeySchemaElement("date", KeyType.RANGE)
-            ],
-            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
-        };
-
-        await EnsureTableAsync(request);
-    }
-
     private async Task EnsureTableAsync(CreateTableRequest request)
     {
         try
@@ -423,8 +355,7 @@ public class DynamoDbFixture : IAsyncLifetime
 
         await EnsureTableAsync(request);
     }
-    
-    
+
     private async Task EnsureDishesTableAsync()
     {
         const string tableName = "Dishes";

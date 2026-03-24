@@ -43,8 +43,8 @@ public sealed class Order
     [DynamoDBProperty("status", typeof(OrderStatusConverter))]
     public OrderStatus Status { get; set; } = OrderStatus.Open;
 
-    [DynamoDBProperty("dishesJson")]
-    public string DishesJson { get; set; } = "[]";
+    [DynamoDBProperty("dishes")]
+    public List<OrderDishSnapshot> Dishes { get; set; } = new List<OrderDishSnapshot>();
 
     [DynamoDBProperty("totalAmount")]
     public float TotalAmount { get; set; }

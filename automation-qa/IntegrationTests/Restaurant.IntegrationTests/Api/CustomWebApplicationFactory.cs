@@ -170,7 +170,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 TableNumber = 3,
                 GuestsCount = 2,
                 Status = OrderStatus.Open,
-                DishesJson = "[]",
+                Dishes = new List<OrderDishSnapshot>(),
                 TotalAmount = 0,
                 CreatedAt = "2026-03-01T00:00:00.0000000Z",
                 CompletedAt = null
