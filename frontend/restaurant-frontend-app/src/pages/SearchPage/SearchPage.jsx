@@ -2,9 +2,9 @@ import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
     MainLayout,
-    TableCard,
-    SearchPanel,
+    TableCard
 } from "../../components/index.js";
+import SearchPanel from "./SearchPanel/SearchPanel";
 import styles from "./SearchPage.module.css";
 import { getAvailableTables } from "../../services/bookings";
 import { getLocationsSelectOptions } from "../../services/locations";

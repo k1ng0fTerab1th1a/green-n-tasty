@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import {
-    BookingCard,
+    ReservationCard,
     MainLayout,
     PageBanner,
     Toast,
-    ReservationForm
+    ReservationModal
 } from "../../components/index.js";
 import { getClientReservations, deleteReservation } from "../../services/reservations";
 import { getAvailableTables } from "../../services/bookings";
@@ -145,7 +145,7 @@ export default function ReservationsPage() {
                                 const endTime = formatTimeFromISO(res.endDateTime);
 
                                 return (
-                                    <BookingCard
+                                    <ReservationCard
                                         key={res.id}
                                         booking={{
                                             ...res,
@@ -168,7 +168,7 @@ export default function ReservationsPage() {
             </div>
 
             {selectedReservation && (
-                <ReservationForm
+                <ReservationModal
                     isOpen={isEditModalOpen}
                     onClose={() => setIsEditModalOpen(false)}
                     onSuccess={handleUpdateSuccess}

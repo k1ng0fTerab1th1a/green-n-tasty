@@ -2,15 +2,47 @@ import React, { useState, useEffect, useMemo } from "react";
 import { MainLayout, Breadcrumbs, DishCard, Button, Dropdown } from "../../components/index.js";
 import styles from "./MenuPage.module.css";
 import fallbackImage from "../../assets/images/main-hero.jpg";
+import mainHero from "../../assets/images/main-hero.jpg";
 
 const CATEGORIES = ["Appetizers", "Main Cources", "Desserts"];
 const MOCK_DISHES = [
-    { id: 1, name: "Fresh Strawberry Mint Salad", price: 15, weight: 430, category: "Appetizers", imageSrc: "../../assets/images/main-hero.jpg", available: true },
-    { id: 2, name: "Avocado Pine Nut Bowl", price: 17, weight: 430, category: "Main Cources", imageSrc: "../../assets/images/main-hero.jpg", available: false },
-    { id: 3, name: "Roasted Sweet Potato & Lentil Salad", price: 10, weight: 430, category: "Main Cources", imageSrc: "../../assets/images/main-hero.jpg", available: true },
-    { id: 4, name: "Spring Salad", price: 14, weight: 430, category: "Desserts", imageSrc: "../../assets/images/main-hero.jpg", available: true },
-];
-
+    {
+        id: 1,
+        name: "Fresh Strawberry Mint Salad",
+        price: 15,
+        weight: 430,
+        category: "Main Cources",
+        imageSrc: mainHero,
+        available: true
+    },
+    {
+        id: 2,
+        name: "Avocado Pine Nut Bowl",
+        price: 17,
+        weight: 430,
+        category: "Main Cources",
+        imageSrc: mainHero,
+        available: false
+    },
+    {
+        id: 3,
+        name: "Roasted Sweet Potato & Lentil Salad",
+        price: 10,
+        weight: 430,
+        category: "Main Cources",
+        imageSrc: mainHero,
+        available: true
+    },
+    {
+        id: 4,
+        name: "Spring Salad",
+        price: 14,
+        weight: 430,
+        category: "Main Cources",
+        imageSrc: mainHero,
+        available: true
+    },
+]
 export default function MenuPage() {
     const [activeCategory, setActiveCategory] = useState("Main Cources");
     const [sortBy, setSortBy] = useState("date,desc");
