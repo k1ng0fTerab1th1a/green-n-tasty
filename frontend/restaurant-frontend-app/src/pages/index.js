@@ -6,3 +6,4 @@ export { default as ProfilePage} from "./ProfilePage/ProfilePage";
 export { default as SearchPage} from "./SearchPage/SearchPage";
 export { default as ReservationsPage} from "./ReservationsPage/ReservationsPage";
 export { default as MenuPage} from "./MenuPage/MenuPage";
+export { default as WaiterReservationsPage} from "./WaiterReservationsPage/WaiterReservationsPage";
