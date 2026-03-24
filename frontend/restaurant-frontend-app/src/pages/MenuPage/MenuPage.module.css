@@ -12,9 +12,7 @@
     width: 100vw;
     left: 50%;
     right: 50%;
-    margin-left: -50vw;
-    margin-right: -50vw;
-    margin-bottom: 64px;
+    margin: 32px -50vw 64px;
     min-height: 404px;
     display: flex;
     align-items: center;

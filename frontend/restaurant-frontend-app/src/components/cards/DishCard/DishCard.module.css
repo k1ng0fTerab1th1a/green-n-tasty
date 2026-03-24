@@ -1,0 +1,117 @@
+.card {
+    position: relative;
+    width: 100%;
+    border-radius: 24px;
+    background: var(--neutral-0);
+    border: 1px solid var(--neutral-200);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+
+    padding: 18px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.08);
+}
+
+.imageWrap {
+    width: 196px;
+    height: 196px;
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 8px auto 14px auto;
+    background: var(--neutral-100);
+}
+
+.image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.name {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 24px;
+    color: var(--text);
+}
+
+.metaRow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+.price {
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 16px;
+    color: var(--neutral-600);
+}
+
+.weight {
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 16px;
+    color: var(--neutral-400);
+}
+
+.cta {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transform: translateY(10px);
+    transition:
+            max-height 0.2s ease,
+            opacity 0.2s ease,
+            transform 0.2s ease,
+            margin-top 0.2s ease;
+    pointer-events: none;
+}
+
+.card.available:hover .cta {
+    max-height: 50px;
+    opacity: 1;
+    margin-top: 10px;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.preorderBtn {
+    width: 100%;
+}
+
+.notAvailable {
+    opacity: 0.45;
+    filter: grayscale(0.15);
+}
+
+.notAvailable:hover {
+    transform: none;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+}
+
+.badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+
+    background: rgba(255, 213, 222, 0.9);
+    color: var(--red-400);
+
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(183, 11, 11, 0.2);
+}
