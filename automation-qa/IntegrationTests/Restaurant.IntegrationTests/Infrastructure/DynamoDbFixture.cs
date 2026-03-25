@@ -11,7 +11,8 @@ public class DynamoDbFixture : IAsyncLifetime
     [
         "customer-firstName-index",
         "customer-lastName-index",
-        "customer-email-index"
+        "customer-email-index",
+        "waiterFlag-index"
     ];
 
     public IAmazonDynamoDB Client { get; private set; }
@@ -84,7 +85,8 @@ public class DynamoDbFixture : IAsyncLifetime
                 new AttributeDefinition("role", ScalarAttributeType.S),
                 new AttributeDefinition("firstNameNormalized", ScalarAttributeType.S),
                 new AttributeDefinition("lastNameNormalized", ScalarAttributeType.S),
-                new AttributeDefinition("emailNormalized", ScalarAttributeType.S)
+                new AttributeDefinition("emailNormalized", ScalarAttributeType.S),
+                new AttributeDefinition("waiterFlag", ScalarAttributeType.S)
             ],
             KeySchema =
             [
@@ -122,6 +124,16 @@ public class DynamoDbFixture : IAsyncLifetime
                     [
                         new KeySchemaElement("role", KeyType.HASH),
                         new KeySchemaElement("emailNormalized", KeyType.RANGE)
+                    ],
+                    Projection = new Projection { ProjectionType = ProjectionType.ALL },
+                    ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+                },
+                new GlobalSecondaryIndex
+                {
+                    IndexName = "waiterFlag-index",
+                    KeySchema =
+                    [
+                        new KeySchemaElement("waiterFlag", KeyType.HASH)
                     ],
                     Projection = new Projection { ProjectionType = ProjectionType.ALL },
                     ProvisionedThroughput = new ProvisionedThroughput(5, 5)
