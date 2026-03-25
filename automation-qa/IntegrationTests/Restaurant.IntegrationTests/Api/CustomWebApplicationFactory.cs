@@ -104,7 +104,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastSignInPassword = null;
         }
 
-        public Task<Result> SignUpAsync(string email, string password, string firstName, string lastName)
+        public Task<Result> SignUpAsync(string email, string password, string firstName, string lastName, CancellationToken ct = default)
         {
             LastSignUpEmail = email;
             LastSignUpPassword = password;
@@ -117,7 +117,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Result.Ok());
         }
 
-        public Task<Result<AuthResult>> SignInAsync(string email, string password)
+        public Task<Result<AuthResult>> SignInAsync(string email, string password, CancellationToken ct = default)
         {
             LastSignInEmail = email;
             LastSignInPassword = password;
@@ -196,16 +196,16 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public string GetUserPoolId() => "test-pool";
 
-        public Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER")
+        public Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role, CancellationToken ct = default)
             => throw new NotImplementedException();
 
-        public Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password)
+        public Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password, CancellationToken ct = default)
             => throw new NotImplementedException();
 
-        public Task<Result> DeleteUserAsync(string email)
+        public Task<Result> DeleteUserAsync(string email, CancellationToken ct = default)
             => throw new NotImplementedException();
 
-        public Task<string> RefreshTokenAsync(string refreshToken)
+        public Task<string> RefreshTokenAsync(string refreshToken, CancellationToken ct = default)
         {
             LastRefreshTokenInput = refreshToken;
 
@@ -215,7 +215,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(RefreshTokenResponse);
         }
 
-        public Task<Result> SignOutAsync(string refreshToken)
+        public Task<Result> SignOutAsync(string refreshToken, CancellationToken ct = default)
         {
             LastSignOutRefreshToken = refreshToken;
 
@@ -614,7 +614,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             int size,
             string type,
             List<string> sort,
-            string? pageToken = null)
+            string? pageToken,
+            CancellationToken ct = default)
         {
             LastLocationId = locationId;
             LastSize = size;

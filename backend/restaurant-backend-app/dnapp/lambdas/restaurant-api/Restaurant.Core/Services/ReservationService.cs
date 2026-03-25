@@ -39,8 +39,8 @@ public sealed class ReservationService : IReservationService
             return Array.Empty<Reservation>();
 
         return actorIsWaiter
-            ? await _repo.QueryByWaiterAsync(actorUserId, ct: ct)
-            : await _repo.QueryByCustomerAsync(actorUserId, ct: ct);
+            ? await _repo.QueryByWaiterAsync(actorUserId, ct)
+            : await _repo.QueryByCustomerAsync(actorUserId, ct);
     }
 
     public async Task<Result<Reservation>> GetByIdAsync(string id, string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
@@ -325,7 +325,6 @@ public sealed class ReservationService : IReservationService
             reservation,
             ReservationStatus.Reserved,
             ReservationStatus.InProgress,
-            slotsToRelease: null,
             ct);
 
         if (!success)
@@ -351,7 +350,6 @@ public sealed class ReservationService : IReservationService
             reservation,
             ReservationStatus.InProgress,
             ReservationStatus.MealsServed,
-            slotsToRelease: null,
             ct);
 
         if (!success)

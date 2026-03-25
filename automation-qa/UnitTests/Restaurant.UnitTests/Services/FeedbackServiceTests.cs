@@ -47,7 +47,8 @@ public class FeedbackServiceTests
                 10,
                 "waiter",
                 It.IsAny<List<string>>(),
-                null))
+                null,
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(repoResponse);
 
         var result = await _sut.GetFeedbacksForLocation(
@@ -74,7 +75,8 @@ public class FeedbackServiceTests
             10,
             "waiter",
             It.IsAny<List<string>>(),
-            null), Times.Once);
+            null,
+            It.IsAny<CancellationToken>()), Times.Once);
 
         _repo.VerifyNoOtherCalls();
     }
@@ -93,7 +95,8 @@ public class FeedbackServiceTests
                 10,
                 "waiter",
                 It.IsAny<List<string>>(),
-                null))
+                null,
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(repoResponse);
 
         var result = await _sut.GetFeedbacksForLocation(
@@ -111,7 +114,8 @@ public class FeedbackServiceTests
             10,
             "waiter",
             It.IsAny<List<string>>(),
-            null), Times.Once);
+            null,
+            It.IsAny<CancellationToken>()), Times.Once);
 
         _repo.VerifyNoOtherCalls();
     }
@@ -130,7 +134,8 @@ public class FeedbackServiceTests
                 5,
                 "kitchen",
                 It.IsAny<List<string>>(),
-                "page-1"))
+                "page-1",
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(repoResponse);
 
         var result = await _sut.GetFeedbacksForLocation(
@@ -149,7 +154,8 @@ public class FeedbackServiceTests
             5,
             "kitchen",
             It.IsAny<List<string>>(),
-            "page-1"), Times.Once);
+            "page-1",
+            It.IsAny<CancellationToken>()), Times.Once);
 
         _repo.VerifyNoOtherCalls();
     }
