@@ -2,5 +2,5 @@
 
 public interface IWaiterListRepository
 {
-    Task<bool> ContainsAsync(string email);
+    Task<bool> ContainsAsync(string email, CancellationToken ct);
 }

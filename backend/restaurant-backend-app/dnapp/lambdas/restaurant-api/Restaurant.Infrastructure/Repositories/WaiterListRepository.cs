@@ -13,8 +13,8 @@ public class WaiterListRepository : IWaiterListRepository
         _context = context;
 
     }
-    public async Task<bool> ContainsAsync(string email)
+    public async Task<bool> ContainsAsync(string email, CancellationToken ct = default)
     {
-        return await _context.LoadAsync<WaiterListEntry?>(email) != null;
+        return await _context.LoadAsync<WaiterListEntry?>(email, ct) != null;
     }
 }

@@ -19,10 +19,10 @@ public class UserRepository : IUserRepository
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
-    public async Task CreateAsync(User user)
+    public async Task CreateAsync(User user, CancellationToken ct = default)
     {
         ApplySearchFields(user);
-        await _context.SaveAsync(user);
+        await _context.SaveAsync(user, ct);
     }
 
     public Task<User?> GetByIdAsync(string userId, CancellationToken ct = default)

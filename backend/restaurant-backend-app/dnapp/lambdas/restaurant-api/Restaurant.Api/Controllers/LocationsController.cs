@@ -13,14 +13,14 @@ public sealed class LocationsController(IFeedbackService _feedbackService, ILoca
 {
     [HttpGet("{id}/feedbacks")]
     [ProducesResponseType(typeof(ApiResponse<FeedbackPaginatedDto>), StatusCodes.Status200OK)]
-    public async Task<ApiResponse<FeedbackPaginatedDto>> GetFeedbacksByLocationId(string id, string type, [FromQuery] List<string> sort, int size = 20, string? pageToken = null)
+    public async Task<ApiResponse<FeedbackPaginatedDto>> GetFeedbacksByLocationId(string id, string type, [FromQuery] List<string> sort, CancellationToken ct, int size = 20, string? pageToken = null)
     {
         if (sort.Count == 0)
         {
             sort.Add("date,asc");
         }
 
-        var result = await _feedbackService.GetFeedbacksForLocation(id, size, type, sort, pageToken);
+        var result = await _feedbackService.GetFeedbacksForLocation(id, size, type, sort, pageToken, ct);
         if (result.IsFailed)
             return result.Errors[0].ToApiResponse<FeedbackPaginatedDto>();
 
