@@ -15,9 +15,9 @@ public class DishController(IDishService _dishService, S3FileService _s3FileServ
 {
     [HttpGet("popular")]
     [ProducesResponseType(typeof(ApiResponse<List<DishShortResponse>>), StatusCodes.Status200OK)]
-    public async Task<ApiResponse<List<DishShortResponse>>> GetPopularDishes()
+    public async Task<ApiResponse<List<DishShortResponse>>> GetPopularDishes(CancellationToken ct)
     {
-        var result = await _dishService.GetPopularDishesAsync();
+        var result = await _dishService.GetPopularDishesAsync(ct);
         if (result.IsFailed)
             return result.Errors[0].ToApiResponse<List<DishShortResponse>>();
 
