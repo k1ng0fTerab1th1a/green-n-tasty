@@ -99,7 +99,8 @@ public class UserRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
     [Fact]
     public async Task SearchCustomersAsync_ShouldDeduplicateUserFoundInMultipleIndexes()
     {
-        var email = "john.unique.multi@test.com";
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var email = $"john.unique.multi.{suffix}@test.com";
         await CreateUserAsync("John", "Unique", email, "CUSTOMER");
 
         var result = await _repo.SearchCustomersAsync("john");

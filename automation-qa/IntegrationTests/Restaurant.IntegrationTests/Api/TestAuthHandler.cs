@@ -25,7 +25,10 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
         };
 
         if (Request.Headers.TryGetValue("X-Role", out var role) && !string.IsNullOrWhiteSpace(role))
+        {
             claims.Add(new Claim("custom:role", role!));
+            claims.Add(new Claim(ClaimTypes.Role, role!));
+        }
 
         var identity = new ClaimsIdentity(claims, "Test");
         var principal = new ClaimsPrincipal(identity);

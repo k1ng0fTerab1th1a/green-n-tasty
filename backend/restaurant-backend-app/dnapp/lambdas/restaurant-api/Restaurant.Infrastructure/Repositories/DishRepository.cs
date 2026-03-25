@@ -1,4 +1,4 @@
-﻿using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.Model;
 using System.Globalization;
@@ -37,6 +37,16 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
         var results = await asyncSearch.GetRemainingAsync(cancellationToken);
 
         return results;
+    }
+
+    public async Task<List<Dish>> GetByIdsAsync(IEnumerable<string> ids, CancellationToken ct = default)
+    {
+        var batch = _context.CreateBatchGet<Dish>();
+        foreach (var id in ids)
+            batch.AddKey(id);
+
+        await batch.ExecuteAsync(ct);
+        return batch.Results;
     }
     
     public async Task<Dish?> GetDishByIdAsync(string dishId, CancellationToken ct = default)

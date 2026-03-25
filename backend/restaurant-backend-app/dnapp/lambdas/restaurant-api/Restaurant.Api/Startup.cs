@@ -69,6 +69,7 @@ public class Startup
         services.AddScoped<ILocationService, LocationService>();
         services.AddScoped<IReservationService, ReservationService>();
         services.AddScoped<ITableService, TableService>();
+        services.AddScoped<IOrderService, OrderService>();
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IWaiterListRepository, WaiterListRepository>();
@@ -79,6 +80,7 @@ public class Startup
         services.AddScoped<ITableDayRepository, TableDayRepository>();
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<IWaiterScheduleRepository, WaiterScheduleRepository>();
+        services.AddScoped<IOrderRepository, OrderRepository>();
 
         services.AddSingleton<IAmazonS3>(sp =>
         {

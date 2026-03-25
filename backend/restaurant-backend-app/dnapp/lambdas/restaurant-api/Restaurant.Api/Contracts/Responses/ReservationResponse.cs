@@ -7,6 +7,7 @@ public sealed class ReservationResponse
     public string LocationAddress { get; set; } = null!;
     public string? CustomerName { get; set; } = null!;
     public string WaiterName { get; set; } = null!;
+    public int DishCount { get; set; }
     public int TableNumber { get; set; }
     public int GuestsCount { get; set; }
     public string StartDateTime { get; set; } = null!;
