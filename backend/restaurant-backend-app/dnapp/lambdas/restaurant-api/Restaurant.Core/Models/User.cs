@@ -20,6 +20,9 @@ public class User
     [DynamoDBProperty("role")]
     public string Role { get; set; } = string.Empty;
 
+    [DynamoDBProperty("waiterFlag")]
+    public string? WaiterFlag { get; set; } = null;
+
     [DynamoDBProperty("imageUrl")]
     public string? ImageUrl { get; set; }
 
