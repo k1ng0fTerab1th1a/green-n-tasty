@@ -23,7 +23,8 @@ public class AuthService : IAuthService
     public async Task<Result> SignUpAsync(string email, string password, string firstName, string lastName, CancellationToken ct = default)
     {
         var role = "CUSTOMER";
-        if (await IsWaiter(email, ct)) role = "WAITER";
+        bool isWaiter = await IsWaiter(email, ct);
+        if (isWaiter) role = "WAITER";
 
         var signUpResult = await _cognitoService.SignUpAsync(email, password, firstName, lastName, role, ct);
         if (signUpResult.IsFailed)
@@ -41,6 +42,7 @@ public class AuthService : IAuthService
                 CreatedAt = DateTime.UtcNow.ToString("o"),
                 UpdatedAt = DateTime.UtcNow.ToString("o")
             };
+            if (isWaiter) user.WaiterFlag = "1";
 
             await _userRepository.CreateAsync(user, ct);
         }

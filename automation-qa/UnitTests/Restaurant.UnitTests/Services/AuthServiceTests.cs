@@ -95,7 +95,31 @@ public class AuthServiceTests
                 u.Email == "user@test.com" &&
                 u.FirstName == "John" &&
                 u.LastName == "Doe" &&
-                u.Role == "CUSTOMER"),
+                u.Role == "CUSTOMER" &&
+                u.WaiterFlag == null),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SignUp_ShouldSetWaiterFlag_WhenEmailInWaiterList()
+    {
+        // Arrange
+        _waiterListRepo.Setup(r => r.ContainsAsync("waiter@test.com", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _cognito.Setup(c => c.SignUpAsync("waiter@test.com", "Pass123!", "Bob", "Smith", "WAITER", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Ok("waiter-id-456"));
+        _userRepo.Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _sut.SignUpAsync("waiter@test.com", "Pass123!", "Bob", "Smith");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _userRepo.Verify(r => r.CreateAsync(
+            It.Is<User>(u =>
+                u.UserId == "waiter-id-456" &&
+                u.Email == "waiter@test.com" &&
+                u.Role == "WAITER" &&
+                u.WaiterFlag == "1"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

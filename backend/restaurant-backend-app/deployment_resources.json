@@ -124,6 +124,11 @@
     "write_capacity": 1,
     "global_indexes": [
       {
+        "name": "waiterFlag-index",
+        "index_key_name": "waiterFlag",
+        "index_key_type": "S"
+      },
+      {
         "name": "customer-firstName-index",
         "index_key_name": "role",
         "index_key_type": "S",
