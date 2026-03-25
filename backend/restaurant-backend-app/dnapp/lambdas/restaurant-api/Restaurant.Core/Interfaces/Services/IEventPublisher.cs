@@ -2,5 +2,5 @@
 
 public interface IEventPublisher
 {
-    Task PublishAsync<T>(T @event, CancellationToken ct = default);
+    Task PublishAsync<T>(T @event, CancellationToken ct);
 }

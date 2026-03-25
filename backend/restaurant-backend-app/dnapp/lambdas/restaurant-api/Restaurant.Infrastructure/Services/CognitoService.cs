@@ -26,7 +26,7 @@ public class CognitoService : ICognitoService
 
     public string GetUserPoolId() => _userPoolId;
 
-    public async Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER")
+    public async Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER", CancellationToken ct = default)
     {
         try
         {
@@ -43,7 +43,7 @@ public class CognitoService : ICognitoService
                 new() { Name = "custom:role", Value = role },
                 new() { Name = "email_verified", Value = "true" }
             }
-            });
+            }, ct);
 
             await _client.AdminSetUserPasswordAsync(new AdminSetUserPasswordRequest
             {
@@ -51,7 +51,7 @@ public class CognitoService : ICognitoService
                 Username = email,
                 Password = password,
                 Permanent = true
-            });
+            }, ct);
 
             return createResponse.User.Username;
         }
@@ -61,7 +61,7 @@ public class CognitoService : ICognitoService
         }
     }
 
-    public async Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password)
+    public async Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password, CancellationToken ct = default)
     {
         try
         {
@@ -76,7 +76,7 @@ public class CognitoService : ICognitoService
                 }
             };
 
-            var response = await _client.InitiateAuthAsync(request);
+            var response = await _client.InitiateAuthAsync(request, ct);
 
             return (response.AuthenticationResult.IdToken, response.AuthenticationResult.RefreshToken);
         }
@@ -90,7 +90,7 @@ public class CognitoService : ICognitoService
         }
     }
 
-    public async Task<Result> DeleteUserAsync(string email)
+    public async Task<Result> DeleteUserAsync(string email, CancellationToken ct = default)
     {
         try
         {
@@ -100,7 +100,7 @@ public class CognitoService : ICognitoService
                 Username = email
             };
 
-            await _client.AdminDeleteUserAsync(request);
+            await _client.AdminDeleteUserAsync(request, ct);
             return Result.Ok();
         }
         catch (UserNotFoundException)
@@ -109,7 +109,7 @@ public class CognitoService : ICognitoService
         }
     }
 
-    public async Task<string> RefreshTokenAsync(string refreshToken)
+    public async Task<string> RefreshTokenAsync(string refreshToken, CancellationToken ct = default)
     {
         var request = new InitiateAuthRequest
         {
@@ -121,12 +121,12 @@ public class CognitoService : ICognitoService
         }
         };
 
-        var response = await _client.InitiateAuthAsync(request);
+        var response = await _client.InitiateAuthAsync(request, ct);
 
         return response.AuthenticationResult.AccessToken;
     }
 
-    public async Task<Result> SignOutAsync(string refreshToken)
+    public async Task<Result> SignOutAsync(string refreshToken, CancellationToken ct = default)
     {
         var request = new RevokeTokenRequest
         {
@@ -136,7 +136,7 @@ public class CognitoService : ICognitoService
 
         try
         {
-            await _client.RevokeTokenAsync(request);
+            await _client.RevokeTokenAsync(request, ct);
             return Result.Ok();
         }
         catch (UnsupportedOperationException)

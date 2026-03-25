@@ -43,6 +43,33 @@ public class UserRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
         loaded.FirstNameNormalized.Should().Be("john");
         loaded.LastNameNormalized.Should().Be("doe");
         loaded.EmailNormalized.Should().Be("john.doe.integration@test.com");
+        loaded.WaiterFlag.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldPersistWaiterFlag_WhenSet()
+    {
+        var userId = Guid.NewGuid().ToString("N");
+
+        var user = new User
+        {
+            UserId = userId,
+            Email = "waiter.integration@test.com",
+            FirstName = "Wait",
+            LastName = "Er",
+            Role = "WAITER",
+            WaiterFlag = "1",
+            CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
+            UpdatedAt = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        await _repo.CreateAsync(user);
+
+        var loaded = await _context.LoadAsync<User>(userId);
+
+        loaded.Should().NotBeNull();
+        loaded!.Role.Should().Be("WAITER");
+        loaded.WaiterFlag.Should().Be("1");
     }
 
     [Fact]
@@ -99,7 +126,8 @@ public class UserRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
     [Fact]
     public async Task SearchCustomersAsync_ShouldDeduplicateUserFoundInMultipleIndexes()
     {
-        var email = "john.unique.multi@test.com";
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var email = $"john.unique.multi.{suffix}@test.com";
         await CreateUserAsync("John", "Unique", email, "CUSTOMER");
 
         var result = await _repo.SearchCustomersAsync("john");

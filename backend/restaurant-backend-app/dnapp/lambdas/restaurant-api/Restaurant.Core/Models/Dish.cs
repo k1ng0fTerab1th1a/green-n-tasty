@@ -11,8 +11,8 @@ public class Dish
     [DynamoDBProperty("name")]
     public string Name { get; set; }
 
-    [DynamoDBProperty("dishType")]
-    public string DishType { get; set; }
+    [DynamoDBProperty("dishType")] 
+    public string DishType { get; set; } = string.Empty;
 
     [DynamoDBProperty("price")]
     public float Price { get; set; }

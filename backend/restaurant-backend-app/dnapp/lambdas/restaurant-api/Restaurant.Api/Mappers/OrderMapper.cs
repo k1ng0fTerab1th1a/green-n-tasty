@@ -18,7 +18,7 @@ public static class OrderMapper
         TableNumber = x.TableNumber,
         GuestsCount = x.GuestsCount,
         Status = x.Status.ToString(),
-        Dishes = JsonSerializer.Deserialize<List<OrderDishSnapshot>>(x.DishesJson) ?? [],
+        Dishes = x.Dishes,
         TotalAmount = x.TotalAmount,
         CreatedAt = x.CreatedAt,
         CompletedAt = x.CompletedAt

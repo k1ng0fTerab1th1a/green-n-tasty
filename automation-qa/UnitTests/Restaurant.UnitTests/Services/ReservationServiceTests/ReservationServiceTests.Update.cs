@@ -1,4 +1,5 @@
 using FluentAssertions;
+using FluentResults;
 using Moq;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Errors;
@@ -52,7 +53,7 @@ public sealed partial class ReservationServiceTests
                 "loc-1#3",
                 It.IsAny<DateTimeOffset>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existing);
+            .ReturnsAsync(Result.Ok(existing));
 
         var result = await _sut.UpdateReservationAsync("customer-1", false, dto);
 
@@ -123,7 +124,7 @@ public sealed partial class ReservationServiceTests
             {
                 capturedNewSlots = newSlots;
             })
-            .ReturnsAsync(existing);
+            .ReturnsAsync(Result.Ok(existing));
 
         var result = await _sut.UpdateReservationAsync("customer-1", false, dto);
 
@@ -202,7 +203,7 @@ public sealed partial class ReservationServiceTests
             {
                 capturedNewSlots = newSlots;
             })
-            .ReturnsAsync(existing);
+            .ReturnsAsync(Result.Ok(existing));
 
         var result = await _sut.UpdateReservationAsync("customer-1", false, dto);
 

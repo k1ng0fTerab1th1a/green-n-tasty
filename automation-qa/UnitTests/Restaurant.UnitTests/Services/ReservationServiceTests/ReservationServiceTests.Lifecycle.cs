@@ -93,7 +93,6 @@ public sealed partial class ReservationServiceTests
                 reservation,
                 ReservationStatus.Reserved,
                 ReservationStatus.InProgress,
-                null,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
@@ -108,7 +107,6 @@ public sealed partial class ReservationServiceTests
             reservation,
             ReservationStatus.Reserved,
             ReservationStatus.InProgress,
-            null,
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -182,7 +180,6 @@ public sealed partial class ReservationServiceTests
                 reservation,
                 ReservationStatus.InProgress,
                 ReservationStatus.MealsServed,
-                null,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 

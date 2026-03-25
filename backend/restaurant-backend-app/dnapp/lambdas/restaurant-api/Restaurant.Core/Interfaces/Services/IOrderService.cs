@@ -6,5 +6,5 @@ namespace Restaurant.Core.Interfaces.Services;
 
 public interface IOrderService
 {
-    Task<Result<Order>> CreateAsyncForReservation(string actorId, CreateOrderDTO dto, CancellationToken ct = default);
+    Task<Result<Order>> CreateAsyncForReservation(string actorId, CreateOrderDTO dto, CancellationToken ct);
 }

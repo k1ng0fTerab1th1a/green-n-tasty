@@ -5,7 +5,6 @@ using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 using Restaurant.Core.Services;
-using System.Text.Json;
 
 namespace Restaurant.UnitTests.Services;
 
@@ -206,10 +205,8 @@ public sealed class OrderServiceTests
         capturedDishCount.Should().Be(3);
 
         capturedOrder.Should().NotBeNull();
-        var snapshots = JsonSerializer.Deserialize<List<OrderDishSnapshot>>(capturedOrder!.DishesJson);
-        snapshots.Should().NotBeNull();
-        snapshots!.Should().HaveCount(2);
-        snapshots.Sum(x => x.Quantity).Should().Be(3);
+        capturedOrder!.Dishes.Should().HaveCount(2);
+        capturedOrder.Dishes.Sum(x => x.Quantity).Should().Be(3);
 
         _reservationRepo.Verify(r => r.GetByIdAsync("res-1", It.IsAny<CancellationToken>()), Times.Once);
         _dishRepo.Verify(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()), Times.Once);

@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import {
-    BookingCard,
+    ReservationCard,
     MainLayout,
     PageBanner,
     Toast,
-    ReservationForm
+    ReservationModal
 } from "../../components/index.js";
-import styles from "./ReservationsPage.module.css";
 import { getClientReservations, deleteReservation } from "../../services/reservations";
 import { getAvailableTables } from "../../services/bookings";
 import { useAuth } from "../../auth/AuthContext.jsx";
+import styles from "./ReservationsPage.module.css";
 
 export default function ReservationsPage() {
     const { auth } = useAuth();
@@ -54,6 +54,17 @@ export default function ReservationsPage() {
         }
     };
 
+    const formatTimeFromISO = (isoString) => {
+        if (!isoString) return "";
+        const date = new Date(isoString);
+        return date.toLocaleTimeString(undefined, {
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "Asia/Tbilisi",
+            hour12: false
+        });
+    };
+
     const handleEditClick = async (res) => {
         try {
             setLoading(true);
@@ -69,33 +80,18 @@ export default function ReservationsPage() {
             const tables = response.data || [];
             const currentTableData = tables.find(t => t.tableNumber === res.tableNumber);
 
-            const formatTimeFromISO = (isoString) => {
-                if (!isoString) return "";
-                const timePart = isoString.split('T')[1].split('+')[0].split('-')[0];
-                let [hours, minutes] = timePart.split(':');
-                hours = parseInt(hours, 10);
-                const ampm = hours >= 12 ? 'pm' : 'am';
-                hours = hours % 12;
-                hours = hours ? hours : 12;
-                return `${hours}:${minutes} ${ampm}`;
-            };
-
             let slotsForForm = [];
-
-            // ВИПРАВЛЕНО: Додаємо поточний слот користувача до масиву доступних слотів
             const currentUserSlot = {
                 startOffset: res.startDateTime,
                 endOffset: res.endDateTime
             };
 
             if (currentTableData && Array.isArray(currentTableData.availableSlots)) {
-                // Об'єднуємо отримані вільні слоти з поточним часом користувача
                 slotsForForm = [...currentTableData.availableSlots, currentUserSlot];
             } else {
                 slotsForForm = [currentUserSlot];
             }
 
-            // Сортуємо об'єднаний пул слотів, щоб знайти справжні межі "Від" і "До"
             const sortedSlots = [...slotsForForm].sort((a, b) =>
                 a.startOffset.localeCompare(b.startOffset)
             );
@@ -145,30 +141,17 @@ export default function ReservationsPage() {
                     ) : (
                         <div className={styles.grid}>
                             {reservations.map((res) => {
-                                const formatTimeFromISO = (isoString) => {
-                                    if (!isoString) return "";
-                                    const timePart = isoString.split('T')[1].split('+')[0].split('-')[0];
-                                    let [hours, minutes] = timePart.split(':');
-                                    hours = parseInt(hours, 10);
-                                    const ampm = hours >= 12 ? 'pm' : 'am';
-                                    hours = hours % 12;
-                                    hours = hours ? hours : 12;
-                                    return `${hours}:${minutes} ${ampm}`;
-                                };
-
                                 const startTime = formatTimeFromISO(res.startDateTime);
                                 const endTime = formatTimeFromISO(res.endDateTime);
 
                                 return (
-                                    <BookingCard
+                                    <ReservationCard
                                         key={res.id}
                                         booking={{
                                             ...res,
                                             address: res.locationAddress || res.locationId,
                                             date: new Date(res.startDateTime).toLocaleDateString("en-US", {
-                                                month: "short",
-                                                day: "numeric",
-                                                year: "numeric",
+                                                month: "short", day: "numeric", year: "numeric",
                                             }),
                                             time: `${startTime} - ${endTime}`,
                                             guests: res.guestsCount,
@@ -185,7 +168,7 @@ export default function ReservationsPage() {
             </div>
 
             {selectedReservation && (
-                <ReservationForm
+                <ReservationModal
                     isOpen={isEditModalOpen}
                     onClose={() => setIsEditModalOpen(false)}
                     onSuccess={handleUpdateSuccess}

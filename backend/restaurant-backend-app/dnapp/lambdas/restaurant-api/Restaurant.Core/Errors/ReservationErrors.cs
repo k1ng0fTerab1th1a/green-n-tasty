@@ -12,6 +12,7 @@ public static class ReservationErrors
     public static BusinessError NotUpdatable => new("Only reserved reservations can be updated.", ErrorType.Validation);
     public static BusinessError TooLateToUpdate => new("Reservation cannot be updated less than 30 minutes before it starts.", ErrorType.Validation);
     public static BusinessError UpdateFailed => new("Failed to update reservation.", ErrorType.Validation);
+    public static BusinessError UpdateFailedSlotsTaken => new("Update failed: requested time slots are already taken.", ErrorType.Validation);
 
     public static BusinessError LocationNotFound => new("Location not found.", ErrorType.NotFound);
     public static BusinessError NoWaiterAssigned => new("No waiter assigned for this table on this date.", ErrorType.Validation);

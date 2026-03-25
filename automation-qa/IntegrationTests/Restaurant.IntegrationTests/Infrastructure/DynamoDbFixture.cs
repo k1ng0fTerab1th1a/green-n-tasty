@@ -11,7 +11,8 @@ public class DynamoDbFixture : IAsyncLifetime
     [
         "customer-firstName-index",
         "customer-lastName-index",
-        "customer-email-index"
+        "customer-email-index",
+        "waiterFlag-index"
     ];
 
     public IAmazonDynamoDB Client { get; private set; }
@@ -84,7 +85,8 @@ public class DynamoDbFixture : IAsyncLifetime
                 new AttributeDefinition("role", ScalarAttributeType.S),
                 new AttributeDefinition("firstNameNormalized", ScalarAttributeType.S),
                 new AttributeDefinition("lastNameNormalized", ScalarAttributeType.S),
-                new AttributeDefinition("emailNormalized", ScalarAttributeType.S)
+                new AttributeDefinition("emailNormalized", ScalarAttributeType.S),
+                new AttributeDefinition("waiterFlag", ScalarAttributeType.S)
             ],
             KeySchema =
             [
@@ -122,6 +124,16 @@ public class DynamoDbFixture : IAsyncLifetime
                     [
                         new KeySchemaElement("role", KeyType.HASH),
                         new KeySchemaElement("emailNormalized", KeyType.RANGE)
+                    ],
+                    Projection = new Projection { ProjectionType = ProjectionType.ALL },
+                    ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+                },
+                new GlobalSecondaryIndex
+                {
+                    IndexName = "waiterFlag-index",
+                    KeySchema =
+                    [
+                        new KeySchemaElement("waiterFlag", KeyType.HASH)
                     ],
                     Projection = new Projection { ProjectionType = ProjectionType.ALL },
                     ProvisionedThroughput = new ProvisionedThroughput(5, 5)
@@ -264,73 +276,6 @@ public class DynamoDbFixture : IAsyncLifetime
         await EnsureTableAsync(request);
     }
 
-    private async Task EnsureDishesTableAsync()
-    {
-        const string tableName = "Dishes";
-
-        var request = new CreateTableRequest
-        {
-            TableName = tableName,
-            AttributeDefinitions =
-            [
-                new AttributeDefinition("id", ScalarAttributeType.S)
-            ],
-            KeySchema =
-            [
-                new KeySchemaElement("id", KeyType.HASH)
-            ],
-            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
-        };
-
-        await EnsureTableAsync(request);
-    }
-
-    private async Task EnsureTablesTableAsync()
-    {
-        const string tableName = "Tables";
-
-        var request = new CreateTableRequest
-        {
-            TableName = tableName,
-            AttributeDefinitions =
-            [
-                new AttributeDefinition("locationId", ScalarAttributeType.S),
-                new AttributeDefinition("tableNumber", ScalarAttributeType.N)
-            ],
-            KeySchema =
-            [
-                new KeySchemaElement("locationId", KeyType.HASH),
-                new KeySchemaElement("tableNumber", KeyType.RANGE)
-            ],
-            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
-        };
-
-        await EnsureTableAsync(request);
-    }
-
-    private async Task EnsureTableDaysTableAsync()
-    {
-        const string tableName = "TableDays";
-
-        var request = new CreateTableRequest
-        {
-            TableName = tableName,
-            AttributeDefinitions =
-            [
-                new AttributeDefinition("tableKey", ScalarAttributeType.S),
-                new AttributeDefinition("date", ScalarAttributeType.S)
-            ],
-            KeySchema =
-            [
-                new KeySchemaElement("tableKey", KeyType.HASH),
-                new KeySchemaElement("date", KeyType.RANGE)
-            ],
-            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
-        };
-
-        await EnsureTableAsync(request);
-    }
-
     private async Task EnsureTableAsync(CreateTableRequest request)
     {
         try
@@ -363,4 +308,139 @@ public class DynamoDbFixture : IAsyncLifetime
             await Task.Delay(500);
         }
     }
+
+    private async Task EnsureTablesTableAsync()
+    {
+        const string tableName = "Tables";
+
+        var existing = await Client.ListTablesAsync();
+        if (existing.TableNames.Contains(tableName))
+            return;
+
+        var request = new CreateTableRequest
+        {
+            TableName = tableName,
+            AttributeDefinitions = new List<AttributeDefinition>
+            {
+                new("locationId", ScalarAttributeType.S),
+                new("tableNumber", ScalarAttributeType.N)
+            },
+            KeySchema = new List<KeySchemaElement>
+            {
+                new("locationId", KeyType.HASH),
+                new("tableNumber", KeyType.RANGE)
+            },
+            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+        };
+
+        await Client.CreateTableAsync(request);
+
+        while (true)
+        {
+            var desc = await Client.DescribeTableAsync(tableName);
+            if (desc.Table.TableStatus == TableStatus.ACTIVE)
+                break;
+
+            await Task.Delay(500);
+        }
+    }
+
+    private async Task EnsureTableDaysTableAsync()
+    {
+        const string tableName = "TableDays";
+
+        var request = new CreateTableRequest
+        {
+            TableName = tableName,
+            AttributeDefinitions =
+            [
+                new AttributeDefinition("tableKey", ScalarAttributeType.S),
+                new AttributeDefinition("date", ScalarAttributeType.S)
+            ],
+            KeySchema =
+            [
+                new KeySchemaElement("tableKey", KeyType.HASH),
+                new KeySchemaElement("date", KeyType.RANGE)
+            ],
+            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+        };
+
+        await EnsureTableAsync(request);
+    }
+
+    private async Task EnsureDishesTableAsync()
+    {
+        const string tableName = "Dishes";
+
+        var existing = await Client.ListTablesAsync();
+        if (existing.TableNames.Contains(tableName))
+        {
+            var table = await Client.DescribeTableAsync(tableName);
+            var existingIndexes = table.Table.GlobalSecondaryIndexes?
+                .Select(x => x.IndexName)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
+
+            var hasRequiredIndexes = existingIndexes.Contains("PopularDishesIndex")
+                && existingIndexes.Contains("SpecialityIndex");
+
+            if (hasRequiredIndexes)
+            {
+                await WaitForTableActiveAsync(tableName);
+                return;
+            }
+
+            await Client.DeleteTableAsync(tableName);
+
+            while (true)
+            {
+                var tables = await Client.ListTablesAsync();
+                if (!tables.TableNames.Contains(tableName))
+                    break;
+
+                await Task.Delay(500);
+            }
+        }
+ 
+        var request = new CreateTableRequest
+        {
+            TableName = tableName,
+            AttributeDefinitions = new List<AttributeDefinition>
+            {
+                new("id",                   ScalarAttributeType.S),
+                new("popularityFlag",       ScalarAttributeType.S),
+                new("specialityForLocation", ScalarAttributeType.S)
+            },
+            KeySchema = new List<KeySchemaElement>
+            {
+                new("id", KeyType.HASH)
+            },
+            ProvisionedThroughput = new ProvisionedThroughput(5, 5),
+            GlobalSecondaryIndexes = new List<GlobalSecondaryIndex>
+            {
+                new()
+                {
+                    IndexName = "PopularDishesIndex",
+                    KeySchema = new List<KeySchemaElement>
+                    {
+                        new("popularityFlag", KeyType.HASH)
+                    },
+                    Projection            = new Projection { ProjectionType = ProjectionType.ALL },
+                    ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+                },
+                new()
+                {
+                    IndexName = "SpecialityIndex",
+                    KeySchema = new List<KeySchemaElement>
+                    {
+                        new("specialityForLocation", KeyType.HASH)
+                    },
+                    Projection            = new Projection { ProjectionType = ProjectionType.ALL },
+                    ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+                }
+            }
+        };
+ 
+        await EnsureTableAsync(request);
+    }
+
 }

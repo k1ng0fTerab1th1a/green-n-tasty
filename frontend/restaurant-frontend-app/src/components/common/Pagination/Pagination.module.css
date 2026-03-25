@@ -1,0 +1,36 @@
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.arrowBtn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background-color: #F5F5F5;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.arrowBtn:hover:not(:disabled) {
+    background-color: #E8E8E8;
+}
+
+.arrowBtn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.arrowIcon {
+    width: 18px;
+    height: 18px;
+}
+
+.arrowBtn:active:not(:disabled) {
+    transform: scale(0.95);
+}

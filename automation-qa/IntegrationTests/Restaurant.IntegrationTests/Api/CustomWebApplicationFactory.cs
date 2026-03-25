@@ -104,7 +104,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastSignInPassword = null;
         }
 
-        public Task<Result> SignUpAsync(string email, string password, string firstName, string lastName)
+        public Task<Result> SignUpAsync(string email, string password, string firstName, string lastName, CancellationToken ct = default)
         {
             LastSignUpEmail = email;
             LastSignUpPassword = password;
@@ -117,7 +117,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Result.Ok());
         }
 
-        public Task<Result<AuthResult>> SignInAsync(string email, string password)
+        public Task<Result<AuthResult>> SignInAsync(string email, string password, CancellationToken ct = default)
         {
             LastSignInEmail = email;
             LastSignInPassword = password;
@@ -170,7 +170,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 TableNumber = 3,
                 GuestsCount = 2,
                 Status = OrderStatus.Open,
-                DishesJson = "[]",
+                Dishes = new List<OrderDishSnapshot>(),
                 TotalAmount = 0,
                 CreatedAt = "2026-03-01T00:00:00.0000000Z",
                 CompletedAt = null
@@ -196,16 +196,16 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public string GetUserPoolId() => "test-pool";
 
-        public Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER")
+        public Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role, CancellationToken ct = default)
             => throw new NotImplementedException();
 
-        public Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password)
+        public Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password, CancellationToken ct = default)
             => throw new NotImplementedException();
 
-        public Task<Result> DeleteUserAsync(string email)
+        public Task<Result> DeleteUserAsync(string email, CancellationToken ct = default)
             => throw new NotImplementedException();
 
-        public Task<string> RefreshTokenAsync(string refreshToken)
+        public Task<string> RefreshTokenAsync(string refreshToken, CancellationToken ct = default)
         {
             LastRefreshTokenInput = refreshToken;
 
@@ -215,7 +215,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(RefreshTokenResponse);
         }
 
-        public Task<Result> SignOutAsync(string refreshToken)
+        public Task<Result> SignOutAsync(string refreshToken, CancellationToken ct = default)
         {
             LastSignOutRefreshToken = refreshToken;
 
@@ -614,7 +614,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             int size,
             string type,
             List<string> sort,
-            string? pageToken = null)
+            string? pageToken,
+            CancellationToken ct = default)
         {
             LastLocationId = locationId;
             LastSize = size;
@@ -629,7 +630,13 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public sealed class FakeDishService : IDishService
     {
         public string? LastLocationId { get; private set; }
+        public string? LastDishId { get; private set; }
+        public string? LastMenuType { get; private set; }
+        public string? LastMenuSort { get; private set; }
         public Dictionary<string, IReadOnlyList<Dish>> DishesByLocation { get; } = new();
+        public List<Dish> PopularDishes { get; } = new();
+        public Dictionary<string, Dish> DishesById { get; } = new();
+        public List<DishBriefDTO> MenuDishes { get; } = new();
 
         public FakeDishService()
         {
@@ -639,8 +646,16 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public void Reset()
         {
             LastLocationId = null;
+            LastDishId = null;
+            LastMenuType = null;
+            LastMenuSort = null;
+
             DishesByLocation.Clear();
             DishesByLocation["loc-1"] = Array.Empty<Dish>();
+
+            PopularDishes.Clear();
+            DishesById.Clear();
+            MenuDishes.Clear();
         }
 
         public Task<Result<IReadOnlyList<Dish>>> GetSpecialityDishesByLocationIdAsync(
@@ -656,7 +671,25 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         }
 
         public Task<Result<IReadOnlyList<Dish>>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(Array.Empty<Dish>()));
+            => Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(PopularDishes));
+
+        public Task<Result<Dish>> GetDishByIdAsync(string dishId,
+            CancellationToken cancellationToken = default)
+        {
+            LastDishId = dishId;
+            if (DishesById.TryGetValue(dishId, out var dish))
+                return Task.FromResult(Result.Ok(dish));
+
+            return Task.FromResult(Result.Fail<Dish>(DishErrors.NotFound));
+        }
+
+        public Task<Result<IReadOnlyList<DishBriefDTO>>> GetMenuBriefDishesAsync(
+            string? type, string sort, CancellationToken cancellationToken = default)
+        {
+            LastMenuType = type;
+            LastMenuSort = sort;
+            return Task.FromResult(Result.Ok<IReadOnlyList<DishBriefDTO>>(MenuDishes));
+        }
     }
 
     public sealed class FakeTableService : ITableService
