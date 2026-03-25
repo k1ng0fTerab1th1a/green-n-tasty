@@ -300,10 +300,7 @@ public sealed class ReservationService : IReservationService
         reservation.TableNumber = dto.TableNumber;
         reservation.TableKey = $"{reservation.LocationId}#{dto.TableNumber}";
 
-        var updated = await _repo.UpdateReservationAsync(reservation, newSlots, oldSlots, oldTableKey, oldStart, ct);
-        if (updated is null) return ReservationErrors.UpdateFailed;
-
-        return updated;
+        return await _repo.UpdateReservationAsync(reservation, newSlots, oldSlots, oldTableKey, oldStart, ct);
     }
 
     public async Task<Result<Reservation>> StartReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)

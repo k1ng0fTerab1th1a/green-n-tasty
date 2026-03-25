@@ -1,4 +1,5 @@
-﻿using Restaurant.Core.Models;
+﻿using FluentResults;
+using Restaurant.Core.Models;
 
 namespace Restaurant.Core.Interfaces.Repositories;
 
@@ -34,7 +35,7 @@ public interface IReservationRepository
     Task<bool> CancelReservationAsync(Reservation reservation, List<string> slots,
         CancellationToken ct);
 
-    Task<Reservation?> UpdateReservationAsync(
+    Task<Result<Reservation>> UpdateReservationAsync(
         Reservation reservation,
         List<string> newSlots,
         List<string> oldSlots,
