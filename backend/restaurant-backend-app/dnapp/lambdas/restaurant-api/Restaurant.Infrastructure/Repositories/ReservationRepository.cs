@@ -38,6 +38,9 @@ public sealed class ReservationRepository : IReservationRepository
         await _context.SaveAsync(reservation, ct);
     }
 
+    public Task<IReadOnlyList<Reservation>> QueryByCustomerAsync(string customerId, CancellationToken ct)
+        => QueryByCustomerAsync(customerId, null, null, ct);
+
     public async Task<IReadOnlyList<Reservation>> QueryByCustomerAsync(
         string customerId,
         string? startFromIso = null,
@@ -65,6 +68,9 @@ public sealed class ReservationRepository : IReservationRepository
 
         return await search.GetRemainingAsync(ct);
     }
+
+    public Task<IReadOnlyList<Reservation>> QueryByWaiterAsync(string waiterId, CancellationToken ct)
+        => QueryByWaiterAsync(waiterId, null, null, ct);
 
     public async Task<IReadOnlyList<Reservation>> QueryByWaiterAsync(
         string waiterId,
@@ -258,6 +264,13 @@ public sealed class ReservationRepository : IReservationRepository
 
         return reservation;
     }
+
+    public Task<bool> UpdateLifecycleAsync(
+        Reservation reservation,
+        ReservationStatus expectedCurrentStatus,
+        ReservationStatus newStatus,
+        CancellationToken ct)
+        => UpdateLifecycleAsync(reservation, expectedCurrentStatus, newStatus, [], ct);
 
     public async Task<bool> UpdateLifecycleAsync(
         Reservation reservation,

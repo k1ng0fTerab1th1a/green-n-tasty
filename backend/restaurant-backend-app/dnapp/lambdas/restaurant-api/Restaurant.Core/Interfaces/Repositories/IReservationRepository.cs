@@ -7,17 +7,21 @@ public interface IReservationRepository
     Task<Reservation?> GetByIdAsync(string id, CancellationToken ct);
     Task UpdateAsync(Reservation reservation, CancellationToken ct);
 
+    Task<IReadOnlyList<Reservation>> QueryByCustomerAsync(string customerId, CancellationToken ct);
+
     Task<IReadOnlyList<Reservation>> QueryByCustomerAsync(
         string customerId,
-        string? startFromIso = null,
-        string? startToIso = null,
-        CancellationToken ct = default);
+        string? startFromIso,
+        string? startToIso,
+        CancellationToken ct);
+
+    Task<IReadOnlyList<Reservation>> QueryByWaiterAsync(string waiterId, CancellationToken ct);
 
     Task<IReadOnlyList<Reservation>> QueryByWaiterAsync(
         string waiterId,
-        string? startFromIso = null,
-        string? startToIso = null,
-        CancellationToken ct = default);
+        string? startFromIso,
+        string? startToIso,
+        CancellationToken ct);
 
     Task<bool> CreateWithSlotsAsync(Reservation reservation, DateOnly date, List<string> slots, CancellationToken ct);
 
@@ -42,6 +46,12 @@ public interface IReservationRepository
         Reservation reservation,
         ReservationStatus expectedCurrentStatus,
         ReservationStatus newStatus,
-        List<string>? slotsToRelease = null,
-        CancellationToken ct = default);
+        CancellationToken ct);
+
+    Task<bool> UpdateLifecycleAsync(
+        Reservation reservation,
+        ReservationStatus expectedCurrentStatus,
+        ReservationStatus newStatus,
+        List<string> slotsToRelease,
+        CancellationToken ct);
 }
