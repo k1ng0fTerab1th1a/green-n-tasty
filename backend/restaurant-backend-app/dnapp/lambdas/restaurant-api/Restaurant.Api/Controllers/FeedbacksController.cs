@@ -15,13 +15,13 @@ public class FeedbacksController : ControllerBase
 {
     private readonly IReservationService _reservationService;
     private readonly IFeedbackService _feedbackService;
-    private readonly Core.Services.QRCoder _qrCoder;
+    private readonly Core.Services.QrCoder _qrCoder;
 
     public FeedbacksController(IReservationService reservationService, IFeedbackService feedbackService)
     {
         _reservationService = reservationService;
         _feedbackService = feedbackService;
-        _qrCoder = new Core.Services.QRCoder();
+        _qrCoder = new Core.Services.QrCoder();
     }
     [HttpPost]
     [AllowAnonymous]

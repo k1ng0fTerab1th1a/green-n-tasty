@@ -604,6 +604,12 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(Array.Empty<Dish>()));
         }
 
+        public Task<Dish?> GetDishByIdAsync(string dishId, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+
         public Task<Result<IReadOnlyList<Dish>>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(Array.Empty<Dish>()));
     }

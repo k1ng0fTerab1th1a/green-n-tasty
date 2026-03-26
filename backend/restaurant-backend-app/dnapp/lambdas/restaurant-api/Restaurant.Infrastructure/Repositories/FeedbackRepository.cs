@@ -86,4 +86,22 @@ public class FeedbackRepository(IDynamoDBContext context,
 
         await batch.ExecuteAsync(ct);
     }
+
+    public async Task<string?> GetSecretCodeByReservationIdAsync(string reservationId, CancellationToken ct = default)
+    {
+        var request = new GetItemRequest
+        {
+            TableName = "Reservations",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "id", new AttributeValue { S = reservationId } }
+            },
+            ProjectionExpression = "secretCode"
+        };
+
+        var response = await client.GetItemAsync(request, ct);
+        return response.Item.TryGetValue("secretCode", out var attr)
+            ? attr.S
+            : null;
+    }
 }

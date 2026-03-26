@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Services;
+using Restaurant.Core.SharedModels;
 using Restaurant.Infrastructure.Repositories;
 using Restaurant.Infrastructure.Services;
 
@@ -77,6 +78,9 @@ public class Startup
         services.AddScoped<ITableDayRepository, TableDayRepository>();
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<IWaiterScheduleRepository, WaiterScheduleRepository>();
+
+        services.Configure<ClientSettings>(
+            _configuration.GetSection("ClientSettings"));
 
         services.AddAuthorization();
         services.AddCors(options =>

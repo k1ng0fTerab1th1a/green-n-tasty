@@ -1,13 +1,15 @@
 ﻿using FluentResults;
+using Microsoft.Extensions.Options;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
+using Restaurant.Core.SharedModels;
 
 namespace Restaurant.Core.Services;
 
 public class FeedbackService(IFeedbackRepository feedbackRepository, IReservationRepository reservationRepository, 
-    IUserRepository userRepository) : IFeedbackService
+    IUserRepository userRepository, IOptions<ClientSettings> options) : IFeedbackService
 {
     public async Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(string locationId, int size, string type, List<string> sort, string? pageToken = null)
     {
@@ -73,7 +75,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         
         if (dto.CuisineRating.HasValue)
         {
-            if (reservation.Status < ReservationStatus.MealsServed)
+            if (reservation.Status <ReservationStatus.MealsServed)
                 return Result.Fail("Cuisine feedback is only available once meals have been served");
 
             var cuisineFeedback = new Feedback
@@ -98,5 +100,21 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
 
         await feedbackRepository.SaveBatchAsync(feedbacksToSave, ct);
         return Result.Ok();
+    }
+
+    public async Task<Result<byte[]>> GenerateFeedbackQr(string reservationId, CancellationToken ct = default)
+    {
+        var secretCode = await feedbackRepository.GetSecretCodeByReservationIdAsync(reservationId, ct);
+        if (string.IsNullOrEmpty(secretCode))
+        {
+            return Result.Fail("Secret code for this reservation was not received");
+        }
+        
+        string combinedUrl = options.Value.ClientUrl + "/feedback" + 
+            $"?reservationId={reservationId}&secretCode={secretCode}";
+
+        QrCoder coder = new QrCoder();
+        var qrCode = coder.GenerateQrCode(combinedUrl);
+        return Result.Ok(qrCode);
     }
 }

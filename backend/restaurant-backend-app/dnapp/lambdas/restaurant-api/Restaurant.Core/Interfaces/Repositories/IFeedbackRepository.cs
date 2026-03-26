@@ -9,4 +9,5 @@ public interface IFeedbackRepository
         int size, string type = "waiter", List<string>? sort = null, string? pageToken = null);
 
     Task SaveBatchAsync(IEnumerable<Feedback> feedbacks, CancellationToken ct = default);
+    Task<string?> GetSecretCodeByReservationIdAsync(string reservationId, CancellationToken ct = default);
 }

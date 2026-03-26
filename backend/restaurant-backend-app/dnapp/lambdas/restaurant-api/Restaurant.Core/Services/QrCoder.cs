@@ -2,7 +2,7 @@
 
 namespace Restaurant.Core.Services;
 
-public class QRCoder
+public class QrCoder
 {
     public byte[] GenerateQrCode(string url)
     {
