@@ -6,6 +6,6 @@ public class OrderDishSnapshot
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public string? PhotoUrl { get; set; }
-    public float PriceAtOrder { get; set; }
+    public decimal PriceAtOrder { get; set; }
     public int Quantity { get; set; }
 }

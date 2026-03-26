@@ -1,7 +1,9 @@
 ﻿using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.Model;
 using Restaurant.Core.Models;
+using System.Globalization;
 
-namespace Restaurant.Reports.Models;
+namespace Restaurant.Reports.Domain.Entities;
 
 [DynamoDBTable("Reports")]
 public sealed class ReportEntry
@@ -13,8 +15,13 @@ public sealed class ReportEntry
     [DynamoDBGlobalSecondaryIndexHashKey("locationId-completedAt-index")]
     public string LocationId { get; set; } = null!;
 
+    [DynamoDBProperty("date")]
+    [DynamoDBGlobalSecondaryIndexHashKey("date-completedAt-index")]
+    public string Date { get; set; } = null!;
+
     [DynamoDBProperty("completedAt")]
     [DynamoDBGlobalSecondaryIndexRangeKey("locationId-completedAt-index")]
+    [DynamoDBGlobalSecondaryIndexHashKey("date-completedAt-index")]
     public string CompletedAt { get; set; } = null!;
 
     [DynamoDBProperty("durationMinutes")]
@@ -27,7 +34,7 @@ public sealed class ReportEntry
     public string? OrderId { get; set; }
 
     [DynamoDBProperty("totalRevenue")]
-    public float TotalRevenue { get; set; }
+    public decimal TotalRevenue { get; set; }
 
     [DynamoDBProperty("serviceFeedback")]
     public int? ServiceFeedback { get; set; }
@@ -35,18 +42,19 @@ public sealed class ReportEntry
     [DynamoDBProperty("cuisineFeedback")]
     public int? CuisineFeedback { get; set; }
 
-    public ReportEntry(Reservation reservation, Order order, int? serviceFeedback, int? cuisineFeedback)
+    public ReportEntry(Reservation reservation, Order? order, int? serviceFeedback, int? cuisineFeedback)
     {
-        var actualStart = reservation.ActualStartTime != null
-            ? DateTimeOffset.Parse(reservation.ActualStartTime)
-            : DateTimeOffset.Parse(reservation.StartDateTime);
+        var actualStart = DateTimeOffset.Parse(
+            reservation.ActualStartTime ?? reservation.StartDateTime,
+            CultureInfo.InvariantCulture);
 
-        var actualEnd = reservation.ActualEndTime != null
-            ? DateTimeOffset.Parse(reservation.ActualEndTime)
-            : DateTimeOffset.Parse(reservation.EndDateTime);
+        var actualEnd = DateTimeOffset.Parse(
+            reservation.ActualEndTime ?? reservation.EndDateTime,
+            CultureInfo.InvariantCulture);
 
         LocationId = reservation.LocationId;
-        CompletedAt = $"{actualEnd}#{reservation.Id}";
+        CompletedAt = $"{actualEnd:o}#{reservation.Id}";
+        Date = actualEnd.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         ReservationId = reservation.Id;
         DurationMinutes = (int)(actualEnd - actualStart).TotalMinutes;
         WaiterId = reservation.WaiterId;

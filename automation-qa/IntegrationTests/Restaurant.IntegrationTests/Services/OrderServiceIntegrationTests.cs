@@ -69,8 +69,8 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
     public async Task CreateAsyncForReservation_WhenValidRequest_PersistsOrderAndUpdatesDishCount()
     {
         var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.InProgress, dishCount: 0);
-        var dish1 = BuildDish(state: "ON", price: 10f);
-        var dish2 = BuildDish(state: "ON", price: 25f);
+        var dish1 = BuildDish(state: "ON", price: 10m);
+        var dish2 = BuildDish(state: "ON", price: 25m);
 
         await _context.SaveAsync(reservation);
         await _context.SaveAsync(dish1);
@@ -86,7 +86,7 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
         result.IsSuccess.Should().BeTrue();
         result.Value.ReservationId.Should().Be(reservation.Id);
         result.Value.WaiterId.Should().Be("waiter-1");
-        result.Value.TotalAmount.Should().Be(45f);
+        result.Value.TotalAmount.Should().Be(45m);
 
         var reservationAfter = await _context.LoadAsync<Reservation>(reservation.Id);
         reservationAfter.Should().NotBeNull();
@@ -99,7 +99,7 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
         var orders = await orderSearch.GetRemainingAsync();
 
         orders.Should().HaveCount(1);
-        orders[0].TotalAmount.Should().Be(45f);
+        orders[0].TotalAmount.Should().Be(45m);
 
         orders[0].Dishes.Should().HaveCount(2);
         orders[0].Dishes.Sum(x => x.Quantity).Should().Be(3);
@@ -142,7 +142,7 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
         };
     }
 
-    private static Dish BuildDish(string state, float price = 12f)
+    private static Dish BuildDish(string state, decimal price = 12m)
         => new()
         {
             Id = $"dish-{Guid.NewGuid():N}",

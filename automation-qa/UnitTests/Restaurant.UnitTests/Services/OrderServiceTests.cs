@@ -119,7 +119,7 @@ public sealed class OrderServiceTests
 
         _dishRepo
             .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Dish> { BuildDish("dish-1", "ON", 12f) });
+            .ReturnsAsync(new List<Dish> { BuildDish("dish-1", "ON", 12m) });
 
         var result = await _sut.CreateAsyncForReservation("waiter-1", dto);
 
@@ -145,7 +145,7 @@ public sealed class OrderServiceTests
 
         _dishRepo
             .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Dish> { BuildDish("dish-1", "OFF", 12f) });
+            .ReturnsAsync(new List<Dish> { BuildDish("dish-1", "OFF", 12m) });
 
         var result = await _sut.CreateAsyncForReservation("waiter-1", dto);
 
@@ -173,8 +173,8 @@ public sealed class OrderServiceTests
             .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Dish>
             {
-                BuildDish("dish-1", "ON", 10f),
-                BuildDish("dish-2", "ON", 25f)
+                BuildDish("dish-1", "ON", 10m),
+                BuildDish("dish-2", "ON", 25m)
             });
 
         Order? capturedOrder = null;
@@ -201,7 +201,7 @@ public sealed class OrderServiceTests
         result.Value.ReservationId.Should().Be("res-1");
         result.Value.WaiterId.Should().Be("waiter-1");
         result.Value.Status.Should().Be(OrderStatus.Open);
-        result.Value.TotalAmount.Should().Be(45f);
+        result.Value.TotalAmount.Should().Be(45m);
         capturedDishCount.Should().Be(3);
 
         capturedOrder.Should().NotBeNull();
@@ -253,7 +253,7 @@ public sealed class OrderServiceTests
             UpdatedAt = DateTimeOffset.UtcNow.AddMinutes(-10).ToString("O")
         };
 
-    private static Dish BuildDish(string id, string state, float price)
+    private static Dish BuildDish(string id, string state, decimal price)
         => new()
         {
             Id = id,

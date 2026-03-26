@@ -1,9 +1,8 @@
 using Amazon.Lambda.Core;
 using Amazon.Lambda.SQSEvents;
-using Restaurant.Core.Models;
-using Restaurant.Reports;
+using Restaurant.Reports.Domain.Entities;
+using Restaurant.Reports.Infrastructure;
 using Restaurant.Reports.Messaging;
-using Restaurant.Reports.Models;
 using System;
 using System.Linq;
 using System.Text.Json;
@@ -16,11 +15,11 @@ namespace Restaurant.ReportsHandler;
 
 public class ReportsHandler
 {
-    private readonly Repository _repository;
+    private readonly ReportsRepository _repository;
 
     public ReportsHandler()
     {
-        _repository = new Repository();
+        _repository = new ReportsRepository();
     }
     public async Task FunctionHandler(SQSEvent sqsEvent, ILambdaContext context)
     {

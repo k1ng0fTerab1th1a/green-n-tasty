@@ -323,6 +323,13 @@
         "index_key_type": "S",
         "index_sort_key_name": "completedAt",
         "index_sort_key_type": "S"
+      },
+      {
+        "name": "date-completedAt-index",
+        "index_key_name": "date",
+        "index_key_type": "S",
+        "index_sort_key_name": "completedAt",
+        "index_sort_key_type": "S"
       }
     ],
     "autoscaling": [],

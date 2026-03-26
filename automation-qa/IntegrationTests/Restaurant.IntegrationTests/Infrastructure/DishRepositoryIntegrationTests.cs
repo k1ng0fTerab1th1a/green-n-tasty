@@ -27,7 +27,7 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
             Id            = id,
             Name          = "Truffle Risotto",
             DishType      = "MAIN",
-            Price         = 28.5f,
+            Price         = 28.5m,
             State         = "ON",
             Description   = "Creamy risotto",
             ImageUrl      = "http://img/truffle",
@@ -47,7 +47,7 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         result!.Id.Should().Be(id);
         result.Name.Should().Be("Truffle Risotto");
         result.DishType.Should().Be("MAIN");
-        result.Price.Should().BeApproximately(28.5f, 0.001f);
+        result.Price.Should().BeApproximately(28.5m, 0.001m);
         result.State.Should().Be("ON");
         result.Description.Should().Be("Creamy risotto");
         result.ImageUrl.Should().Be("http://img/truffle");
@@ -77,7 +77,7 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         {
             Id             = popularId,
             Name           = "Popular Burger",
-            Price          = 14.0f,
+            Price          = 14.0m,
             PopularityFlag = "true"   // indexed value the repo queries with
         });
  
@@ -85,7 +85,7 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         {
             Id             = nonPopularId,
             Name           = "Unknown Soup",
-            Price          = 6.0f,
+            Price          = 6.0m,
             PopularityFlag = null     // not in index
         });
  
@@ -104,8 +104,8 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         var id1 = DishId();
         var id2 = DishId();
  
-        await _context.SaveAsync(new Dish { Id = id1, Name = "Pop A", Price = 10f, PopularityFlag = "true" });
-        await _context.SaveAsync(new Dish { Id = id2, Name = "Pop B", Price = 12f, PopularityFlag = "true" });
+        await _context.SaveAsync(new Dish { Id = id1, Name = "Pop A", Price = 10m, PopularityFlag = "true" });
+        await _context.SaveAsync(new Dish { Id = id2, Name = "Pop B", Price = 12m, PopularityFlag = "true" });
  
         var result = await _repo.GetPopularDishesAsync();
  
@@ -126,7 +126,7 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         {
             Id                    = specialityId,
             Name                  = "House Steak",
-            Price                 = 35.0f,
+            Price                 = 35.0m,
             SpecialityForLocation = locationId
         });
  
@@ -134,7 +134,7 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         {
             Id                    = otherId,
             Name                  = "Other Soup",
-            Price                 = 8.0f,
+            Price                 = 8.0m,
             SpecialityForLocation = otherLocationId
         });
  
@@ -164,8 +164,8 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         var id1 = DishId();
         var id2 = DishId();
  
-        await _context.SaveAsync(new Dish { Id = id1, Name = "Dish Alpha", Price = 20f, SpecialityForLocation = locationId });
-        await _context.SaveAsync(new Dish { Id = id2, Name = "Dish Beta",  Price = 22f, SpecialityForLocation = locationId });
+        await _context.SaveAsync(new Dish { Id = id1, Name = "Dish Alpha", Price = 20m, SpecialityForLocation = locationId });
+        await _context.SaveAsync(new Dish { Id = id2, Name = "Dish Beta",  Price = 22m, SpecialityForLocation = locationId });
  
         var result = await _repo.GetSpecialityDishesByLocationIdAsync(locationId);
  
@@ -182,7 +182,7 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
             Id       = id,
             Name     = "Mapped Dish",
             DishType = "DESSERT",
-            Price    = 7.5f,
+            Price    = 7.5m,
             State    = "ON",
             ImageUrl = "http://img/mapped",
             Weight   = 150
@@ -209,7 +209,7 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
             Id       = id,
             Name     = "Minimal Dish",
             DishType = "STARTER",
-            Price    = 4.0f,
+            Price    = 4.0m,
             ImageUrl = null,
             Weight   = null
         });
@@ -228,8 +228,8 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         var mainId    = DishId();
         var dessertId = DishId();
  
-        await _context.SaveAsync(new Dish { Id = mainId,    Name = "Steak",      DishType = "MAIN",    Price = 30f });
-        await _context.SaveAsync(new Dish { Id = dessertId, Name = "Ice Cream",  DishType = "DESSERT", Price = 6f  });
+        await _context.SaveAsync(new Dish { Id = mainId,    Name = "Steak",      DishType = "MAIN",    Price = 30m });
+        await _context.SaveAsync(new Dish { Id = dessertId, Name = "Ice Cream",  DishType = "DESSERT", Price = 6m  });
  
         var result = await _repo.GetShortenedDishesAsync(type: "MAIN", sort: "price,asc");
  
@@ -246,8 +246,8 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         var id1 = DishId();
         var id2 = DishId();
  
-        await _context.SaveAsync(new Dish { Id = id1, Name = "Soup A",    DishType = "STARTER", Price = 5f });
-        await _context.SaveAsync(new Dish { Id = id2, Name = "Chicken B", DishType = "MAIN",    Price = 18f });
+        await _context.SaveAsync(new Dish { Id = id1, Name = "Soup A",    DishType = "STARTER", Price = 5m });
+        await _context.SaveAsync(new Dish { Id = id2, Name = "Chicken B", DishType = "MAIN",    Price = 18m });
  
         var result = await _repo.GetShortenedDishesAsync(type: null, sort: "price,asc");
  
@@ -263,9 +263,9 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         // Use a distinct type so we can filter to just these three dishes
         var uniqueType = $"TYPE_{prefix}";
  
-        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Mid",  DishType = uniqueType, Price = 15f });
-        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_High", DishType = uniqueType, Price = 30f });
-        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Low",  DishType = uniqueType, Price = 5f  });
+        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Mid",  DishType = uniqueType, Price = 15m });
+        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_High", DishType = uniqueType, Price = 30m });
+        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Low",  DishType = uniqueType, Price = 5m  });
  
         var result = await _repo.GetShortenedDishesAsync(type: uniqueType, sort: "price,asc");
  
@@ -279,9 +279,9 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         var prefix     = Guid.NewGuid().ToString("N")[..8];
         var uniqueType = $"TYPE_{prefix}";
  
-        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_A", DishType = uniqueType, Price = 10f });
-        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_B", DishType = uniqueType, Price = 25f });
-        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_C", DishType = uniqueType, Price = 3f  });
+        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_A", DishType = uniqueType, Price = 10m });
+        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_B", DishType = uniqueType, Price = 25m });
+        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_C", DishType = uniqueType, Price = 3m  });
  
         var result = await _repo.GetShortenedDishesAsync(type: uniqueType, sort: "price,desc");
  
@@ -295,9 +295,9 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         var prefix     = Guid.NewGuid().ToString("N")[..8];
         var uniqueType = $"TYPE_{prefix}";
  
-        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Zucchini",  DishType = uniqueType, Price = 10f });
-        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Artichoke", DishType = uniqueType, Price = 12f });
-        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Mango",     DishType = uniqueType, Price = 8f  });
+        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Zucchini",  DishType = uniqueType, Price = 10m });
+        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Artichoke", DishType = uniqueType, Price = 12m });
+        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Mango",     DishType = uniqueType, Price = 8m  });
  
         var result = await _repo.GetShortenedDishesAsync(type: uniqueType, sort: "name,asc");
  
@@ -311,8 +311,8 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         var prefix     = Guid.NewGuid().ToString("N")[..8];
         var uniqueType = $"TYPE_{prefix}";
  
-        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Ziti",   DishType = uniqueType, Price = 9f });
-        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Apple",  DishType = uniqueType, Price = 4f });
+        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Ziti",   DishType = uniqueType, Price = 9m });
+        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Apple",  DishType = uniqueType, Price = 4m });
  
         var result = await _repo.GetShortenedDishesAsync(type: uniqueType, sort: "unknown,asc");
  

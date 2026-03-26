@@ -27,7 +27,7 @@ public class DishEndpointsTests : IClassFixture<CustomWebApplicationFactory>
             Id       = "dish-99",
             Name     = "Truffle Pasta",
             ImageUrl = "http://img/dish-99",
-            Price    = 38.0f,
+            Price    = 38.0m,
             State    = "ON",
             Weight   = 280
         });
@@ -77,7 +77,7 @@ public class DishEndpointsTests : IClassFixture<CustomWebApplicationFactory>
             Id             = "dish-7",
             Name           = "Beef Burger",
             DishType       = "MAIN",
-            Price          = 15.9f,
+            Price          = 15.9m,
             State          = "ON",
             Description    = "Juicy beef burger",
             ImageUrl       = "http://img/dish-7",
