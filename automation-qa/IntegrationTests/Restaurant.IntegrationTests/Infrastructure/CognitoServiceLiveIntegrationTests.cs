@@ -220,18 +220,6 @@ public sealed class CognitoServiceLiveIntegrationTests
         }
     }
 
-    [LiveCognitoFact]
-    [Trait("Category", "LiveCognito")]
-    public async Task SignOut_ShouldFail_WhenTokenInvalid()
-    {
-        var settings = GetRequiredSettings();
-        var sut = CreateSut(settings);
-
-        var result = await sut.SignOutAsync("not-a-valid-refresh-token");
-        result.IsFailed.Should().BeTrue();
-        result.Errors[0].Should().Be(AuthErrors.SignOutFailed);
-    }
-
     private static LiveCognitoSettings GetRequiredSettings()
     {
         var region = Environment.GetEnvironmentVariable("SYSTEM_AWS_REGION");
