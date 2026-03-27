@@ -42,4 +42,14 @@ public class FeedbacksController : ControllerBase
         await _feedbackService.SaveVisitorFeedback(req, secretCode, ct);
         return ApiResponse<object>.Success(200, null); 
     }
+
+    [HttpGet("feedback-short-data")]
+    public async Task<ApiResponse<CalculatedFeedbackDTO>> GetOverallFeedbackData([FromQuery] string reservationId,
+        CancellationToken ct = default)
+    {
+        var res = await _feedbackService.GetCalculatedFeedbackDataAsync(reservationId, ct);
+        if (res.IsSuccess)
+            return ApiResponse<CalculatedFeedbackDTO>.Success(200, res.Value);
+        return ApiResponse<CalculatedFeedbackDTO>.Fail(400, "Something went wrong during execution");
+    }
 }

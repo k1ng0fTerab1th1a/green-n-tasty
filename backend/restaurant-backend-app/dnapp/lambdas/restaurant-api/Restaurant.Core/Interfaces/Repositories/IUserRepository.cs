@@ -1,4 +1,5 @@
-﻿using Restaurant.Core.Models;
+﻿using Restaurant.Core.DTOs;
+using Restaurant.Core.Models;
 
 namespace Restaurant.Core.Interfaces.Repositories;
 
@@ -15,4 +16,5 @@ public interface IUserRepository
         CancellationToken ct = default);
 
     Task UpdateUserRatingAsync(string userId, int newFeedbackRating, CancellationToken ct = default);
+    Task<WaiterFeedbackData> GetWaiterFeedbackDataAsync(string waiterId, CancellationToken ct = default);
 }

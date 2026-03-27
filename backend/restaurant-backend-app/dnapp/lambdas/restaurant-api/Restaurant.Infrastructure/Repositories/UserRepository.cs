@@ -2,6 +2,7 @@
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
+using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 
@@ -123,6 +124,42 @@ public class UserRepository : IUserRepository
         };
 
         await _client.UpdateItemAsync(request, ct);
+    }
+
+    public async Task<WaiterFeedbackData> GetWaiterFeedbackDataAsync(string waiterId, CancellationToken ct = default)
+    {
+        var request = new GetItemRequest
+        {
+            TableName = "Users",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "userId", new AttributeValue { S = waiterId } }
+            },
+            ProjectionExpression = "#fn, #ln, #img, #r, #fn2",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#fn",  "firstName" },
+                { "#ln",  "lastName" },
+                { "#img", "imageUrl" },
+                { "#r",   "rating" },
+                { "#fn2", "feedbacksNumber" }
+            }
+        };
+
+        var response = await _client.GetItemAsync(request, ct);
+
+        if (!response.IsItemSet)
+            throw new KeyNotFoundException($"Waiter {waiterId} not found");
+
+        var item = response.Item;
+
+        return new WaiterFeedbackData
+        {
+            WaiterName           = $"{item["firstName"].S} {item["lastName"].S}",
+            WaiterImageUrl       = item.TryGetValue("imageUrl", out var img) ? img.S : null,
+            WaiterRating         = int.Parse(item["rating"].N),
+            WaiterFeedbacksNumber = int.Parse(item["feedbacksNumber"].N)
+        };
     }
 
     private Task<List<User>> QueryByPrefixAsync(string indexName, string normalizedPrefix, CancellationToken ct)

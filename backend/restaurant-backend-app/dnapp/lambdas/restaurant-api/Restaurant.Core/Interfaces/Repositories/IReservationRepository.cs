@@ -45,4 +45,7 @@ public interface IReservationRepository
         CancellationToken ct = default);
 
     Task ClearSecretCode(string reservationId, CancellationToken ct = default);
+
+    Task<(string waiterId, string locationId)> GetWaiterAndLocationIdFromReservationAsync(string reservationId,
+        CancellationToken ct = default);
 }

@@ -12,11 +12,6 @@ namespace Restaurant.Infrastructure.Repositories;
 public class FeedbackRepository(IDynamoDBContext context,
     IAmazonDynamoDB client) : IFeedbackRepository
 {
-    public async Task SaveAsync(Feedback feedback, CancellationToken ct = default)
-    {
-        feedback.LocationIdAndType = $"{feedback.LocationId}#{feedback.Type}";
-        await context.SaveAsync(feedback, ct);
-    }
 
     public async Task<FeedbackPaginatedDBResponseDto> GetByLocationAsync(string locationId,
         int size, string type = "waiter", List<string>? sort = null, string? pageToken = null)

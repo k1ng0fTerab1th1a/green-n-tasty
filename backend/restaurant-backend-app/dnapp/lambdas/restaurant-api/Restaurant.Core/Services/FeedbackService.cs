@@ -238,6 +238,32 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         var qrCode = coder.GenerateQrCode(combinedUrl);
         return Result.Ok(qrCode);
     }
+
+    public async Task<Result<CalculatedFeedbackDTO>> GetCalculatedFeedbackDataAsync(string reservationId,
+        CancellationToken ct = default)
+    {
+        var ids = await reservationRepository.GetWaiterAndLocationIdFromReservationAsync(reservationId, ct);
+        if (string.IsNullOrEmpty(ids.locationId) || string.IsNullOrEmpty(ids.waiterId))
+            return FeedbackErrors.DataFetchingError;
+
+        var cuisineRatingData = await locationRepository.GetLocationFeedbacksDataAsync(ids.locationId, ct);
+
+        double cuisineRating = cuisineRatingData.rating / (double)cuisineRatingData.feedbacksAmount;
+
+        var waiterRatingData = await userRepository.GetWaiterFeedbackDataAsync(ids.waiterId, ct);
+
+        double waiterRating = waiterRatingData.WaiterRating / (double)waiterRatingData.WaiterFeedbacksNumber;
+
+        return Result.Ok(new CalculatedFeedbackDTO()
+        {
+            WaiterFeedbacksNumber = waiterRatingData.WaiterFeedbacksNumber,
+            WaiterRating = waiterRating,
+            WaiterImageUrl = waiterRatingData.WaiterImageUrl,
+            WaiterName = waiterRatingData.WaiterName,
+            CuisineFeedbacksNumber = cuisineRatingData.feedbacksAmount,
+            CuisineRating = cuisineRating
+        });
+    }
     
     private async Task UpdateWaiterRatingAsync(string waiterId, int newRating, CancellationToken ct)
     {

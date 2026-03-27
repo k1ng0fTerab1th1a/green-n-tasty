@@ -59,4 +59,33 @@ public sealed class LocationRepository : ILocationRepository
 
         await _client.UpdateItemAsync(request, ct);
     }
+
+    public async Task<(int rating, int feedbacksAmount)> GetLocationFeedbacksDataAsync(string locationId, 
+        CancellationToken ct = default)
+    {
+        var request = new GetItemRequest
+        {
+            TableName = "Locations",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "id", new AttributeValue { S = locationId } }
+            },
+            ProjectionExpression = "#r, #f",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#r", "rating" },
+                { "#f", "feedbacksAmount" }
+            }
+        };
+
+        var response = await _client.GetItemAsync(request, ct);
+
+        if (!response.IsItemSet)
+            throw new KeyNotFoundException($"Location {locationId} not found");
+
+        return (
+            rating: int.Parse(response.Item["rating"].N),
+            feedbacksAmount: int.Parse(response.Item["feedbacksAmount"].N)
+        );
+    }
 }

@@ -10,4 +10,7 @@ public static class FeedbackErrors
     
     public static BusinessError RatingsNotFound =>
         new("Ratings were not found", ErrorType.NotFound);
+
+    public static BusinessError DataFetchingError =>
+        new("Something went wrong during data fetching", ErrorType.Validation);
 }

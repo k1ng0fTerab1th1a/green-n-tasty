@@ -365,7 +365,36 @@ public sealed class ReservationRepository : IReservationRepository
 
         await _dynamoDb.UpdateItemAsync(request, ct);
     }
-    
+
+    public async Task<(string waiterId, string locationId)> GetWaiterAndLocationIdFromReservationAsync(string reservationId,
+        CancellationToken ct = default)
+    {
+        var request = new GetItemRequest
+        {
+            TableName = "Reservations",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "id", new AttributeValue { S = reservationId } }
+            },
+            ProjectionExpression = "#w, #l",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#w", "waiterId" },
+                { "#l", "locationId" }
+            }
+        };
+
+        var response = await _dynamoDb.GetItemAsync(request, ct);
+
+        if (!response.IsItemSet)
+            throw new KeyNotFoundException($"Reservation {reservationId} not found");
+
+        return (
+            waiterId: response.Item["waiterId"].S,
+            locationId: response.Item["locationId"].S
+        );
+    }
+
     private async Task UpdateSameTableSameDayAsync(
         Dictionary<string, AttributeValue> reservationItem,
         List<string> newSlots,
