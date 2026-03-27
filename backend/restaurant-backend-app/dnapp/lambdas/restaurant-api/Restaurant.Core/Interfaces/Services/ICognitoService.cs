@@ -10,4 +10,5 @@ public interface ICognitoService
     Task<Result> DeleteUserAsync(string email, CancellationToken ct);
     Task<string> RefreshTokenAsync(string refreshToken, CancellationToken ct);
     Task<Result> SignOutAsync(string refreshToken, CancellationToken ct);
+    Task<Result> UpdateUserEmailAsync(string userId, string newEmail, CancellationToken ct);
 }

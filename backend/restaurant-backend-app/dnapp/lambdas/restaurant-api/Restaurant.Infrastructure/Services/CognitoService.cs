@@ -148,4 +148,31 @@ public class CognitoService : ICognitoService
             return AuthErrors.SignOutFailed;
         }
     }
+
+    public async Task<Result> UpdateUserEmailAsync(string userId, string newEmail, CancellationToken ct = default)
+    {
+        try
+        {
+            await _client.AdminUpdateUserAttributesAsync(new AdminUpdateUserAttributesRequest
+            {
+                UserPoolId = _userPoolId,
+                Username = userId,
+                UserAttributes = new List<AttributeType>
+                {
+                    new() { Name = "email", Value = newEmail },
+                    new() { Name = "email_verified", Value = "true" }
+                }
+            }, ct);
+
+            return Result.Ok();
+        }
+        catch (UserNotFoundException)
+        {
+            return AuthErrors.UserNotFound;
+        }
+        catch (AliasExistsException)
+        {
+            return AuthErrors.UserAlreadyExists;
+        }
+    }
 }
