@@ -13,4 +13,7 @@ public static class AuthErrors
 
     public static BusinessError SignOutFailed =>
         new("Failed to sign out.", ErrorType.Validation);
+
+    public static BusinessError RefreshTokenFailed =>
+        new("Failed to refresh token.", ErrorType.Validation);
 }

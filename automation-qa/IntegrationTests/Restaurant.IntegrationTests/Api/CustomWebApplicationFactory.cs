@@ -180,7 +180,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public sealed class FakeCognitoService : ICognitoService
     {
         public string RefreshTokenResponse { get; set; } = "new-access-token";
-        public Exception? RefreshTokenException { get; set; }
+        public BusinessError? RefreshTokenFailResult { get; set; }
         public BusinessError? SignOutFailResult { get; set; }
         public string? LastRefreshTokenInput { get; private set; }
         public string? LastSignOutRefreshToken { get; private set; }
@@ -188,7 +188,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public void Reset()
         {
             RefreshTokenResponse = "new-access-token";
-            RefreshTokenException = null;
+            RefreshTokenFailResult = null;
             SignOutFailResult = null;
             LastRefreshTokenInput = null;
             LastSignOutRefreshToken = null;
@@ -205,14 +205,14 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public Task<Result> DeleteUserAsync(string email, CancellationToken ct = default)
             => throw new NotImplementedException();
 
-        public Task<string> RefreshTokenAsync(string refreshToken, CancellationToken ct = default)
+        public Task<Result<string>> RefreshTokenAsync(string refreshToken, CancellationToken ct = default)
         {
             LastRefreshTokenInput = refreshToken;
 
-            if (RefreshTokenException is not null)
-                throw RefreshTokenException;
+            if (RefreshTokenFailResult is not null)
+                return Task.FromResult(Result.Fail<string>(RefreshTokenFailResult));
 
-            return Task.FromResult(RefreshTokenResponse);
+            return Task.FromResult(Result.Ok(RefreshTokenResponse));
         }
 
         public Task<Result> SignOutAsync(string refreshToken, CancellationToken ct = default)
