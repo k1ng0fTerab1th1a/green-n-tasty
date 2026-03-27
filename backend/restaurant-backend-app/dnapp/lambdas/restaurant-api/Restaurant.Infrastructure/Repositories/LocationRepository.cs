@@ -34,7 +34,7 @@ public sealed class LocationRepository : ILocationRepository
         return _context.LoadAsync<Location?>(id, cancellationToken);
     }
     
-    public async Task UpdateUserRatingAsync(string locationId, double newFeedbackRating, CancellationToken ct = default)
+    public async Task UpdateKitchenRatingAsync(string locationId, int newFeedbackRating, CancellationToken ct = default)
     {
         var request = new UpdateItemRequest
         {
@@ -43,19 +43,18 @@ public sealed class LocationRepository : ILocationRepository
             {
                 { "id", new AttributeValue { S = locationId } }
             },
-            UpdateExpression = "ADD #s :newRating, #c :inc",
+            UpdateExpression = "ADD #r :newRating, #c :inc",
             ExpressionAttributeNames = new Dictionary<string, string>
             {
                 { "#r", "rating" },
-                { "#c", "feedbacksNumber" },
+                { "#c", "feedbacksAmount" },
             },
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
-                { ":newRating", new AttributeValue { N = newFeedbackRating.ToString("F2") } },
-                { ":inc", new AttributeValue { N = "1" } },
-                { ":zero", new AttributeValue { N = "0" } }
+                { ":newRating", new AttributeValue { N = newFeedbackRating.ToString() } },
+                { ":inc",       new AttributeValue { N = "1" } },
             },
-            ReturnValues = ReturnValue.NONE // can be set to ALL_NEW if we really need to send it to the client
+            ReturnValues = ReturnValue.NONE
         };
 
         await _client.UpdateItemAsync(request, ct);

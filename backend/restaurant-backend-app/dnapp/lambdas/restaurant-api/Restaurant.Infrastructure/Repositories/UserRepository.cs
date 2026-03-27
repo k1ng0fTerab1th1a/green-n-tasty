@@ -99,7 +99,7 @@ public class UserRepository : IUserRepository
         return (rating, feedbacksAmount);
     }
 
-    public async Task UpdateUserRatingAsync(string userId, double newFeedbackRating, CancellationToken ct = default)
+    public async Task UpdateUserRatingAsync(string userId, int newFeedbackRating, CancellationToken ct = default)
     {
         var request = new UpdateItemRequest
         {
@@ -108,7 +108,7 @@ public class UserRepository : IUserRepository
             {
                 { "userId", new AttributeValue { S = userId } }
             },
-            UpdateExpression = "ADD #s :newRating, #c :inc",
+            UpdateExpression = "ADD #r :newRating, #c :inc",
             ExpressionAttributeNames = new Dictionary<string, string>
             {
                 { "#r", "rating" },
@@ -116,11 +116,10 @@ public class UserRepository : IUserRepository
             },
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
-                { ":newRating", new AttributeValue { N = newFeedbackRating.ToString("F2") } },
-                { ":inc", new AttributeValue { N = "1" } },
-                { ":zero", new AttributeValue { N = "0" } }
+                { ":newRating", new AttributeValue { N = newFeedbackRating.ToString() } },
+                { ":inc",       new AttributeValue { N = "1" } },
             },
-            ReturnValues = ReturnValue.NONE // can be set to ALL_NEW if we really need to send it to the client
+            ReturnValues = ReturnValue.NONE
         };
 
         await _client.UpdateItemAsync(request, ct);

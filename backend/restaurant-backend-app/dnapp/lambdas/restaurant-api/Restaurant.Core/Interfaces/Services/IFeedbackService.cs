@@ -9,4 +9,5 @@ public interface IFeedbackService
         List<string> sort, string? pageToken = null);
 
     Task<Result> SaveAuthorisedFeedback(CreateFeedbackDTO dto, string userId, CancellationToken ct = default);
+    Task<Result> SaveVisitorFeedback(CreateFeedbackDTO dto, string secretCode, CancellationToken ct = default);
 }

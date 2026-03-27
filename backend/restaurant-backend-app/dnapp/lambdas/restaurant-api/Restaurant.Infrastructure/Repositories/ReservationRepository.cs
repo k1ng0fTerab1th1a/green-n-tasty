@@ -346,6 +346,26 @@ public sealed class ReservationRepository : IReservationRepository
         }
     }
 
+
+    public async Task ClearSecretCode(string reservationId, CancellationToken ct = default)
+    {
+        var request = new UpdateItemRequest
+        {
+            TableName = "Reservations",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "id", new AttributeValue { S = reservationId } }
+            },
+            UpdateExpression = "REMOVE #sc",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#sc", "secretCode" }
+            }
+        };
+
+        await _dynamoDb.UpdateItemAsync(request, ct);
+    }
+    
     private async Task UpdateSameTableSameDayAsync(
         Dictionary<string, AttributeValue> reservationItem,
         List<string> newSlots,

@@ -39,40 +39,7 @@ public class FeedbacksController : ControllerBase
     public async Task<ApiResponse<object>> CreateFeedbackVisitor([FromBody] CreateFeedbackDTO req, [FromQuery] string
         secretCode, CancellationToken ct)
     {
-        
+        await _feedbackService.SaveVisitorFeedback(req, secretCode, ct);
+        return ApiResponse<object>.Success(200, null); 
     }
-
-    /*
-    [HttpGet("visitor")]
-    [AllowAnonymous]
-    public async Task<IActionResult> GetVisitorReservationInfo(
-        [FromQuery] string reservationId,
-        [FromQuery] string secretCode,
-        CancellationToken ct)
-    {
-        if (string.IsNullOrEmpty(reservationId) || string.IsNullOrEmpty(secretCode))
-            return ApiResponse<object>.Fail(400, "ReservationId and secret code are required");
-
-        var reservation = await _reservationService.GetByIdAsync(reservationId, ct);
-        if (reservation == null)
-            return ApiResponse<object>.Fail(404, "Reservation not found");
-
-        if (reservation.SecretCode != secretCode)
-            return ApiResponse<object>.Fail(401, "Invalid secret code");
-
-        if (reservation.Status != ReservationStatus.InProgress
-            && reservation.Status != ReservationStatus.Finished)
-            return ApiResponse<object>.Fail(400, "Reservation is not available for feedback");
-
-        var waiter = await _userService.GetByIdAsync(reservation.WaiterId, ct);
-
-        return Ok(new VisitorReservationInfoDTO
-        {
-            ReservationId = reservationId,
-            WaiterName = reservation.WaiterName,
-            WaiterImageUrl = waiter?.AvatarUrl,
-            ServiceRating = waiter?.AverageServiceRating
-        });
-    }
-    */
 }

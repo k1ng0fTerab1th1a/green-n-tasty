@@ -15,7 +15,7 @@ public static class LocationMapper
         x.TotalCapacity,
         x.AverageOccupancy,
         x.ImageUrl,
-        x.Rating
+        x.TotalRating
     );
 
 }

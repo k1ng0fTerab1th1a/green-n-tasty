@@ -43,4 +43,6 @@ public interface IReservationRepository
         ReservationStatus newStatus,
         List<string>? slotsToRelease = null,
         CancellationToken ct = default);
+
+    Task ClearSecretCode(string reservationId, CancellationToken ct = default);
 }
