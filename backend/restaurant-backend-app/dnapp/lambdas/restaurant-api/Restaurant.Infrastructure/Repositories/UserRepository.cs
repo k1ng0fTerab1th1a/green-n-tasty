@@ -1,5 +1,7 @@
-﻿using Amazon.DynamoDBv2.DataModel;
+﻿using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.DocumentModel;
+using Amazon.DynamoDBv2.Model;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 
@@ -13,10 +15,12 @@ public class UserRepository : IUserRepository
     private const string EmailIndex = "customer-email-index";
 
     private readonly IDynamoDBContext _context;
+    private readonly IAmazonDynamoDB _client;
 
-    public UserRepository(IDynamoDBContext context)
+    public UserRepository(IDynamoDBContext context, IAmazonDynamoDB client)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _client = client;
     }
 
     public async Task CreateAsync(User user)
@@ -53,6 +57,77 @@ public class UserRepository : IUserRepository
             .ToList();
     }
 
+    public async Task<(string username, string? iamgeUrl)> GetUserDataForFeedbackCreationByIdAsync(string userId, 
+        CancellationToken ct = default)
+    {
+        const string requiredFields = "firstName,lastName,imageUrl";
+        var request = FormGetRequestForFieldsGettingById(userId, requiredFields);
+
+        var response = await _client.GetItemAsync(request, ct);
+
+        if (response.Item.Count == 0) return (string.Empty, null);
+        var firstName = response.Item.GetValueOrDefault("firstName")?.S ?? string.Empty;
+        var lastName = response.Item .GetValueOrDefault("lastName")?.S ?? string.Empty;
+        var username = firstName + " " + lastName;
+        if (string.IsNullOrEmpty(username))
+            return (string.Empty, null);
+
+        var imageUrl = response.Item.GetValueOrDefault("imageUrl")?.S;
+        return (username, imageUrl);
+    }
+
+    public async Task<(double rating, int feedbacksAmount)> GetUserFeedbackRatingDataByIdAsync(string userId,
+        CancellationToken ct = default)
+    {
+        const string requiredFields = "rating,feedbacksNumber";
+        var request = FormGetRequestForFieldsGettingById(userId, requiredFields);
+
+        var response = await _client.GetItemAsync(request, ct);
+        
+        if (response.Item.Count == 0 || 
+            !response.Item.ContainsKey("rating") || 
+            !response.Item.ContainsKey("feedbacksNumber"))
+        {
+            return (-1f, -1);
+        }
+        
+        var rating = ParseDoubleFromAttributeValue(response.Item["rating"]);
+        var feedbacksAmount = ParseIntFromAttributeValue(response.Item["feedbacksNumber"]);
+        
+        rating = Math.Round(rating, 2, MidpointRounding.AwayFromZero);
+
+        return (rating, feedbacksAmount);
+    }
+
+    public async Task UpdateUserRatingAsync(string userId, int newFeedbackRating, CancellationToken ct = default)
+    {
+        var request = new UpdateItemRequest
+        {
+            TableName = "Users",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "userId", new AttributeValue { S = userId } }
+            },
+            UpdateExpression =
+                "SET #r = ((if_not_exists(#r, :zero) * if_not_exists(#c, :zero)) + :newRating) / (if_not_exists(#c, :zero) + :inc) " +
+                "ADD #c :inc",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#r", "rating" },
+                { "#c", "feedbacksNumber" },
+            },
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            {
+                { ":newRating", new AttributeValue { N = newFeedbackRating.ToString("F2") } },
+                { ":inc", new AttributeValue { N = "1" } },
+                { ":zero", new AttributeValue { N = "0" } }
+            },
+            ReturnValues = ReturnValue.NONE // can be set to ALL_NEW if we really need to send it to the client
+        };
+
+        await _client.UpdateItemAsync(request, ct);
+    }
+
     private Task<List<User>> QueryByPrefixAsync(string indexName, string normalizedPrefix, CancellationToken ct)
     {
         var config = new DynamoDBOperationConfig
@@ -80,5 +155,30 @@ public class UserRepository : IUserRepository
     private static string Normalize(string value)
     {
         return value.Trim().ToLowerInvariant();
+    }
+
+    private GetItemRequest FormGetRequestForFieldsGettingById(string userId, string fields)
+    {
+        return new GetItemRequest
+        {
+            TableName = "Users",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "userId", new AttributeValue { S = userId } }
+            },
+            ProjectionExpression = fields
+        };  
+    }
+    
+    private static double ParseDoubleFromAttributeValue(AttributeValue attr)
+    {
+        if (string.IsNullOrEmpty(attr.N)) return -1f;
+        return double.TryParse(attr.N, out var result) ? result : -1f;
+    }
+    
+    private static int ParseIntFromAttributeValue(AttributeValue attr)
+    {
+        if (string.IsNullOrEmpty(attr.N)) return -1;
+        return int.TryParse(attr.N, out var result) ? result : -1;
     }
 }

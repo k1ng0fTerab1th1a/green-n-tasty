@@ -23,38 +23,18 @@ public class FeedbacksController : ControllerBase
         _feedbackService = feedbackService;
         _qrCoder = new Core.Services.QrCoder();
     }
-    [HttpPost]
-    [AllowAnonymous]
-    public async Task<IActionResult> CreateFeedback([FromBody] CreateFeedbackDTO req, CancellationToken ct)
+    
+    [HttpPost("authorised")]
+    public async Task<ApiResponse<object>> CreateFeedbackAuthorised([FromBody] CreateFeedbackDTO req, CancellationToken
+        ct)
     {
         var userId = User.GetUserId();
-        bool isAnonymous = string.IsNullOrEmpty(userId);
-
-        if (isAnonymous)
-        {
-            // will be a method for anonymous
-            return ApiResponse<object>.Fail(500, "Not yet implemented");
-        }
-        else
-        {
-            await _feedbackService.SaveAuthorisedFeedback(req, userId!, ct);
-            return ApiResponse<object>.Success(200, null);
-        }
+        if (string.IsNullOrEmpty(userId))
+            return ApiResponse<object>.Fail(401, "User should be authorised to leave feedback");
+        await _feedbackService.SaveAuthorisedFeedback(req, userId!, ct);
+        return ApiResponse<object>.Success(200, null);
     }
 
-    [HttpGet("reservations/{id}/qr")]
-    public async Task<IActionResult> GetQrCode(string id)
-    {
-        var waiterId = User.GetUserId();
-        if (waiterId == null)
-            return ApiResponse<object>.Fail(401, "You have to be logged in to access this reservation");
-        var reservation = await _reservationService.GetByIdAsync(id, waiterId, true);
-        
-        var url = $"https://yourapp.com/feedback?reservationId={id}&secretCode={reservation.Value.SecretCode!}";
-        var pngBytes = _qrCoder.GenerateQrCode(url);
-
-        return File(pngBytes, "image/png");
-    }
     /*
     [HttpGet("visitor")]
     [AllowAnonymous]

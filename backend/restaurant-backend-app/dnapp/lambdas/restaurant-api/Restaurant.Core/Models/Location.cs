@@ -34,4 +34,6 @@ public class Location
 
     [DynamoDBProperty("rating")]
     public double Rating { get; set; }
+    [DynamoDBProperty("feedbacksAmount")]
+    public int FeedbacksAmount { get; set; }
 }
