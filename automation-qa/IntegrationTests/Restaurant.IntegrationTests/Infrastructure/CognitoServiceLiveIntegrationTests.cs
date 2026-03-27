@@ -29,8 +29,9 @@ public sealed class CognitoServiceLiveIntegrationTests
             signInResult.Value.IdToken.Should().NotBeNullOrWhiteSpace();
             signInResult.Value.RefreshToken.Should().NotBeNullOrWhiteSpace();
 
-            var accessToken = await sut.RefreshTokenAsync(signInResult.Value.RefreshToken);
-            accessToken.Should().NotBeNullOrWhiteSpace();
+            var refreshResult = await sut.RefreshTokenAsync(signInResult.Value.RefreshToken);
+            refreshResult.IsSuccess.Should().BeTrue();
+            refreshResult.Value.Should().NotBeNullOrWhiteSpace();
 
             await sut.SignOutAsync(signInResult.Value.RefreshToken);
 
@@ -129,8 +130,9 @@ public sealed class CognitoServiceLiveIntegrationTests
         var sut = CreateSut(settings);
         var missingEmail = $"missing-live-{Guid.NewGuid():N}@{settings.EmailDomain}";
 
-        await sut.Invoking(x => x.DeleteUserAsync(missingEmail))
-            .Should().ThrowAsync<Amazon.CognitoIdentityProvider.Model.UserNotFoundException>();
+        var result = await sut.DeleteUserAsync(missingEmail);
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(AuthErrors.UserNotFound);
     }
 
     [LiveCognitoFact]
@@ -140,8 +142,9 @@ public sealed class CognitoServiceLiveIntegrationTests
         var settings = GetRequiredSettings();
         var sut = CreateSut(settings);
 
-        await sut.Invoking(x => x.RefreshTokenAsync("not-a-valid-refresh-token"))
-            .Should().ThrowAsync<Exception>();
+        var result = await sut.RefreshTokenAsync("not-a-valid-refresh-token");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(AuthErrors.RefreshTokenFailed);
     }
 
     [LiveCognitoFact]
