@@ -14,5 +14,5 @@ public interface IUserRepository
     Task<(double rating, int feedbacksAmount)> GetUserFeedbackRatingDataByIdAsync(string userId,
         CancellationToken ct = default);
 
-    Task UpdateUserRatingAsync(string userId, int newFeedbackRating, CancellationToken ct = default);
+    Task UpdateUserRatingAsync(string userId, double newFeedbackRating, CancellationToken ct = default);
 }

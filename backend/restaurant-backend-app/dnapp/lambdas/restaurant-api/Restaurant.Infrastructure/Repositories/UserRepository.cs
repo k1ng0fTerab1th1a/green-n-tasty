@@ -99,7 +99,7 @@ public class UserRepository : IUserRepository
         return (rating, feedbacksAmount);
     }
 
-    public async Task UpdateUserRatingAsync(string userId, int newFeedbackRating, CancellationToken ct = default)
+    public async Task UpdateUserRatingAsync(string userId, double newFeedbackRating, CancellationToken ct = default)
     {
         var request = new UpdateItemRequest
         {
@@ -108,9 +108,7 @@ public class UserRepository : IUserRepository
             {
                 { "userId", new AttributeValue { S = userId } }
             },
-            UpdateExpression =
-                "SET #r = ((if_not_exists(#r, :zero) * if_not_exists(#c, :zero)) + :newRating) / (if_not_exists(#c, :zero) + :inc) " +
-                "ADD #c :inc",
+            UpdateExpression = "ADD #s :newRating, #c :inc",
             ExpressionAttributeNames = new Dictionary<string, string>
             {
                 { "#r", "rating" },

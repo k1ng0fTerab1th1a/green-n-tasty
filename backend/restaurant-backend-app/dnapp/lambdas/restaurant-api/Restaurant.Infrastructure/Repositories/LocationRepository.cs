@@ -34,7 +34,7 @@ public sealed class LocationRepository : ILocationRepository
         return _context.LoadAsync<Location?>(id, cancellationToken);
     }
     
-    public async Task UpdateUserRatingAsync(string locationId, int newFeedbackRating, CancellationToken ct = default)
+    public async Task UpdateUserRatingAsync(string locationId, double newFeedbackRating, CancellationToken ct = default)
     {
         var request = new UpdateItemRequest
         {
@@ -43,9 +43,7 @@ public sealed class LocationRepository : ILocationRepository
             {
                 { "id", new AttributeValue { S = locationId } }
             },
-            UpdateExpression =
-                "SET #r = ((if_not_exists(#r, :zero) * if_not_exists(#c, :zero)) + :newRating) / (if_not_exists(#c, :zero) + :inc) " +
-                "ADD #c :inc",
+            UpdateExpression = "ADD #s :newRating, #c :inc",
             ExpressionAttributeNames = new Dictionary<string, string>
             {
                 { "#r", "rating" },

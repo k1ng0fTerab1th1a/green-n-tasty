@@ -74,6 +74,13 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             };
             
             feedbacksToSave.Add(serviceFeedback);
+
+            var userRatingData = await userRepository.GetUserFeedbackRatingDataByIdAsync(userId, ct);
+            if (userRatingData.rating < 0 || userRatingData.feedbacksAmount == -1)
+            {
+                return Result.Fail("Ratings data was not found. Something went wrong");
+            }
+            
             
             ratingUpdates.Add(ct => UpdateWaiterRatingAsync(reservation.WaiterId, dto.ServiceRating!.Value, ct));
         }
@@ -98,6 +105,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             };
 
             feedbacksToSave.Add(cuisineFeedback);
+            
             
             ratingUpdates.Add(ct => UpdateLocationRatingAsync(reservation.LocationId, dto.CuisineRating!.Value, ct));
         }
@@ -137,13 +145,18 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         return Result.Ok(qrCode);
     }
     
-    private async Task UpdateWaiterRatingAsync(string waiterId, int rating, CancellationToken ct)
+    private async Task UpdateWaiterRatingAsync(string waiterId, double newRating, CancellationToken ct)
     {
-        await userRepository.UpdateUserRatingAsync(waiterId, rating, ct);
+        await userRepository.UpdateUserRatingAsync(waiterId, newRating, ct);
     }
 
-    private async Task UpdateLocationRatingAsync(string locationId, int rating, CancellationToken ct)
+    private async Task UpdateLocationRatingAsync(string locationId, double newRating, CancellationToken ct)
     {
-        await locationRepository.UpdateUserRatingAsync(locationId, rating, ct);
+        await locationRepository.UpdateUserRatingAsync(locationId, newRating, ct);
+    }
+
+    private double CalculateRating(int ratingToAdd, double oldRating, int feedbacksAmount)
+    {
+        return (oldRating * feedbacksAmount + ratingToAdd) / (feedbacksAmount + 1);
     }
 }
