@@ -81,4 +81,16 @@ public class UserRepository : IUserRepository
     {
         return value.Trim().ToLowerInvariant();
     }
+
+    public async Task UpdateEmailAsync(string userId, string newEmail, CancellationToken ct = default)
+    {
+        var user = await _context.LoadAsync<User>(userId, ct);
+        if (user is null) return;
+
+        user.Email = newEmail;
+        user.EmailNormalized = Normalize(newEmail);
+        user.UpdatedAt = DateTime.UtcNow.ToString("o");
+
+        await _context.SaveAsync(user, ct);
+    }
 }

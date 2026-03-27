@@ -25,6 +25,7 @@
             "cognito-idp:AdminCreateUser",
             "cognito-idp:AdminSetUserPassword",
             "cognito-idp:AdminConfirmSignUp",
+            "cognito-idp:AdminUpdateUserAttributes",
             "cognito-idp:InitiateAuth",
             "cognito-idp:AdminDeleteUser",
             "cognito-idp:RevokeToken",

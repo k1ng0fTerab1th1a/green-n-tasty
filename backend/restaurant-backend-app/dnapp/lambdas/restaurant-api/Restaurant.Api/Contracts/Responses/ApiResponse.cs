@@ -11,7 +11,7 @@ public class ApiResponse<T> : IActionResult
 
     [JsonIgnore]
     public int StatusCode { get; set; }
-    public static ApiResponse<T> Success(int statusCode, T data, string? message = null)
+    public static ApiResponse<T> Success(int statusCode, T? data, string? message = null)
     {
         return new ApiResponse<T>
         {

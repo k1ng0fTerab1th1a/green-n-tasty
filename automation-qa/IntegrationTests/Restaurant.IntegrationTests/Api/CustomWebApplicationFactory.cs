@@ -182,16 +182,20 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public string RefreshTokenResponse { get; set; } = "new-access-token";
         public BusinessError? RefreshTokenFailResult { get; set; }
         public BusinessError? SignOutFailResult { get; set; }
+        public BusinessError? UpdateEmailFailResult { get; set; }
         public string? LastRefreshTokenInput { get; private set; }
         public string? LastSignOutRefreshToken { get; private set; }
+        public (string UserId, string NewEmail)? LastUpdateEmailArgs { get; private set; }
 
         public void Reset()
         {
             RefreshTokenResponse = "new-access-token";
             RefreshTokenFailResult = null;
             SignOutFailResult = null;
+            UpdateEmailFailResult = null;
             LastRefreshTokenInput = null;
             LastSignOutRefreshToken = null;
+            LastUpdateEmailArgs = null;
         }
 
         public string GetUserPoolId() => "test-pool";
@@ -221,6 +225,16 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             if (SignOutFailResult is not null)
                 return Task.FromResult(Result.Fail(SignOutFailResult));
+
+            return Task.FromResult(Result.Ok());
+        }
+
+        public Task<Result> UpdateUserEmailAsync(string userId, string newEmail, CancellationToken ct = default)
+        {
+            LastUpdateEmailArgs = (userId, newEmail);
+
+            if (UpdateEmailFailResult is not null)
+                return Task.FromResult(Result.Fail(UpdateEmailFailResult));
 
             return Task.FromResult(Result.Ok());
         }

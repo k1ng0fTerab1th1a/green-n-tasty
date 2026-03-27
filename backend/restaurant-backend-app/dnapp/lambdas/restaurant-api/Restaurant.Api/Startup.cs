@@ -64,6 +64,7 @@ public class Startup
 
         services.AddScoped<ICognitoService, CognitoService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IUserService, UserService>();
         services.AddScoped<IDishService, DishService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<ILocationService, LocationService>();
