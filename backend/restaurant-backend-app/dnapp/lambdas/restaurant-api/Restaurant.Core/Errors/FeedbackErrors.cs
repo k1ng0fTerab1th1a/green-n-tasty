@@ -22,4 +22,7 @@ public static class FeedbackErrors
     
     public static BusinessError UnsuccessfulRatingUpdate =>
         new("Rating update was unsuccessful", ErrorType.Validation);
+
+    public static BusinessError FeedbackAlreadyMade =>
+        new("You have already left your feedback for that", ErrorType.Validation);
 }

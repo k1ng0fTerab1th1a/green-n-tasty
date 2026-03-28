@@ -59,6 +59,12 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
                 return FeedbackErrors.TooEarlyServiceFeedback;
             }
             
+            bool serviceFeedbackLeft = await feedbackRepository.IsFeedbackAlreadyMade(reservation.Id, "service", ct);
+            if (serviceFeedbackLeft)
+            {
+                return FeedbackErrors.FeedbackAlreadyMade;
+            }
+            
             var serviceFeedback = new Feedback
             {
                 Id = Guid.NewGuid().ToString(),
@@ -90,6 +96,12 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             if (reservation.Status < ReservationStatus.MealsServed)
                 return FeedbackErrors.MealNotYetServedForFeedback;
 
+            bool serviceFeedbackLeft = await feedbackRepository.IsFeedbackAlreadyMade(reservation.Id, "kitchen", ct);
+            if (serviceFeedbackLeft)
+            {
+                return FeedbackErrors.FeedbackAlreadyMade;
+            }
+            
             var cuisineFeedback = new Feedback
             {
                 Id = Guid.NewGuid().ToString(),
@@ -180,6 +192,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             if (reservation.Status < ReservationStatus.MealsServed)
                 return FeedbackErrors.MealNotYetServedForFeedback;
 
+            
             var cuisineFeedback = new Feedback
             {
                 Id = Guid.NewGuid().ToString(),
