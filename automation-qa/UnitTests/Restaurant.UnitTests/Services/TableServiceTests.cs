@@ -45,7 +45,8 @@ public sealed class TableServiceTests
             AverageOccupancy = 0.5,
             ImageUrl = "http://img",
             TotalCapacity = 100,
-            Rating = 4.0
+            TotalRating = 400,
+            FeedbacksAmount = 100 
         };
 
     private static Table MakeTable(string locationId, int tableNumber, int capacity = 4) =>
@@ -286,7 +287,8 @@ public sealed class TableServiceTests
                 AverageOccupancy = 0.5,
                 ImageUrl = "http://img",
                 TotalCapacity = 100,
-                Rating = 4.0
+                TotalRating = 400,
+                FeedbacksAmount = 100 
             });
 
         _tableDayRepo.Setup(r => r.GetManyByTablesAndDateAsync(

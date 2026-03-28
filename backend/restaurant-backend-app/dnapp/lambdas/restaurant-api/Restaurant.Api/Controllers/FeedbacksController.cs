@@ -4,7 +4,6 @@ using Restaurant.Api.Contracts.Responses;
 using Restaurant.Api.Extensions;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Services;
-using Restaurant.Core.Models;
 
 namespace Restaurant.Api.Controllers;
 
@@ -13,15 +12,11 @@ namespace Restaurant.Api.Controllers;
 [Route("feedbacks")]
 public class FeedbacksController : ControllerBase
 {
-    private readonly IReservationService _reservationService;
     private readonly IFeedbackService _feedbackService;
-    private readonly Core.Services.QrCoder _qrCoder;
 
-    public FeedbacksController(IReservationService reservationService, IFeedbackService feedbackService)
+    public FeedbacksController(IFeedbackService feedbackService)
     {
-        _reservationService = reservationService;
         _feedbackService = feedbackService;
-        _qrCoder = new Core.Services.QrCoder();
     }
     
     [HttpPost("authorised")]
@@ -31,16 +26,20 @@ public class FeedbacksController : ControllerBase
         var userId = User.GetUserId();
         if (string.IsNullOrEmpty(userId))
             return ApiResponse<object>.Fail(401, "User should be authorised to leave feedback");
-        await _feedbackService.SaveAuthorisedFeedback(req, userId!, ct);
-        return ApiResponse<object>.Success(200, null);
+        var result = await _feedbackService.SaveAuthorisedFeedback(req, userId, ct);
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<object>();
+        return ApiResponse<object>.Success(200, null!);
     }
 
     [HttpPost("visitor")]
     public async Task<ApiResponse<object>> CreateFeedbackVisitor([FromBody] CreateFeedbackDTO req, [FromQuery] string
         secretCode, CancellationToken ct)
     {
-        await _feedbackService.SaveVisitorFeedback(req, secretCode, ct);
-        return ApiResponse<object>.Success(200, null); 
+        var result = await _feedbackService.SaveVisitorFeedback(req, secretCode, ct);
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<object>();
+        return ApiResponse<object>.Success(200, null!); 
     }
 
     [HttpGet("feedback-short-data")]
@@ -50,6 +49,6 @@ public class FeedbacksController : ControllerBase
         var res = await _feedbackService.GetCalculatedFeedbackDataAsync(reservationId, ct);
         if (res.IsSuccess)
             return ApiResponse<CalculatedFeedbackDTO>.Success(200, res.Value);
-        return ApiResponse<CalculatedFeedbackDTO>.Fail(400, "Something went wrong during execution");
+        return res.Errors[0].ToApiResponse<CalculatedFeedbackDTO>();
     }
 }

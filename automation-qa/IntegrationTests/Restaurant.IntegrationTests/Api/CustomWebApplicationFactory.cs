@@ -489,7 +489,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 TotalCapacity = 120,
                 AverageOccupancy = 0.35,
                 ImageUrl = "http://img/loc-1",
-                Rating = 4.6
+                TotalRating = 500,
+                FeedbacksAmount = 100 
             };
 
             Locations.Add(item);
@@ -502,7 +503,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 TotalCapacity = item.TotalCapacity,
                 AverageOccupancy = item.AverageOccupancy,
                 ImageUrl = item.ImageUrl,
-                Rating = item.Rating
+                TotalRating = 400,
+                FeedbacksAmount = 100 
             });
         }
 
@@ -570,6 +572,16 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         }
 
         public Task<Result> SaveAuthorisedFeedback(CreateFeedbackDTO dto, string userId, CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<Result> SaveVisitorFeedback(CreateFeedbackDTO dto, string secretCode, CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<Result<CalculatedFeedbackDTO>> GetCalculatedFeedbackDataAsync(string reservationId, CancellationToken ct = default)
         {
             throw new NotImplementedException();
         }

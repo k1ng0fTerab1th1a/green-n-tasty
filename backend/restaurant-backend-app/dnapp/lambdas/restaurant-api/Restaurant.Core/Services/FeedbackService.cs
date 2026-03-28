@@ -88,8 +88,8 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         
         if (dto.CuisineRating.HasValue)
         {
-            if (reservation.Status <ReservationStatus.MealsServed)
-                return Result.Fail("Cuisine feedback is only available once meals have been served");
+            if (reservation.Status < ReservationStatus.MealsServed)
+                return FeedbackErrors.MealNotYetServedForFeedback;
 
             var cuisineFeedback = new Feedback
             {
@@ -110,9 +110,9 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             
             ratingUpdates.Add(ct => UpdateLocationRatingAsync(reservation.LocationId, dto.CuisineRating!.Value, ct));
         }
-        
+
         if (!feedbacksToSave.Any())
-            return Result.Fail("No feedback provided");
+            return FeedbackErrors.NoFeedbackProvided;
 
         await feedbackRepository.SaveBatchAsync(feedbacksToSave, ct);
 
@@ -124,7 +124,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             }
             catch (Exception ex)
             {
-                return Result.Fail("Rating update was not successful");
+                return FeedbackErrors.UnsuccessfulRatingUpdate;
             }
         }
         return Result.Ok();
@@ -178,8 +178,8 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         
         if (dto.CuisineRating.HasValue)
         {
-            if (reservation.Status <ReservationStatus.MealsServed)
-                return Result.Fail("Cuisine feedback is only available once meals have been served");
+            if (reservation.Status < ReservationStatus.MealsServed)
+                return FeedbackErrors.MealNotYetServedForFeedback;
 
             var cuisineFeedback = new Feedback
             {
@@ -200,9 +200,9 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             
             ratingUpdates.Add(ct => UpdateLocationRatingAsync(reservation.LocationId, dto.CuisineRating!.Value, ct));
         }
-        
+
         if (feedbacksToSave.Count == 0)
-            return Result.Fail("No feedback provided");
+            return FeedbackErrors.NoFeedbackProvided;
 
         await feedbackRepository.SaveBatchAsync(feedbacksToSave, ct);
 
@@ -214,7 +214,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             }
             catch (Exception)
             {
-                return Result.Fail("Rating update was not successful");
+                return FeedbackErrors.UnsuccessfulRatingUpdate;
             }
         }
 
@@ -273,10 +273,5 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
     private async Task UpdateLocationRatingAsync(string locationId, int newRating, CancellationToken ct)
     {
         await locationRepository.UpdateKitchenRatingAsync(locationId, newRating, ct);
-    }
-
-    private int CalculateRating(int ratingToAdd, int oldRating, int feedbacksAmount)
-    {
-        return (oldRating * feedbacksAmount + ratingToAdd) / (feedbacksAmount + 1);
     }
 }

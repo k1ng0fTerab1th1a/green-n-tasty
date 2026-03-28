@@ -1,3 +1,4 @@
+using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using FluentAssertions;
 using Restaurant.Core.Models;
@@ -10,12 +11,14 @@ namespace Restaurant.Infrastructure.IntegrationTests;
 public class UserRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
 {
     private readonly DynamoDBContext _context;
+    private readonly IAmazonDynamoDB _client;
     private readonly UserRepository _repo;
 
     public UserRepositoryIntegrationTests(DynamoDbFixture fixture)
     {
         _context = fixture.Context;
-        _repo = new UserRepository(_context);
+        _client = fixture.Client;
+        _repo = new UserRepository(_context, _client);
     }
 
     [Fact]

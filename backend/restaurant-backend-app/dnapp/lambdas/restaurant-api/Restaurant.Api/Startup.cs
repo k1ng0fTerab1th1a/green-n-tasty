@@ -8,6 +8,7 @@ using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Services;
 using Restaurant.Core.SharedModels;
 using Restaurant.Infrastructure.Repositories;
+using Restaurant.Infrastructure.Seeder;
 using Restaurant.Infrastructure.Services;
 
 namespace Restaurant.Api;
@@ -78,6 +79,9 @@ public class Startup
         services.AddScoped<ITableDayRepository, TableDayRepository>();
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<IWaiterScheduleRepository, WaiterScheduleRepository>();
+        
+        //My seeder
+        services.AddScoped<UltraSeeder>();
 
         services.Configure<ClientSettings>(
             _configuration.GetSection("ClientSettings"));

@@ -1,7 +1,9 @@
-﻿using Restaurant.Core.DTOs;
+﻿using Microsoft.Extensions.Options;
+using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 using Restaurant.Core.Services;
+using Restaurant.Core.SharedModels;
 
 namespace Restaurant.UnitTests.Services;
 
@@ -14,6 +16,7 @@ public class FeedbackServiceTests
     private readonly Mock<IFeedbackRepository> _repo;
     private readonly Mock<IReservationRepository> _resRepo;
     private readonly Mock<IUserRepository> _userRepo;
+    private readonly Mock<ILocationRepository> _locationRepo;
     private readonly FeedbackService _sut;
 
     public FeedbackServiceTests()
@@ -21,7 +24,20 @@ public class FeedbackServiceTests
         _repo = new Mock<IFeedbackRepository>(MockBehavior.Strict);
         _resRepo = new Mock<IReservationRepository>(MockBehavior.Strict);
         _userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        _sut = new FeedbackService(_repo.Object, _resRepo.Object, _userRepo.Object);
+        _locationRepo = new Mock<ILocationRepository>(MockBehavior.Strict);
+        
+        var options = Options.Create(new ClientSettings
+        {
+            ClientUrl = "http://test-url.com"
+        });
+
+        _sut = new FeedbackService(
+            _repo.Object,
+            _resRepo.Object,
+            _userRepo.Object,
+            _locationRepo.Object,
+            options
+        );
     }
 
     [Fact]

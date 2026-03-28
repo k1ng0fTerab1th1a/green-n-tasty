@@ -2,6 +2,7 @@ using Amazon.DynamoDBv2.DataModel;
 using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Core.Models;
+using Restaurant.Infrastructure.Seeder;
 
 namespace Restaurant.Api.Controllers;
 
@@ -9,10 +10,12 @@ namespace Restaurant.Api.Controllers;
 public sealed class DevSeedController : ControllerBase
 {
     private readonly IDynamoDBContext _db;
+    private readonly UltraSeeder _seeder;
 
-    public DevSeedController(IDynamoDBContext db)
+    public DevSeedController(IDynamoDBContext db, UltraSeeder seeder)
     {
         _db = db;
+        _seeder = seeder;
     }
 
     private bool IsAllowed()
@@ -95,6 +98,27 @@ public sealed class DevSeedController : ControllerBase
         await _db.SaveAsync(item, ct);
 
         return ApiResponse<Reservation>.Success(StatusCodes.Status201Created, item);
+    }
+
+    [HttpGet("seed-reservations")]
+    public async Task<IActionResult> SeedReservations()
+    {
+        await _seeder.SeedReservationsAsync();
+        return Ok();
+    }
+    
+    [HttpGet("seed-locations")]
+    public async Task<IActionResult> SeedLocations()
+    {
+        await _seeder.SeedLocationsAsync();
+        return Ok();
+    }
+    
+    [HttpGet("seed-tables")]
+    public async Task<IActionResult> SeedTables()
+    {
+        await _seeder.SeedTablesAsync();
+        return Ok();
     }
 }
 

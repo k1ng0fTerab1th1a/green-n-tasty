@@ -24,7 +24,8 @@ public sealed class LocationServiceTests
                 TotalCapacity = 120,
                 AverageOccupancy = 0.35,
                 ImageUrl = "http://img",
-                Rating = 4.6
+                TotalRating = 400,
+                FeedbacksAmount = 100 
             }
         };
 
@@ -57,7 +58,8 @@ public sealed class LocationServiceTests
                 TotalCapacity = 120,
                 AverageOccupancy = 0.35,
                 ImageUrl = "http://img",
-                Rating = 4.6
+                TotalRating = 460,
+                FeedbacksAmount = 100 
             }
         };
 
@@ -88,7 +90,8 @@ public sealed class LocationServiceTests
             TotalCapacity = 120,
             AverageOccupancy = 0.354,
             ImageUrl = "http://img/loc-42",
-            Rating = 4.64
+            TotalRating = 464,
+            FeedbacksAmount = 100 
         };
 
         repo.Setup(r => r.GetByIdAsync("loc-42", It.IsAny<CancellationToken>()))
