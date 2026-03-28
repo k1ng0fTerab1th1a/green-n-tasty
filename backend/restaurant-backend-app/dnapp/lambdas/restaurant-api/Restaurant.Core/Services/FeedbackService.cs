@@ -86,7 +86,8 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
                 return FeedbackErrors.FeedbackAlreadyMade;
 
             feedbacksToSave.Add(BuildFeedback(dto.ServiceRating.Value, dto.ServiceComment, "waiter", reservation, author));
-            ratingUpdates.Add(c => UpdateWaiterRatingAsync(reservation.WaiterId, dto.ServiceRating.Value, c));
+            ratingUpdates.Add(c => userRepository.UpdateUserRatingAsync(reservation.WaiterId, dto.ServiceRating.Value, 
+                c));
         }
 
         if (dto.CuisineRating.HasValue)
@@ -98,7 +99,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
                 return FeedbackErrors.FeedbackAlreadyMade;
 
             feedbacksToSave.Add(BuildFeedback(dto.CuisineRating.Value, dto.CuisineComment, "kitchen", reservation, author));
-            ratingUpdates.Add(c => UpdateLocationRatingAsync(reservation.LocationId, dto.CuisineRating.Value, c));
+            ratingUpdates.Add(c => locationRepository.UpdateKitchenRatingAsync(reservation.LocationId, dto.CuisineRating.Value, c));
         }
 
         if (feedbacksToSave.Count == 0)
@@ -139,7 +140,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         return Result.Ok(qrCode);
     }
 
-    public async Task<Result<WaiterLocationFeedbackDTO>> GetCalculatedFeedbackDataAsync(string reservationId,
+    public async Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(string reservationId,
         CancellationToken ct = default)
     {
         var ids = await reservationRepository.GetWaiterAndLocationIdFromReservationAsync(reservationId, ct);
@@ -163,16 +164,6 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             CuisineFeedbacksNumber = cuisineRatingData.feedbacksAmount,
             CuisineRating = cuisineRating
         });
-    }
-    
-    private async Task UpdateWaiterRatingAsync(string waiterId, int newRating, CancellationToken ct)
-    {
-        await userRepository.UpdateUserRatingAsync(waiterId, newRating, ct);
-    }
-
-    private async Task UpdateLocationRatingAsync(string locationId, int newRating, CancellationToken ct)
-    {
-        await locationRepository.UpdateKitchenRatingAsync(locationId, newRating, ct);
     }
     
     private static Feedback BuildFeedback(

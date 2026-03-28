@@ -47,7 +47,7 @@ public class FeedbacksController : ControllerBase
     public async Task<ApiResponse<WaiterLocationFeedbackDTO>> GetOverallFeedbackData([FromQuery] string reservationId,
         CancellationToken ct = default)
     {
-        var res = await _feedbackService.GetCalculatedFeedbackDataAsync(reservationId, ct);
+        var res = await _feedbackService.GetWaiterLocationFeedbackDTOAsync(reservationId, ct);
         if (res.IsSuccess)
             return ApiResponse<WaiterLocationFeedbackDTO>.Success(200, res.Value);
         return res.Errors[0].ToApiResponse<WaiterLocationFeedbackDTO>();

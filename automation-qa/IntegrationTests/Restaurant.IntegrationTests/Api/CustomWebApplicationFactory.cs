@@ -694,7 +694,7 @@ public sealed class FakeFeedbackService : IFeedbackService
         return Task.FromResult(GenerateFeedbackQrResponse);
     }
 
-    public Task<Result<WaiterLocationFeedbackDTO>> GetCalculatedFeedbackDataAsync(
+    public Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(
         string reservationId, CancellationToken ct = default)
     {
         LastCalculatedReservationId = reservationId;
