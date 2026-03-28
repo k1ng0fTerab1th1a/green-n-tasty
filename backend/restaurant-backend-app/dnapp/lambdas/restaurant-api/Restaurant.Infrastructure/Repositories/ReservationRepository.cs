@@ -2,7 +2,8 @@ using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
-using Restaurant.Core.Exceptions;
+using FluentResults;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 
@@ -33,6 +34,14 @@ public sealed class ReservationRepository : IReservationRepository
         return item;
     }
 
+    public async Task UpdateAsync(Reservation reservation, CancellationToken ct = default)
+    {
+        await _context.SaveAsync(reservation, ct);
+    }
+
+    public Task<IReadOnlyList<Reservation>> QueryByCustomerAsync(string customerId, CancellationToken ct)
+        => QueryByCustomerAsync(customerId, null, null, ct);
+
     public async Task<IReadOnlyList<Reservation>> QueryByCustomerAsync(
         string customerId,
         string? startFromIso = null,
@@ -50,7 +59,7 @@ public sealed class ReservationRepository : IReservationRepository
             search = _context.QueryAsync<Reservation>(
                 customerId,
                 QueryOperator.Between,
-                new[] { startFromIso, startToIso },
+                new[] { startFromIso!, startToIso! },
                 op);
         }
         else
@@ -60,6 +69,9 @@ public sealed class ReservationRepository : IReservationRepository
 
         return await search.GetRemainingAsync(ct);
     }
+
+    public Task<IReadOnlyList<Reservation>> QueryByWaiterAsync(string waiterId, CancellationToken ct)
+        => QueryByWaiterAsync(waiterId, null, null, ct);
 
     public async Task<IReadOnlyList<Reservation>> QueryByWaiterAsync(
         string waiterId,
@@ -78,7 +90,7 @@ public sealed class ReservationRepository : IReservationRepository
             search = _context.QueryAsync<Reservation>(
                 waiterId,
                 QueryOperator.Between,
-                new[] { startFromIso, startToIso },
+                new[] { startFromIso!, startToIso! },
                 op);
         }
         else
@@ -229,7 +241,7 @@ public sealed class ReservationRepository : IReservationRepository
         }
     }
 
-    public async Task<Reservation?> UpdateReservationAsync(
+    public async Task<Result<Reservation>> UpdateReservationAsync(
         Reservation reservation,
         List<string> newSlots,
         List<string> oldSlots,
@@ -253,6 +265,13 @@ public sealed class ReservationRepository : IReservationRepository
 
         return reservation;
     }
+
+    public Task<bool> UpdateLifecycleAsync(
+        Reservation reservation,
+        ReservationStatus expectedCurrentStatus,
+        ReservationStatus newStatus,
+        CancellationToken ct)
+        => UpdateLifecycleAsync(reservation, expectedCurrentStatus, newStatus, [], ct);
 
     public async Task<bool> UpdateLifecycleAsync(
         Reservation reservation,
@@ -346,7 +365,6 @@ public sealed class ReservationRepository : IReservationRepository
         }
     }
 
-
     public async Task ClearSecretCode(string reservationId, CancellationToken ct = default)
     {
         var request = new UpdateItemRequest
@@ -365,7 +383,7 @@ public sealed class ReservationRepository : IReservationRepository
 
         await _dynamoDb.UpdateItemAsync(request, ct);
     }
-
+    
     public async Task<(string waiterId, string locationId)> GetWaiterAndLocationIdFromReservationAsync(string reservationId,
         CancellationToken ct = default)
     {
@@ -394,8 +412,8 @@ public sealed class ReservationRepository : IReservationRepository
             locationId: response.Item["locationId"].S
         );
     }
-
-    private async Task UpdateSameTableSameDayAsync(
+    
+    private async Task<Result> UpdateSameTableSameDayAsync(
         Dictionary<string, AttributeValue> reservationItem,
         List<string> newSlots,
         List<string> oldSlots,
@@ -407,16 +425,22 @@ public sealed class ReservationRepository : IReservationRepository
         var slotsToAdd = newSlots.Except(oldSlots).ToList();
         var slotsToRemove = oldSlots.Except(newSlots).ToList();
 
+        Result result;
         if (slotsToAdd.Any())
-            await AddSlotsWithOverlapCheckAsync(reservationItem, slotsToAdd, tableKey, date, ttl, ct);
+            result = await AddSlotsWithOverlapCheckAsync(reservationItem, slotsToAdd, tableKey, date, ttl, ct);
         else
+        {
             await UpdateReservationItemOnlyAsync(reservationItem, ct);
+            result = Result.Ok();
+        }
 
-        if (slotsToRemove.Any())
+        if (result.IsSuccess && slotsToRemove.Any())
             await DeleteSlotsAsync(slotsToRemove, tableKey, date, ct);
+
+        return result;
     }
 
-    private async Task UpdateDifferentTableOrDayAsync(
+    private async Task<Result> UpdateDifferentTableOrDayAsync(
         Dictionary<string, AttributeValue> reservationItem,
         List<string> newSlots,
         List<string> oldSlots,
@@ -427,11 +451,13 @@ public sealed class ReservationRepository : IReservationRepository
         long ttl,
         CancellationToken ct)
     {
-        await AddSlotsWithOverlapCheckAsync(reservationItem, newSlots, targetTableKey, newDate, ttl, ct);
-        await DeleteSlotsAsync(oldSlots, oldTableKey, oldDate, ct);
+        var result = await AddSlotsWithOverlapCheckAsync(reservationItem, newSlots, targetTableKey, newDate, ttl, ct);
+        if (result.IsSuccess)
+            await DeleteSlotsAsync(oldSlots, oldTableKey, oldDate, ct);
+        return result;
     }
 
-    private async Task AddSlotsWithOverlapCheckAsync(
+    private async Task<Result> AddSlotsWithOverlapCheckAsync(
         Dictionary<string, AttributeValue> reservationItem,
         List<string> slotsToAdd,
         string tableKey,
@@ -482,10 +508,11 @@ public sealed class ReservationRepository : IReservationRepository
         {
             await _dynamoDb.TransactWriteItemsAsync(
                 new TransactWriteItemsRequest { TransactItems = transactItems }, ct);
+            return Result.Ok();
         }
         catch (TransactionCanceledException)
         {
-            throw new BusinessException("Update failed: requested time slots are already taken.");
+            return ReservationErrors.UpdateFailedSlotsTaken;
         }
     }
 

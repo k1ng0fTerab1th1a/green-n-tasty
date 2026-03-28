@@ -1,24 +1,30 @@
-﻿using Restaurant.Core.Models;
+﻿using FluentResults;
+using Restaurant.Core.Models;
 
 namespace Restaurant.Core.Interfaces.Repositories;
 
 public interface IReservationRepository
 {
-    Task<Reservation?> GetByIdAsync(string id, CancellationToken ct = default);
+    Task<Reservation?> GetByIdAsync(string id, CancellationToken ct);
+    Task UpdateAsync(Reservation reservation, CancellationToken ct);
+
+    Task<IReadOnlyList<Reservation>> QueryByCustomerAsync(string customerId, CancellationToken ct);
 
     Task<IReadOnlyList<Reservation>> QueryByCustomerAsync(
         string customerId,
-        string? startFromIso = null,
-        string? startToIso = null,
-        CancellationToken ct = default);
+        string? startFromIso,
+        string? startToIso,
+        CancellationToken ct);
+
+    Task<IReadOnlyList<Reservation>> QueryByWaiterAsync(string waiterId, CancellationToken ct);
 
     Task<IReadOnlyList<Reservation>> QueryByWaiterAsync(
         string waiterId,
-        string? startFromIso = null,
-        string? startToIso = null,
-        CancellationToken ct = default);
+        string? startFromIso,
+        string? startToIso,
+        CancellationToken ct);
 
-    Task<bool> CreateWithSlotsAsync(Reservation reservation, DateOnly date, List<string> slots, CancellationToken ct = default);
+    Task<bool> CreateWithSlotsAsync(Reservation reservation, DateOnly date, List<string> slots, CancellationToken ct);
 
     Task<IReadOnlyList<Reservation>> QueryByTableAsync(
         string tableKey,
@@ -27,15 +33,21 @@ public interface IReservationRepository
         CancellationToken ct);
 
     Task<bool> CancelReservationAsync(Reservation reservation, List<string> slots,
-        CancellationToken ct = default);
+        CancellationToken ct);
 
-    Task<Reservation?> UpdateReservationAsync(
+    Task<Result<Reservation>> UpdateReservationAsync(
         Reservation reservation,
         List<string> newSlots,
         List<string> oldSlots,
         string oldTableKey,
         DateTimeOffset oldStart,
-        CancellationToken ct = default);
+        CancellationToken ct);
+
+    Task<bool> UpdateLifecycleAsync(
+        Reservation reservation,
+        ReservationStatus expectedCurrentStatus,
+        ReservationStatus newStatus,
+        CancellationToken ct);
 
     Task<bool> UpdateLifecycleAsync(
         Reservation reservation,

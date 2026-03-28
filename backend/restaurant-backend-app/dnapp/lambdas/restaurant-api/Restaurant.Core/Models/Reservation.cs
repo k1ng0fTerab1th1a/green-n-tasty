@@ -64,6 +64,9 @@ public sealed class Reservation
     [DynamoDBProperty("visitorName")]
     public string? VisitorName { get; set; }
 
+    [DynamoDBProperty("dishCount")]
+    public int DishCount { get; set; } = 0;
+
     [DynamoDBProperty("createdAt")]
     public string CreatedAt { get; set; } = null!;
 

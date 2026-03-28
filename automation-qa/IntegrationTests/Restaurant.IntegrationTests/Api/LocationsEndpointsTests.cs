@@ -290,7 +290,7 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
                 Id = "dish-1",
                 Name = "Steak",
                 ImageUrl = "http://img/dish-1",
-                Price = 25.5f,
+                Price = 25.5m,
                 State = "ON",
                 Weight = 320
             }

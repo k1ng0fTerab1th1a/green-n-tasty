@@ -15,7 +15,10 @@
       "target_rule": "reports-sender-schedule"
     }
   ],
-  "env_variables": {},
+  "env_variables": {
+    "REPORT_FROM_EMAIL": "yevhenii.razinkov@nure.ua",
+    "REPORT_TO_EMAILS": "yevhenii.razinkov@nure.ua"
+  },
   "publish_version": true,
   "alias": "${lambdas_alias_name}",
   "url_config": {},

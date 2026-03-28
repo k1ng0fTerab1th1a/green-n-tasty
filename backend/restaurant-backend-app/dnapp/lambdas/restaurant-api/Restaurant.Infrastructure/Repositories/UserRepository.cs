@@ -24,10 +24,10 @@ public class UserRepository : IUserRepository
         _client = client;
     }
 
-    public async Task CreateAsync(User user)
+    public async Task CreateAsync(User user, CancellationToken ct = default)
     {
         ApplySearchFields(user);
-        await _context.SaveAsync(user);
+        await _context.SaveAsync(user, ct);
     }
 
     public Task<User?> GetByIdAsync(string userId, CancellationToken ct = default)
@@ -214,5 +214,17 @@ public class UserRepository : IUserRepository
     {
         if (string.IsNullOrEmpty(attr.N)) return -1;
         return int.TryParse(attr.N, out var result) ? result : -1;
+    }
+
+    public async Task UpdateEmailAsync(string userId, string newEmail, CancellationToken ct = default)
+    {
+        var user = await _context.LoadAsync<User>(userId, ct);
+        if (user is null) return;
+
+        user.Email = newEmail;
+        user.EmailNormalized = Normalize(newEmail);
+        user.UpdatedAt = DateTime.UtcNow.ToString("o");
+
+        await _context.SaveAsync(user, ct);
     }
 }

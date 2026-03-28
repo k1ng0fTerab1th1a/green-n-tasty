@@ -29,8 +29,9 @@ public sealed class CognitoServiceLiveIntegrationTests
             signInResult.Value.IdToken.Should().NotBeNullOrWhiteSpace();
             signInResult.Value.RefreshToken.Should().NotBeNullOrWhiteSpace();
 
-            var accessToken = await sut.RefreshTokenAsync(signInResult.Value.RefreshToken);
-            accessToken.Should().NotBeNullOrWhiteSpace();
+            var refreshResult = await sut.RefreshTokenAsync(signInResult.Value.RefreshToken);
+            refreshResult.IsSuccess.Should().BeTrue();
+            refreshResult.Value.Should().NotBeNullOrWhiteSpace();
 
             await sut.SignOutAsync(signInResult.Value.RefreshToken);
 
@@ -129,8 +130,9 @@ public sealed class CognitoServiceLiveIntegrationTests
         var sut = CreateSut(settings);
         var missingEmail = $"missing-live-{Guid.NewGuid():N}@{settings.EmailDomain}";
 
-        await sut.Invoking(x => x.DeleteUserAsync(missingEmail))
-            .Should().ThrowAsync<Amazon.CognitoIdentityProvider.Model.UserNotFoundException>();
+        var result = await sut.DeleteUserAsync(missingEmail);
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(AuthErrors.UserNotFound);
     }
 
     [LiveCognitoFact]
@@ -140,20 +142,82 @@ public sealed class CognitoServiceLiveIntegrationTests
         var settings = GetRequiredSettings();
         var sut = CreateSut(settings);
 
-        await sut.Invoking(x => x.RefreshTokenAsync("not-a-valid-refresh-token"))
-            .Should().ThrowAsync<Exception>();
+        var result = await sut.RefreshTokenAsync("not-a-valid-refresh-token");
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(AuthErrors.RefreshTokenFailed);
     }
 
     [LiveCognitoFact]
     [Trait("Category", "LiveCognito")]
-    public async Task SignOut_ShouldFail_WhenTokenInvalid()
+    public async Task UpdateEmail_ShouldSucceed_AndAllowLoginWithNewEmail()
     {
         var settings = GetRequiredSettings();
         var sut = CreateSut(settings);
+        var user = CreateTestUser(settings);
+        var newEmail = $"cognito-live-updated-{Guid.NewGuid():N}@{settings.EmailDomain}";
 
-        var result = await sut.SignOutAsync("not-a-valid-refresh-token");
+        await sut.SignUpAsync(user.Email, user.Password, "Live", "UpdateEmail", role: "CUSTOMER");
+
+        try
+        {
+            var signInResult = await sut.SignInAsync(user.Email, user.Password);
+            signInResult.IsSuccess.Should().BeTrue();
+            var userId = signInResult.Value.IdToken;
+
+            var updateResult = await sut.UpdateUserEmailAsync(user.Email, newEmail);
+            updateResult.IsSuccess.Should().BeTrue();
+
+            var loginWithNew = await sut.SignInAsync(newEmail, user.Password);
+            loginWithNew.IsSuccess.Should().BeTrue();
+            loginWithNew.Value.IdToken.Should().NotBeNullOrWhiteSpace();
+
+            var loginWithOld = await sut.SignInAsync(user.Email, user.Password);
+            loginWithOld.IsFailed.Should().BeTrue();
+            loginWithOld.Errors[0].Should().Be(AuthErrors.InvalidCredentials);
+        }
+        finally
+        {
+            await SafeDeleteAsync(sut, newEmail);
+        }
+    }
+
+    [LiveCognitoFact]
+    [Trait("Category", "LiveCognito")]
+    public async Task UpdateEmail_ShouldFail_WhenUserNotFound()
+    {
+        var settings = GetRequiredSettings();
+        var sut = CreateSut(settings);
+        var missingEmail = $"missing-live-{Guid.NewGuid():N}@{settings.EmailDomain}";
+        var newEmail = $"cognito-live-updated-{Guid.NewGuid():N}@{settings.EmailDomain}";
+
+        var result = await sut.UpdateUserEmailAsync(missingEmail, newEmail);
         result.IsFailed.Should().BeTrue();
-        result.Errors[0].Should().Be(AuthErrors.SignOutFailed);
+        result.Errors[0].Should().Be(AuthErrors.UserNotFound);
+    }
+
+    [LiveCognitoFact]
+    [Trait("Category", "LiveCognito")]
+    public async Task UpdateEmail_ShouldFail_WhenNewEmailAlreadyTaken()
+    {
+        var settings = GetRequiredSettings();
+        var sut = CreateSut(settings);
+        var user1 = CreateTestUser(settings);
+        var user2 = CreateTestUser(settings);
+
+        await sut.SignUpAsync(user1.Email, user1.Password, "Live", "EmailConflict1", role: "CUSTOMER");
+        await sut.SignUpAsync(user2.Email, user2.Password, "Live", "EmailConflict2", role: "CUSTOMER");
+
+        try
+        {
+            var result = await sut.UpdateUserEmailAsync(user1.Email, user2.Email);
+            result.IsFailed.Should().BeTrue();
+            result.Errors[0].Should().Be(AuthErrors.UserAlreadyExists);
+        }
+        finally
+        {
+            await SafeDeleteAsync(sut, user1.Email);
+            await SafeDeleteAsync(sut, user2.Email);
+        }
     }
 
     private static LiveCognitoSettings GetRequiredSettings()

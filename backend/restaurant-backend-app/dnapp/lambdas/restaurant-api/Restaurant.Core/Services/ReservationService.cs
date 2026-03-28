@@ -40,8 +40,8 @@ public sealed class ReservationService : IReservationService
             return Array.Empty<Reservation>();
 
         return actorIsWaiter
-            ? await _repo.QueryByWaiterAsync(actorUserId, ct: ct)
-            : await _repo.QueryByCustomerAsync(actorUserId, ct: ct);
+            ? await _repo.QueryByWaiterAsync(actorUserId, ct)
+            : await _repo.QueryByCustomerAsync(actorUserId, ct);
     }
 
     public async Task<Result<Reservation>> GetByIdAsync(string id, string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
@@ -305,10 +305,7 @@ public sealed class ReservationService : IReservationService
         reservation.TableNumber = dto.TableNumber;
         reservation.TableKey = $"{reservation.LocationId}#{dto.TableNumber}";
 
-        var updated = await _repo.UpdateReservationAsync(reservation, newSlots, oldSlots, oldTableKey, oldStart, ct);
-        if (updated is null) return ReservationErrors.UpdateFailed;
-
-        return updated;
+        return await _repo.UpdateReservationAsync(reservation, newSlots, oldSlots, oldTableKey, oldStart, ct);
     }
 
     public async Task<Result<Reservation>> StartReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
@@ -330,7 +327,6 @@ public sealed class ReservationService : IReservationService
             reservation,
             ReservationStatus.Reserved,
             ReservationStatus.InProgress,
-            slotsToRelease: null,
             ct);
 
         if (!success)
@@ -356,7 +352,6 @@ public sealed class ReservationService : IReservationService
             reservation,
             ReservationStatus.InProgress,
             ReservationStatus.MealsServed,
-            slotsToRelease: null,
             ct);
 
         if (!success)

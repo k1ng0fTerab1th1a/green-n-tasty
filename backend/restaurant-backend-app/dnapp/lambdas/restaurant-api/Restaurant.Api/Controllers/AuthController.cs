@@ -23,9 +23,9 @@ public class AuthController : ControllerBase
     [HttpPost("sign-up")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<ApiResponse<object>> SignUp([FromBody] SignUpRequest request)
+    public async Task<ApiResponse<object>> SignUp([FromBody] SignUpRequest request, CancellationToken ct)
     {
-        var result = await _authService.SignUpAsync(request.Email, request.Password, request.FirstName, request.LastName);
+        var result = await _authService.SignUpAsync(request.Email, request.Password, request.FirstName, request.LastName, ct);
 
         if (result.IsFailed)
             return result.Errors[0].ToApiResponse<object>();
@@ -36,9 +36,9 @@ public class AuthController : ControllerBase
     [HttpPost("sign-in")]
     [ProducesResponseType(typeof(ApiResponse<AuthResult>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<AuthResult>), StatusCodes.Status401Unauthorized)]
-    public async Task<ApiResponse<AuthResult>> SignIn([FromBody] SignInRequest request)
+    public async Task<ApiResponse<AuthResult>> SignIn([FromBody] SignInRequest request, CancellationToken ct)
     {
-        var result = await _authService.SignInAsync(request.Email, request.Password);
+        var result = await _authService.SignInAsync(request.Email, request.Password, ct);
 
         if (result.IsFailed)
             return result.Errors[0].ToApiResponse<AuthResult>();
@@ -48,18 +48,23 @@ public class AuthController : ControllerBase
 
     [HttpPost("refresh-token")]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
-    public async Task<ApiResponse<string>> RefreshToken([FromBody] RefreshTokenRequest request)
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
+    public async Task<ApiResponse<string>> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken ct)
     {
-        var token = await _cognitoService.RefreshTokenAsync(request.RefreshToken);
-        return ApiResponse<string>.Success(StatusCodes.Status200OK, token, "Token refreshed successfully");
+        var result = await _cognitoService.RefreshTokenAsync(request.RefreshToken, ct);
+
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<string>();
+
+        return ApiResponse<string>.Success(StatusCodes.Status200OK, result.Value, "Token refreshed successfully");
     }
 
     [HttpPost("sign-out")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    public async Task<ApiResponse<object>> SignOut([FromBody] SignOutRequest request)
+    public async Task<ApiResponse<object>> SignOut([FromBody] SignOutRequest request, CancellationToken ct)
     {
-        var result = await _cognitoService.SignOutAsync(request.RefreshToken);
+        var result = await _cognitoService.SignOutAsync(request.RefreshToken, ct);
         if (result.IsFailed)
             return result.Errors[0].ToApiResponse<object>();
 

@@ -11,11 +11,11 @@ public class Dish
     [DynamoDBProperty("name")]
     public string Name { get; set; }
 
-    [DynamoDBProperty("dishType")]
-    public string DishType { get; set; }
+    [DynamoDBProperty("dishType")] 
+    public string DishType { get; set; } = string.Empty;
 
     [DynamoDBProperty("price")]
-    public float Price { get; set; }
+    public decimal Price { get; set; }
 
     [DynamoDBProperty("state")]
     public string State { get; set; } = "ON";

@@ -322,7 +322,7 @@ public sealed class ReservationRepositoryIntegrationTests
 
         var result = await _repo.UpdateReservationAsync(updated, newSlots, oldSlots, tableKey, oldStart);
 
-        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeTrue();
 
         var loaded = await _repo.GetByIdAsync(id);
         loaded.Should().NotBeNull();
@@ -394,7 +394,7 @@ public sealed class ReservationRepositoryIntegrationTests
 
         var result = await _repo.UpdateReservationAsync(updated, newSlots, oldSlots, oldTableKey, oldStart);
 
-        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeTrue();
 
         var loaded = await _repo.GetByIdAsync(id);
         loaded.Should().NotBeNull();

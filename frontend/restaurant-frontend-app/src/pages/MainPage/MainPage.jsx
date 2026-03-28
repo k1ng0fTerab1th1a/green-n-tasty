@@ -113,7 +113,7 @@ export default function MainPage() {
                 "A network of restaurants in Tbilisi, Georgia, offering fresh, locally sourced dishes with a focus on health and sustainability.",
                 "Our diverse menu includes vegetarian and vegan options, crafted to highlight the rich flavors of Georgian cuisine with a modern twist.",
             ]}
-            onViewMenu={() => console.log("go to menu")}
+            onViewMenu={() => navigate(`/menu`)}
         />
     );
 

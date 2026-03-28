@@ -14,7 +14,7 @@ public class FeedbackRepository(IDynamoDBContext context,
 {
 
     public async Task<FeedbackPaginatedDBResponseDto> GetByLocationAsync(string locationId,
-        int size, string type = "waiter", List<string>? sort = null, string? pageToken = null)
+        int size, string type = "waiter", List<string>? sort = null, string? pageToken = null, CancellationToken ct = default)
     {
         Dictionary<string, AttributeValue>? exclusiveStartKey = null;
         if (!string.IsNullOrEmpty(pageToken))
@@ -52,7 +52,7 @@ public class FeedbackRepository(IDynamoDBContext context,
             ScanIndexForward = isAscending
         };
 
-        var response = await client.QueryAsync(request);
+        var response = await client.QueryAsync(request, ct);
 
         string? nextToken = null;
         if (response.LastEvaluatedKey?.Count > 0)

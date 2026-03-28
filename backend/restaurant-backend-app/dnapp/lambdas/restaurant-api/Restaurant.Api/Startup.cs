@@ -1,4 +1,6 @@
+using Amazon;
 using Amazon.CognitoIdentityProvider;
+using Amazon.S3;
 using Amazon.SQS;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -8,7 +10,6 @@ using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Services;
 using Restaurant.Core.SharedModels;
 using Restaurant.Infrastructure.Repositories;
-using Restaurant.Infrastructure.Seeder;
 using Restaurant.Infrastructure.Services;
 
 namespace Restaurant.Api;
@@ -64,11 +65,13 @@ public class Startup
 
         services.AddScoped<ICognitoService, CognitoService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IUserService, UserService>();
         services.AddScoped<IDishService, DishService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<ILocationService, LocationService>();
         services.AddScoped<IReservationService, ReservationService>();
         services.AddScoped<ITableService, TableService>();
+        services.AddScoped<IOrderService, OrderService>();
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IWaiterListRepository, WaiterListRepository>();
@@ -79,13 +82,22 @@ public class Startup
         services.AddScoped<ITableDayRepository, TableDayRepository>();
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<IWaiterScheduleRepository, WaiterScheduleRepository>();
-        
-        //My seeder
-        services.AddScoped<UltraSeeder>();
+        services.AddScoped<IOrderRepository, OrderRepository>();
 
         services.Configure<ClientSettings>(
             _configuration.GetSection("ClientSettings"));
 
+        services.AddSingleton<IAmazonS3>(sp =>
+        {
+            var bucketRegion = RegionEndpoint.GetBySystemName(
+                Environment.GetEnvironmentVariable("AWS_REGION") ?? "eu-west-2"
+            );
+
+            return new AmazonS3Client(bucketRegion);
+        });
+
+        services.AddScoped<S3FileService>();
+        
         services.AddAuthorization();
         services.AddCors(options =>
         {

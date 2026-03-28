@@ -23,6 +23,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public FakeLocationService LocationService { get; } = new();
     public FakeFeedbackService FeedbackService { get; } = new();
     public FakeDishService DishService { get; } = new();
+    public FakeOrderService OrderService { get; } = new();
     public FakeAuthService AuthService { get; } = new();
     public FakeCognitoService CognitoService { get; } = new();
     public FakeTableService TableService { get; } = new();
@@ -62,6 +63,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IDishService>();
             services.AddSingleton<IDishService>(DishService);
 
+            services.RemoveAll<IOrderService>();
+            services.AddSingleton<IOrderService>(OrderService);
+
             services.RemoveAll<IAuthService>();
             services.AddSingleton<IAuthService>(AuthService);
 
@@ -100,7 +104,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastSignInPassword = null;
         }
 
-        public Task<Result> SignUpAsync(string email, string password, string firstName, string lastName)
+        public Task<Result> SignUpAsync(string email, string password, string firstName, string lastName, CancellationToken ct = default)
         {
             LastSignUpEmail = email;
             LastSignUpPassword = password;
@@ -113,7 +117,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Result.Ok());
         }
 
-        public Task<Result<AuthResult>> SignInAsync(string email, string password)
+        public Task<Result<AuthResult>> SignInAsync(string email, string password, CancellationToken ct = default)
         {
             LastSignInEmail = email;
             LastSignInPassword = password;
@@ -125,50 +129,112 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         }
     }
 
+    public sealed class FakeOrderService : IOrderService
+    {
+        public string? LastActorId { get; private set; }
+        public CreateOrderDTO? LastDto { get; private set; }
+        public BusinessError? CreateFailResult { get; set; }
+        public Order CreateResponse { get; set; } = BuildDefaultOrder();
+
+        public void Reset()
+        {
+            LastActorId = null;
+            LastDto = null;
+            CreateFailResult = null;
+            CreateResponse = BuildDefaultOrder();
+        }
+
+        public Task<Result<Order>> CreateAsyncForReservation(string actorId, CreateOrderDTO dto, CancellationToken ct = default)
+        {
+            LastActorId = actorId;
+            LastDto = dto;
+
+            if (CreateFailResult is not null)
+                return Task.FromResult(Result.Fail<Order>(CreateFailResult));
+
+            return Task.FromResult(Result.Ok(CreateResponse));
+        }
+
+        private static Order BuildDefaultOrder()
+            => new()
+            {
+                Id = "o-1",
+                ReservationId = "r-customer-1",
+                LocationId = "loc-1",
+                LocationAddress = "Main street 1",
+                WaiterId = "waiter-1",
+                WaiterName = "Walter One",
+                CustomerId = "customer-1",
+                CustomerName = "Anna Smith",
+                VisitorName = null,
+                TableNumber = 3,
+                GuestsCount = 2,
+                Status = OrderStatus.Open,
+                Dishes = new List<OrderDishSnapshot>(),
+                TotalAmount = 0,
+                CreatedAt = "2026-03-01T00:00:00.0000000Z",
+                CompletedAt = null
+            };
+    }
+
     public sealed class FakeCognitoService : ICognitoService
     {
         public string RefreshTokenResponse { get; set; } = "new-access-token";
-        public Exception? RefreshTokenException { get; set; }
+        public BusinessError? RefreshTokenFailResult { get; set; }
         public BusinessError? SignOutFailResult { get; set; }
+        public BusinessError? UpdateEmailFailResult { get; set; }
         public string? LastRefreshTokenInput { get; private set; }
         public string? LastSignOutRefreshToken { get; private set; }
+        public (string UserId, string NewEmail)? LastUpdateEmailArgs { get; private set; }
 
         public void Reset()
         {
             RefreshTokenResponse = "new-access-token";
-            RefreshTokenException = null;
+            RefreshTokenFailResult = null;
             SignOutFailResult = null;
+            UpdateEmailFailResult = null;
             LastRefreshTokenInput = null;
             LastSignOutRefreshToken = null;
+            LastUpdateEmailArgs = null;
         }
 
         public string GetUserPoolId() => "test-pool";
 
-        public Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER")
+        public Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role, CancellationToken ct = default)
             => throw new NotImplementedException();
 
-        public Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password)
+        public Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password, CancellationToken ct = default)
             => throw new NotImplementedException();
 
-        public Task<Result> DeleteUserAsync(string email)
+        public Task<Result> DeleteUserAsync(string email, CancellationToken ct = default)
             => throw new NotImplementedException();
 
-        public Task<string> RefreshTokenAsync(string refreshToken)
+        public Task<Result<string>> RefreshTokenAsync(string refreshToken, CancellationToken ct = default)
         {
             LastRefreshTokenInput = refreshToken;
 
-            if (RefreshTokenException is not null)
-                throw RefreshTokenException;
+            if (RefreshTokenFailResult is not null)
+                return Task.FromResult(Result.Fail<string>(RefreshTokenFailResult));
 
-            return Task.FromResult(RefreshTokenResponse);
+            return Task.FromResult(Result.Ok(RefreshTokenResponse));
         }
 
-        public Task<Result> SignOutAsync(string refreshToken)
+        public Task<Result> SignOutAsync(string refreshToken, CancellationToken ct = default)
         {
             LastSignOutRefreshToken = refreshToken;
 
             if (SignOutFailResult is not null)
                 return Task.FromResult(Result.Fail(SignOutFailResult));
+
+            return Task.FromResult(Result.Ok());
+        }
+
+        public Task<Result> UpdateUserEmailAsync(string userId, string newEmail, CancellationToken ct = default)
+        {
+            LastUpdateEmailArgs = (userId, newEmail);
+
+            if (UpdateEmailFailResult is not null)
+                return Task.FromResult(Result.Fail(UpdateEmailFailResult));
 
             return Task.FromResult(Result.Ok());
         }
@@ -231,6 +297,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ActualStartTime = null,
                 ActualEndTime = null,
                 GuestsCount = 2,
+                DishCount = 0,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = false,
                 VisitorName = null,
@@ -254,6 +321,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ActualStartTime = null,
                 ActualEndTime = null,
                 GuestsCount = 4,
+                DishCount = 3,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = false,
                 VisitorName = null,
@@ -338,6 +406,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ActualStartTime = null,
                 ActualEndTime = null,
                 GuestsCount = dto.GuestsCount,
+                DishCount = 0,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = false,
                 VisitorName = null,
@@ -374,6 +443,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ActualStartTime = null,
                 ActualEndTime = null,
                 GuestsCount = dto.GuestsCount,
+                DishCount = 0,
                 Status = ReservationStatus.Reserved,
                 IsCreatedByWaiter = true,
                 VisitorName = dto.VisitorName,
@@ -560,7 +630,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             int size,
             string type,
             List<string> sort,
-            string? pageToken = null)
+            string? pageToken,
+            CancellationToken ct = default)
         {
             LastLocationId = locationId;
             LastSize = size;
@@ -590,7 +661,13 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public sealed class FakeDishService : IDishService
     {
         public string? LastLocationId { get; private set; }
+        public string? LastDishId { get; private set; }
+        public string? LastMenuType { get; private set; }
+        public string? LastMenuSort { get; private set; }
         public Dictionary<string, IReadOnlyList<Dish>> DishesByLocation { get; } = new();
+        public List<Dish> PopularDishes { get; } = new();
+        public Dictionary<string, Dish> DishesById { get; } = new();
+        public List<DishBriefDTO> MenuDishes { get; } = new();
 
         public FakeDishService()
         {
@@ -600,8 +677,16 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public void Reset()
         {
             LastLocationId = null;
+            LastDishId = null;
+            LastMenuType = null;
+            LastMenuSort = null;
+
             DishesByLocation.Clear();
             DishesByLocation["loc-1"] = Array.Empty<Dish>();
+
+            PopularDishes.Clear();
+            DishesById.Clear();
+            MenuDishes.Clear();
         }
 
         public Task<Result<IReadOnlyList<Dish>>> GetSpecialityDishesByLocationIdAsync(
@@ -616,14 +701,28 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(Array.Empty<Dish>()));
         }
 
-        public Task<Dish?> GetDishByIdAsync(string dishId, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
 
 
         public Task<Result<IReadOnlyList<Dish>>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(Array.Empty<Dish>()));
+            => Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(PopularDishes));
+
+        public Task<Result<Dish>> GetDishByIdAsync(string dishId,
+            CancellationToken cancellationToken = default)
+        {
+            LastDishId = dishId;
+            if (DishesById.TryGetValue(dishId, out var dish))
+                return Task.FromResult(Result.Ok(dish));
+
+            return Task.FromResult(Result.Fail<Dish>(DishErrors.NotFound));
+        }
+
+        public Task<Result<IReadOnlyList<DishBriefDTO>>> GetMenuBriefDishesAsync(
+            string? type, string sort, CancellationToken cancellationToken = default)
+        {
+            LastMenuType = type;
+            LastMenuSort = sort;
+            return Task.FromResult(Result.Ok<IReadOnlyList<DishBriefDTO>>(MenuDishes));
+        }
     }
 
     public sealed class FakeTableService : ITableService
