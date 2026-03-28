@@ -82,7 +82,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             if (reservation.Status < ReservationStatus.InProgress)
                 return FeedbackErrors.TooEarlyServiceFeedback;
 
-            if (checkDuplicates && await feedbackRepository.IsFeedbackAlreadyMade(reservation.Id, "service", ct))
+            if (checkDuplicates && await feedbackRepository.IsFeedbackAlreadyMade(reservation.Id, "waiter", ct))
                 return FeedbackErrors.FeedbackAlreadyMade;
 
             feedbacksToSave.Add(BuildFeedback(dto.ServiceRating.Value, dto.ServiceComment, "waiter", reservation, author));
