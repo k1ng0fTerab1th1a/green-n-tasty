@@ -594,69 +594,114 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         }
     }
 
-    public sealed class FakeFeedbackService : IFeedbackService
+public sealed class FakeFeedbackService : IFeedbackService
+{
+
+    public string? LastLocationId { get; private set; }
+    public int LastSize { get; private set; }
+    public string? LastType { get; private set; }
+    public List<string> LastSort { get; private set; } = new();
+    public string? LastPageToken { get; private set; }
+    public FeedbackPaginatedDto GetFeedbacksResponse { get; set; } = new();
+
+
+    public CreateFeedbackDTO? LastAuthorisedDto { get; private set; }
+    public string? LastAuthorisedUserId { get; private set; }
+    public Result SaveAuthorisedFeedbackResponse { get; set; } = Result.Ok();
+
+
+    public CreateFeedbackDTO? LastVisitorDto { get; private set; }
+    public string? LastVisitorSecretCode { get; private set; }
+    public Result SaveVisitorFeedbackResponse { get; set; } = Result.Ok();
+
+
+    public string? LastQrReservationId { get; private set; }
+    public Result<byte[]> GenerateFeedbackQrResponse { get; set; } = Result.Ok(Array.Empty<byte>());
+
+
+    public string? LastCalculatedReservationId { get; private set; }
+    public Result<CalculatedFeedbackDTO> GetCalculatedFeedbackDataResponse { get; set; } =
+        Result.Ok(new CalculatedFeedbackDTO());
+
+
+    public FakeFeedbackService() => Reset();
+
+    public void Reset()
     {
-        public string? LastLocationId { get; private set; }
-        public int LastSize { get; private set; }
-        public string? LastType { get; private set; }
-        public List<string> LastSort { get; private set; } = new();
-        public string? LastPageToken { get; private set; }
-
-        public FeedbackPaginatedDto Response { get; set; } = new();
-
-        public FakeFeedbackService()
+        LastLocationId  = null;
+        LastSize        = 0;
+        LastType        = null;
+        LastSort        = new List<string>();
+        LastPageToken   = null;
+        GetFeedbacksResponse = new FeedbackPaginatedDto
         {
-            Reset();
-        }
+            Size          = 20,
+            Content       = new List<FeedbackDTO>(),
+            NextPageToken = null
+        };
 
-        public void Reset()
-        {
-            LastLocationId = null;
-            LastSize = 0;
-            LastType = null;
-            LastSort = new List<string>();
-            LastPageToken = null;
+        LastAuthorisedDto    = null;
+        LastAuthorisedUserId = null;
+        SaveAuthorisedFeedbackResponse = Result.Ok();
 
-            Response = new FeedbackPaginatedDto
-            {
-                Size = 20,
-                Content = new List<FeedbackDTO>(),
-                NextPageToken = null
-            };
-        }
+        LastVisitorDto        = null;
+        LastVisitorSecretCode = null;
+        SaveVisitorFeedbackResponse = Result.Ok();
 
-        public Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(
-            string locationId,
-            int size,
-            string type,
-            List<string> sort,
-            string? pageToken,
-            CancellationToken ct = default)
-        {
-            LastLocationId = locationId;
-            LastSize = size;
-            LastType = type;
-            LastSort = sort.ToList();
-            LastPageToken = pageToken;
+        LastQrReservationId       = null;
+        GenerateFeedbackQrResponse = Result.Ok(Array.Empty<byte>());
 
-            return Task.FromResult(Result.Ok(Response));
-        }
-
-        public Task<Result> SaveAuthorisedFeedback(CreateFeedbackDTO dto, string userId, CancellationToken ct = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<Result> SaveVisitorFeedback(CreateFeedbackDTO dto, string secretCode, CancellationToken ct = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<Result<CalculatedFeedbackDTO>> GetCalculatedFeedbackDataAsync(string reservationId, CancellationToken ct = default)
-        {
-            throw new NotImplementedException();
-        }
+        LastCalculatedReservationId   = null;
+        GetCalculatedFeedbackDataResponse = Result.Ok(new CalculatedFeedbackDTO());
     }
+
+    public Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(
+        string locationId, int size, string type, List<string> sort,
+        string? pageToken = null, CancellationToken ct = default)
+    {
+        LastLocationId = locationId;
+        LastSize       = size;
+        LastType       = type;
+        LastSort       = sort.ToList();
+        LastPageToken  = pageToken;
+
+        return Task.FromResult(Result.Ok(GetFeedbacksResponse));
+    }
+
+    public Task<Result> SaveAuthorisedFeedback(
+        CreateFeedbackDTO dto, string userId, CancellationToken ct = default)
+    {
+        LastAuthorisedDto    = dto;
+        LastAuthorisedUserId = userId;
+
+        return Task.FromResult(SaveAuthorisedFeedbackResponse);
+    }
+
+    public Task<Result> SaveVisitorFeedback(
+        CreateFeedbackDTO dto, string secretCode, CancellationToken ct = default)
+    {
+        LastVisitorDto        = dto;
+        LastVisitorSecretCode = secretCode;
+
+        return Task.FromResult(SaveVisitorFeedbackResponse);
+    }
+
+    public Task<Result<byte[]>> GenerateFeedbackQr(
+        string reservationId, CancellationToken ct = default)
+    {
+        LastQrReservationId = reservationId;
+
+        return Task.FromResult(GenerateFeedbackQrResponse);
+    }
+
+    public Task<Result<CalculatedFeedbackDTO>> GetCalculatedFeedbackDataAsync(
+        string reservationId, CancellationToken ct = default)
+    {
+        LastCalculatedReservationId = reservationId;
+
+        return Task.FromResult(GetCalculatedFeedbackDataResponse);
+    }
+}
 
     public sealed class FakeDishService : IDishService
     {

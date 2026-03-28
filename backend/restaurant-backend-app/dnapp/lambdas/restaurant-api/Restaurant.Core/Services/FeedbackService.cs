@@ -31,13 +31,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         return Result.Ok(result);
     }
 
-    public async Task<Result> SaveAnonymousFeedback(CreateFeedbackDTO req, CancellationToken ct = default)
-    {
-        return null;
-    }
-
-    public async Task<Result> SaveAuthorisedFeedback(CreateFeedbackDTO dto, string userId, CancellationToken ct = 
-            default)
+    public async Task<Result> SaveAuthorisedFeedback(CreateFeedbackDTO dto, string userId, CancellationToken ct)
     {
         var reservation = await reservationRepository.GetByIdAsync(dto.ReservationId, ct);
         if (reservation == null)

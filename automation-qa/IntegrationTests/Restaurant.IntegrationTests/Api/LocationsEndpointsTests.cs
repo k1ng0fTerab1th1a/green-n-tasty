@@ -203,7 +203,7 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
     public async Task GetFeedbacks_WithTypeOnly_ShouldUseDefaultSort_AndReturnMappedResponse()
     {
         _factory.FeedbackService.Reset();
-        _factory.FeedbackService.Response = new FeedbackPaginatedDto
+        _factory.FeedbackService.GetFeedbacksResponse = new FeedbackPaginatedDto
         {
             Size = 20,
             NextPageToken = "next-token-1",
@@ -256,7 +256,7 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
     public async Task GetFeedbacks_WithExplicitParameters_ShouldPassAllQueryParamsToService()
     {
         _factory.FeedbackService.Reset();
-        _factory.FeedbackService.Response = new FeedbackPaginatedDto
+        _factory.FeedbackService.GetFeedbacksResponse = new FeedbackPaginatedDto
         {
             Size = 5,
             NextPageToken = "next-token-2",

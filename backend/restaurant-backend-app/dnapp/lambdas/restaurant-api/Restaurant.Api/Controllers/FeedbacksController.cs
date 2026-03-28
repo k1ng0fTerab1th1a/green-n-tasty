@@ -32,6 +32,7 @@ public class FeedbacksController : ControllerBase
         return ApiResponse<object>.Success(200, null!);
     }
 
+    [AllowAnonymous]
     [HttpPost("visitor")]
     public async Task<ApiResponse<object>> CreateFeedbackVisitor([FromBody] CreateFeedbackDTO req, [FromQuery] string
         secretCode, CancellationToken ct)
