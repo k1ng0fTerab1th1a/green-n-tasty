@@ -1,6 +1,6 @@
 ﻿namespace Restaurant.Core.DTOs;
 
-public class CalculatedFeedbackDTO
+public class WaiterLocationFeedbackDTO
 {
     public string WaiterName { get; set; } = string.Empty;
     public string? WaiterImageUrl { get; set; }

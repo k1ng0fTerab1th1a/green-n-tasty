@@ -190,7 +190,7 @@ public sealed class FeedbackEndpointsTests : IClassFixture<CustomWebApplicationF
     public async Task GetOverallFeedbackData_WhenValid_ShouldReturn200_AndMapAllFields()
     {
         _factory.FeedbackService.Reset();
-        _factory.FeedbackService.GetCalculatedFeedbackDataResponse = Result.Ok(new CalculatedFeedbackDTO
+        _factory.FeedbackService.GetCalculatedFeedbackDataResponse = Result.Ok(new WaiterLocationFeedbackDTO
         {
             WaiterName           = "Giorgi Beridze",
             WaiterImageUrl       = "http://img/waiter-1",
@@ -222,7 +222,7 @@ public sealed class FeedbackEndpointsTests : IClassFixture<CustomWebApplicationF
     {
         _factory.FeedbackService.Reset();
         _factory.FeedbackService.GetCalculatedFeedbackDataResponse =
-            Result.Fail<CalculatedFeedbackDTO>(FeedbackErrors.DataFetchingError);
+            Result.Fail<WaiterLocationFeedbackDTO>(FeedbackErrors.DataFetchingError);
 
         var request = Authed(HttpMethod.Get, "/feedbacks/feedback-short-data?reservationId=rsv-bad");
         var res = await _client.SendAsync(request);

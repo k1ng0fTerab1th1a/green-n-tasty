@@ -44,12 +44,12 @@ public class FeedbacksController : ControllerBase
     }
 
     [HttpGet("feedback-short-data")]
-    public async Task<ApiResponse<CalculatedFeedbackDTO>> GetOverallFeedbackData([FromQuery] string reservationId,
+    public async Task<ApiResponse<WaiterLocationFeedbackDTO>> GetOverallFeedbackData([FromQuery] string reservationId,
         CancellationToken ct = default)
     {
         var res = await _feedbackService.GetCalculatedFeedbackDataAsync(reservationId, ct);
         if (res.IsSuccess)
-            return ApiResponse<CalculatedFeedbackDTO>.Success(200, res.Value);
-        return res.Errors[0].ToApiResponse<CalculatedFeedbackDTO>();
+            return ApiResponse<WaiterLocationFeedbackDTO>.Success(200, res.Value);
+        return res.Errors[0].ToApiResponse<WaiterLocationFeedbackDTO>();
     }
 }

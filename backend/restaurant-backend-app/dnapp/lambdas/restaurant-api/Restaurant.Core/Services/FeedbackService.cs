@@ -245,7 +245,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         return Result.Ok(qrCode);
     }
 
-    public async Task<Result<CalculatedFeedbackDTO>> GetCalculatedFeedbackDataAsync(string reservationId,
+    public async Task<Result<WaiterLocationFeedbackDTO>> GetCalculatedFeedbackDataAsync(string reservationId,
         CancellationToken ct = default)
     {
         var ids = await reservationRepository.GetWaiterAndLocationIdFromReservationAsync(reservationId, ct);
@@ -260,7 +260,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
 
         double waiterRating = waiterRatingData.WaiterRating / (double)waiterRatingData.WaiterFeedbacksNumber;
 
-        return Result.Ok(new CalculatedFeedbackDTO()
+        return Result.Ok(new WaiterLocationFeedbackDTO()
         {
             WaiterFeedbacksNumber = waiterRatingData.WaiterFeedbacksNumber,
             WaiterRating = waiterRating,

@@ -258,11 +258,15 @@ public sealed class ReservationRepository : IReservationRepository
         bool isTableDifferent = oldTableKey != reservation.TableKey;
         bool isDayDifferent = oldDate != newDate;
 
+        Result slotResult;
         if (!isTableDifferent && !isDayDifferent)
-            await UpdateSameTableSameDayAsync(reservationItem, newSlots, oldSlots, reservation.TableKey, newDate, ttl, ct);
+            slotResult = await UpdateSameTableSameDayAsync(reservationItem, newSlots, oldSlots, reservation.TableKey, 
+            newDate, ttl, ct);
         else
-            await UpdateDifferentTableOrDayAsync(reservationItem, newSlots, oldSlots, reservation.TableKey, oldTableKey, newDate, oldDate, ttl, ct);
+            slotResult = await UpdateDifferentTableOrDayAsync(reservationItem, newSlots, oldSlots, reservation.TableKey, 
+            oldTableKey, newDate, oldDate, ttl, ct);
 
+        if (slotResult.IsFailed) return Result.Fail<Reservation>(slotResult.Errors);
         return reservation;
     }
 

@@ -9,6 +9,4 @@ public class CreateFeedbackDTO
     
     public int? CuisineRating { get; set; }
     public string? CuisineComment { get; set; }
-    
-    public string? SecretCode { get; set; }
 }

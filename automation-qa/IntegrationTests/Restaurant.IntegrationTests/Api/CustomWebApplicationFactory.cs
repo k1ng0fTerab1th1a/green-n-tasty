@@ -620,8 +620,8 @@ public sealed class FakeFeedbackService : IFeedbackService
 
 
     public string? LastCalculatedReservationId { get; private set; }
-    public Result<CalculatedFeedbackDTO> GetCalculatedFeedbackDataResponse { get; set; } =
-        Result.Ok(new CalculatedFeedbackDTO());
+    public Result<WaiterLocationFeedbackDTO> GetCalculatedFeedbackDataResponse { get; set; } =
+        Result.Ok(new WaiterLocationFeedbackDTO());
 
 
     public FakeFeedbackService() => Reset();
@@ -652,7 +652,7 @@ public sealed class FakeFeedbackService : IFeedbackService
         GenerateFeedbackQrResponse = Result.Ok(Array.Empty<byte>());
 
         LastCalculatedReservationId   = null;
-        GetCalculatedFeedbackDataResponse = Result.Ok(new CalculatedFeedbackDTO());
+        GetCalculatedFeedbackDataResponse = Result.Ok(new WaiterLocationFeedbackDTO());
     }
 
     public Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(
@@ -694,7 +694,7 @@ public sealed class FakeFeedbackService : IFeedbackService
         return Task.FromResult(GenerateFeedbackQrResponse);
     }
 
-    public Task<Result<CalculatedFeedbackDTO>> GetCalculatedFeedbackDataAsync(
+    public Task<Result<WaiterLocationFeedbackDTO>> GetCalculatedFeedbackDataAsync(
         string reservationId, CancellationToken ct = default)
     {
         LastCalculatedReservationId = reservationId;
