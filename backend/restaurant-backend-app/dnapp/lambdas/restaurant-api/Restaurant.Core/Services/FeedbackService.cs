@@ -85,10 +85,6 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             if (checkDuplicates && await feedbackRepository.IsFeedbackAlreadyMade(reservation.Id, "service", ct))
                 return FeedbackErrors.FeedbackAlreadyMade;
 
-            var waiterRatingData = await userRepository.GetUserFeedbackRatingDataByIdAsync(reservation.WaiterId, ct);
-            if (waiterRatingData.rating < 0 || waiterRatingData.feedbacksAmount == -1)
-                return FeedbackErrors.RatingsNotFound;
-
             feedbacksToSave.Add(BuildFeedback(dto.ServiceRating.Value, dto.ServiceComment, "waiter", reservation, author));
             ratingUpdates.Add(c => UpdateWaiterRatingAsync(reservation.WaiterId, dto.ServiceRating.Value, c));
         }
