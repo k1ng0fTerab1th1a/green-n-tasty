@@ -15,7 +15,7 @@ public class Dish
     public string DishType { get; set; } = string.Empty;
 
     [DynamoDBProperty("price")]
-    public float Price { get; set; }
+    public decimal Price { get; set; }
 
     [DynamoDBProperty("state")]
     public string State { get; set; } = "ON";

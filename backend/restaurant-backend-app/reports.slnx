@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="dnapp/lambdas/reports-handler/Restaurant.Reports.Handler.csproj" />
+  <Project Path="dnapp/lambdas/reports-sender/Restaurant.Reports.Sender.csproj" />
+  <Project Path="dnapp/lambdas/restaurant-api/Restaurant.Core/Restaurant.Core.csproj" />
+  <Project Path="dnapp/Restaurant.Reports.Core/Restaurant.Reports.csproj" Id="909d4562-ef0b-4a61-8bd2-0599c45db2e5" />
+</Solution>

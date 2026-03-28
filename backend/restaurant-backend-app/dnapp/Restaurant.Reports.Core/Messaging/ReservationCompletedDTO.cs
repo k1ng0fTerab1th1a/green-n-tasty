@@ -1,4 +1,4 @@
-﻿namespace Restaurant.Core.DTOs;
+﻿namespace Restaurant.Reports.Messaging;
 
 public sealed record ReservationCompletedDTO(
     string ReservationId,

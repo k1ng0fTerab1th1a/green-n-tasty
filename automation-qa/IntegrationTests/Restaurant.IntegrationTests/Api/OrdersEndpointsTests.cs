@@ -171,11 +171,11 @@ public sealed class OrdersEndpointsTests : IClassFixture<CustomWebApplicationFac
                     Name = "Pasta",
                     Description = "Hot",
                     PhotoUrl = "img",
-                    PriceAtOrder = 12.5f,
+                    PriceAtOrder = 12.5m,
                     Quantity = 2
                 }
             },
-            TotalAmount = 25f,
+            TotalAmount = 25m,
             CreatedAt = "2026-03-01T00:00:00.0000000Z",
             CompletedAt = null
         };

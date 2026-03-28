@@ -15,7 +15,7 @@ public sealed class OrderResponse
     public int GuestsCount { get; set; }
     public string Status { get; set; } = null!;
     public List<OrderDishSnapshot> Dishes { get; set; } = [];
-    public float TotalAmount { get; set; }
+    public decimal TotalAmount { get; set; }
     public string CreatedAt { get; set; } = null!;
     public string? CompletedAt { get; set; }
 }

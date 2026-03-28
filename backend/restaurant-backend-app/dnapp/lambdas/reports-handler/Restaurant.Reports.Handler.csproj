@@ -14,4 +14,9 @@
         <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.2.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\..\Restaurant.Reports.Core\Restaurant.Reports.csproj" />
+      <ProjectReference Include="..\restaurant-api\Restaurant.Core\Restaurant.Core.csproj" />
+    </ItemGroup>
+
 </Project>

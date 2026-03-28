@@ -47,7 +47,7 @@ public sealed class Order
     public List<OrderDishSnapshot> Dishes { get; set; } = new List<OrderDishSnapshot>();
 
     [DynamoDBProperty("totalAmount")]
-    public float TotalAmount { get; set; }
+    public decimal TotalAmount { get; set; }
 
     [DynamoDBProperty("createdAt")]
     public string CreatedAt { get; set; } = null!;

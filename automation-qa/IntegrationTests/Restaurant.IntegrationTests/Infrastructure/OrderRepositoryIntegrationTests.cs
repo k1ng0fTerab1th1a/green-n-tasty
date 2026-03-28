@@ -158,7 +158,7 @@ public sealed class OrderRepositoryIntegrationTests : IClassFixture<DynamoDbFixt
             GuestsCount = 2,
             Status = OrderStatus.Open,
             Dishes = new List<OrderDishSnapshot>(),
-            TotalAmount = 42.5f,
+            TotalAmount = 42.5m,
             CreatedAt = now.ToString("O"),
             CompletedAt = null
         };

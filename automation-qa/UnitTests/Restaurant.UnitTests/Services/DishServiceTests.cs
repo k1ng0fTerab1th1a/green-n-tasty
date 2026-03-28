@@ -26,8 +26,8 @@ public class DishServiceTests
     {
         var dishes = new List<Dish>
         {
-            new() { Id = "dish-1", Name = "Truffle Pasta", Price = 32.0f, State = "ON" },
-            new() { Id = "dish-2", Name = "Beef Tartare",  Price = 27.5f, State = "ON" }
+            new() { Id = "dish-1", Name = "Truffle Pasta", Price = 32.0m, State = "ON" },
+            new() { Id = "dish-2", Name = "Beef Tartare",  Price = 27.5m, State = "ON" }
         };
 
         _repo.Setup(r => r.GetPopularDishesAsync(It.IsAny<CancellationToken>()))
@@ -66,7 +66,7 @@ public class DishServiceTests
     {
         var dishes = new List<Dish>
         {
-            new() { Id = "dish-10", Name = "House Steak", Price = 45.0f, State = "ON" }
+            new() { Id = "dish-10", Name = "House Steak", Price = 45.0m, State = "ON" }
         };
 
         _repo.Setup(r => r.GetSpecialityDishesByLocationIdAsync("loc-5", It.IsAny<CancellationToken>()))
@@ -108,7 +108,7 @@ public class DishServiceTests
             Id       = "dish-42",
             Name     = "Wagyu Burger",
             DishType = "MAIN",
-            Price    = 55.0f,
+            Price    = 55.0m,
             State    = "ON"
         };
 
@@ -121,7 +121,7 @@ public class DishServiceTests
            result.Value.Id.Should().Be("dish-42");
            result.Value.Name.Should().Be("Wagyu Burger");
            result.Value.DishType.Should().Be("MAIN");
-           result.Value.Price.Should().BeApproximately(55.0f, 0.001f);
+           result.Value.Price.Should().BeApproximately(55.0m, 0.001m);
 
         _repo.Verify(r => r.GetDishByIdAsync("dish-42", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
