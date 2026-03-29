@@ -1,0 +1,110 @@
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.radioGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.radioCard {
+    padding: 16px;
+    border: 1px solid var(--neutral-200);
+    border-radius: var(--radius-md);
+    transition: border-color 0.2s;
+}
+
+.radioCard.active {
+    border-color: var(--green-200);
+}
+
+.nameInputSection {
+    padding: 16px;
+    border: 1px solid var(--green-200);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.inputWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.input {
+    width: 100%;
+    height: 48px;
+    padding: 0 16px;
+    border: 1px solid var(--neutral-200);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+}
+
+.inputHint {
+    font-size: 12px;
+    color: var(--neutral-400);
+}
+
+.guestsRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border: 1px solid var(--neutral-200);
+    border-radius: var(--radius-sm);
+}
+
+.iconLabel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.counter {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.counterBtn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--green-200);
+    background: white;
+    color: var(--green-200);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.timeSection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.timeHint {
+    font-size: 13px;
+    color: var(--neutral-600);
+}
+
+.timeGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.timeCol {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
