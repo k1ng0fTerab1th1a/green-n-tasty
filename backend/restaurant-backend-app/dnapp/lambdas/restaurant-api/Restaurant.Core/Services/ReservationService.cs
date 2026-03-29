@@ -180,7 +180,7 @@ public sealed class ReservationService : IReservationService
         if (!string.Equals(schedule.WaiterId, waiterId, StringComparison.Ordinal))
             return ReservationErrors.WaiterNotAssignedForCreation;
 
-        var secretCode = GenerateSecretCode();
+        var secretCode = Guid.NewGuid().ToString();
         
         var reservation = new Reservation
         {
@@ -392,11 +392,4 @@ public sealed class ReservationService : IReservationService
         return reservation;
     }
     
-    // Some easy secret code generator (why would we need ultra super fortress here right?!!)
-    private static string GenerateSecretCode()
-    {
-        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        var bytes = RandomNumberGenerator.GetBytes(6);
-        return new string(bytes.Select(b => chars[b % chars.Length]).ToArray());
-    }
 }

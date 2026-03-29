@@ -77,28 +77,6 @@ public class UserRepository : IUserRepository
         return (username, imageUrl);
     }
 
-    public async Task<(double rating, int feedbacksAmount)> GetUserFeedbackRatingDataByIdAsync(string userId,
-        CancellationToken ct = default)
-    {
-        const string requiredFields = "rating,feedbacksNumber";
-        var request = FormGetRequestForFieldsGettingById(userId, requiredFields);
-
-        var response = await _client.GetItemAsync(request, ct);
-        
-        if (response.Item.Count == 0 || 
-            !response.Item.ContainsKey("rating") || 
-            !response.Item.ContainsKey("feedbacksNumber"))
-        {
-            return (-1f, -1);
-        }
-        
-        var rating = ParseDoubleFromAttributeValue(response.Item["rating"]);
-        var feedbacksAmount = ParseIntFromAttributeValue(response.Item["feedbacksNumber"]);
-        
-        rating = Math.Round(rating, 2, MidpointRounding.AwayFromZero);
-
-        return (rating, feedbacksAmount);
-    }
 
     public async Task UpdateUserRatingAsync(string userId, int newFeedbackRating, CancellationToken ct = default)
     {
@@ -204,18 +182,6 @@ public class UserRepository : IUserRepository
         };  
     }
     
-    private static double ParseDoubleFromAttributeValue(AttributeValue attr)
-    {
-        if (string.IsNullOrEmpty(attr.N)) return -1f;
-        return double.TryParse(attr.N, out var result) ? result : -1f;
-    }
-    
-    private static int ParseIntFromAttributeValue(AttributeValue attr)
-    {
-        if (string.IsNullOrEmpty(attr.N)) return -1;
-        return int.TryParse(attr.N, out var result) ? result : -1;
-    }
-
     public async Task UpdateEmailAsync(string userId, string newEmail, CancellationToken ct = default)
     {
         var user = await _context.LoadAsync<User>(userId, ct);

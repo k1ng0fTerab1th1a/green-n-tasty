@@ -369,7 +369,7 @@ public sealed class ReservationRepository : IReservationRepository
         }
     }
 
-    public async Task ClearSecretCode(string reservationId, CancellationToken ct = default)
+    public async Task ClearSecretCode(string reservationId, CancellationToken ct)
     {
         var request = new UpdateItemRequest
         {
@@ -388,8 +388,9 @@ public sealed class ReservationRepository : IReservationRepository
         await _dynamoDb.UpdateItemAsync(request, ct);
     }
     
-    public async Task<(string waiterId, string locationId)> GetWaiterAndLocationIdFromReservationAsync(string reservationId,
-        CancellationToken ct = default)
+    public async Task<Result<(string waiterId, string locationId)>> GetWaiterAndLocationIdFromReservationAsync(string 
+        reservationId,
+        CancellationToken ct)
     {
         var request = new GetItemRequest
         {
@@ -409,12 +410,13 @@ public sealed class ReservationRepository : IReservationRepository
         var response = await _dynamoDb.GetItemAsync(request, ct);
 
         if (!response.IsItemSet)
-            throw new KeyNotFoundException($"Reservation {reservationId} not found");
+            return ReservationErrors.ReservationNotFound;
 
-        return (
+        return Result.Ok((
             waiterId: response.Item["waiterId"].S,
             locationId: response.Item["locationId"].S
-        );
+        ));
+
     }
     
     private async Task<Result> UpdateSameTableSameDayAsync(

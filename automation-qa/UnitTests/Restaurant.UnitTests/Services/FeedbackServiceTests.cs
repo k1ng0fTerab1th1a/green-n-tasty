@@ -429,8 +429,6 @@ public async Task SaveAuthorisedFeedback_WithServiceRatingOnly_ShouldSaveFeedbac
     _repo.Setup(r => r.IsFeedbackAlreadyMade("rsv-1", "waiter", It.IsAny<CancellationToken>()))
          .ReturnsAsync(false);
 
-    _userRepo.Setup(u => u.GetUserFeedbackRatingDataByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-             .ReturnsAsync((rating: 240, feedbacksAmount: 48));
 
     _repo.Setup(r => r.SaveBatchAsync(It.IsAny<IEnumerable<Feedback>>(), It.IsAny<CancellationToken>()))
          .Returns(Task.CompletedTask);
@@ -481,9 +479,6 @@ public async Task SaveAuthorisedFeedback_WithBothRatings_ShouldSaveTwoFeedbacks_
 
     _repo.Setup(r => r.IsFeedbackAlreadyMade("rsv-1", "kitchen", It.IsAny<CancellationToken>()))
          .ReturnsAsync(false);
-
-    _userRepo.Setup(u => u.GetUserFeedbackRatingDataByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-             .ReturnsAsync((rating: 240, feedbacksAmount: 48));
 
     _repo.Setup(r => r.SaveBatchAsync(It.IsAny<IEnumerable<Feedback>>(), It.IsAny<CancellationToken>()))
          .Returns(Task.CompletedTask);
@@ -538,9 +533,6 @@ public async Task SaveAuthorisedFeedback_WhenRatingUpdateThrows_ShouldReturnUnsu
 
     _repo.Setup(r => r.IsFeedbackAlreadyMade("rsv-1", "waiter", It.IsAny<CancellationToken>()))
          .ReturnsAsync(false);
-
-    _userRepo.Setup(u => u.GetUserFeedbackRatingDataByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-             .ReturnsAsync((rating: 240, feedbacksAmount: 48));
 
     _repo.Setup(r => r.SaveBatchAsync(It.IsAny<IEnumerable<Feedback>>(), It.IsAny<CancellationToken>()))
          .Returns(Task.CompletedTask);
@@ -752,8 +744,6 @@ public async Task SaveVisitorFeedback_WithServiceRatingOnly_ShouldSaveFeedbackAs
     _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
 
-    _userRepo.Setup(u => u.GetUserFeedbackRatingDataByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-             .ReturnsAsync((rating: 240, feedbacksAmount: 48));
 
     _repo.Setup(r => r.SaveBatchAsync(It.IsAny<IEnumerable<Feedback>>(), It.IsAny<CancellationToken>()))
          .Returns(Task.CompletedTask);
@@ -798,8 +788,6 @@ public async Task SaveVisitorFeedback_WithBothRatings_ShouldSaveTwoFeedbacks_And
     _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
 
-    _userRepo.Setup(u => u.GetUserFeedbackRatingDataByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-             .ReturnsAsync((rating: 240, feedbacksAmount: 48));
 
     _repo.Setup(r => r.SaveBatchAsync(It.IsAny<IEnumerable<Feedback>>(), It.IsAny<CancellationToken>()))
          .Returns(Task.CompletedTask);
@@ -850,9 +838,6 @@ public async Task SaveVisitorFeedback_WhenRatingUpdateThrows_ShouldReturnUnsucce
 
     _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
-
-    _userRepo.Setup(u => u.GetUserFeedbackRatingDataByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-             .ReturnsAsync((rating: 240, feedbacksAmount: 48));
 
     _repo.Setup(r => r.SaveBatchAsync(It.IsAny<IEnumerable<Feedback>>(), It.IsAny<CancellationToken>()))
          .Returns(Task.CompletedTask);

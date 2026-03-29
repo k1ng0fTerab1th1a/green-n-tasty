@@ -27,9 +27,6 @@ public class FeedbacksController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return ApiResponse<object>.Fail(401, "User should be authorised to leave feedback");
 
-        var validation = ValidateFeedbackData(req);
-        if (!validation.IsSuccess)
-            return validation;
         var result = await _feedbackService.SaveAuthorisedFeedback(req, userId, ct);
         if (result.IsFailed)
             return result.Errors[0].ToApiResponse<object>();
@@ -41,9 +38,6 @@ public class FeedbacksController : ControllerBase
     public async Task<ApiResponse<object>> CreateFeedbackVisitor([FromBody] CreateFeedbackDTO req, [FromQuery] string
         secretCode, CancellationToken ct)
     {
-        var validation = ValidateFeedbackData(req);
-        if (!validation.IsSuccess)
-            return validation;
         var result = await _feedbackService.SaveVisitorFeedback(req, secretCode, ct);
         if (result.IsFailed)
             return result.Errors[0].ToApiResponse<object>();
@@ -60,27 +54,5 @@ public class FeedbacksController : ControllerBase
         return res.Errors[0].ToApiResponse<WaiterLocationFeedbackDTO>();
     }
 
-    private static ApiResponse<object> ValidateFeedbackData(CreateFeedbackDTO dto)
-    {
-        if (dto.CuisineRating == null && dto.ServiceRating == null)
-            return ApiResponse<object>.Fail(400, "Either one feedback or another should be present");
 
-        return ValidateRatingAndComment(dto.CuisineRating, dto.CuisineComment)
-               ?? ValidateRatingAndComment(dto.ServiceRating, dto.ServiceComment)
-               ?? ApiResponse<object>.Success(200, null!);
-    }
-
-    private static ApiResponse<object>? ValidateRatingAndComment(int? rating, string? comment)
-    {
-        if (rating == null)
-            return null;
-
-        if (rating < 1 || rating > 5)
-            return ApiResponse<object>.Fail(400, "Rating should be within 1 and 5 stars");
-
-        if (!string.IsNullOrEmpty(comment) && comment.Length > 300)
-            return ApiResponse<object>.Fail(400, "Comment length should not be longer than 300 characters");
-
-        return null;
-    }
 }

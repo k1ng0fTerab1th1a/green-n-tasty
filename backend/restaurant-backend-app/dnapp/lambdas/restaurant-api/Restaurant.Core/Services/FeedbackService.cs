@@ -34,6 +34,9 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
 
     public async Task<Result> SaveAuthorisedFeedback(CreateFeedbackDTO dto, string userId, CancellationToken ct)
     {
+        var res = ValidateFeedbackData(dto);
+        if (res.IsFailed)
+            return res;
         var reservation = await reservationRepository.GetByIdAsync(dto.ReservationId, ct);
         if (reservation == null)
             return ReservationErrors.ReservationNotFound;
@@ -49,6 +52,9 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
 
     public async Task<Result> SaveVisitorFeedback(CreateFeedbackDTO dto, string secretCode, CancellationToken ct = default)
     {
+        var res = ValidateFeedbackData(dto);
+        if (res.IsFailed)
+            return res;
         var reservation = await reservationRepository.GetByIdAsync(dto.ReservationId, ct);
         if (reservation == null)
             return ReservationErrors.ReservationNotFound;
@@ -74,6 +80,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         bool checkDuplicates,
         CancellationToken ct)
     {
+
         var feedbacksToSave = new List<Feedback>();
         var ratingUpdates   = new List<Func<CancellationToken, Task>>();
 
@@ -143,7 +150,10 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
     public async Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(string reservationId,
         CancellationToken ct = default)
     {
-        var ids = await reservationRepository.GetWaiterAndLocationIdFromReservationAsync(reservationId, ct);
+        var idsResult = await reservationRepository.GetWaiterAndLocationIdFromReservationAsync(reservationId, ct);
+        if (idsResult.IsFailed)
+            return Result.Fail<WaiterLocationFeedbackDTO>(idsResult.Errors);
+        var ids = idsResult.Value;
         if (string.IsNullOrEmpty(ids.locationId) || string.IsNullOrEmpty(ids.waiterId))
             return FeedbackErrors.DataFetchingError;
 
@@ -165,6 +175,28 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             CuisineRating = cuisineRating
         });
     }
+    
+    private static Result ValidateFeedbackData(CreateFeedbackDTO dto)
+    {
+        if (dto.CuisineRating == null && dto.ServiceRating == null)
+            return FeedbackErrors.NoFeedbackProvided;
+
+        return ValidateRatingAndComment(dto.CuisineRating, dto.CuisineComment)
+               ?? ValidateRatingAndComment(dto.ServiceRating, dto.ServiceComment)
+               ?? Result.Ok();
+    }
+
+    private static Result ValidateRatingAndComment(int? rating, string? comment)
+    {
+        if (rating < 1 || rating > 5)
+            return FeedbackErrors.RatingValidationDiapasonError;
+
+        if (!string.IsNullOrEmpty(comment) && comment.Length > 300)
+            return FeedbackErrors.FeedbackCommentSizeOutOfBounds;
+
+        return null;
+    }
+    
     
     private static Feedback BuildFeedback(
         int rate,

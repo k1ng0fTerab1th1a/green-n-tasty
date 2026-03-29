@@ -25,4 +25,13 @@ public static class FeedbackErrors
 
     public static BusinessError FeedbackAlreadyMade =>
         new("You have already left your feedback for that", ErrorType.Validation);
+
+    public static BusinessError EmptyFeedbackCreationBody =>
+        new("You have provided no information for leaving the feedback", ErrorType.Validation);
+
+    public static BusinessError RatingValidationDiapasonError =>
+        new("Rating should be within 1 and 5 stars", ErrorType.Validation);
+
+    public static BusinessError FeedbackCommentSizeOutOfBounds =>
+        new("Comment should not consist of more than 300 characters", ErrorType.Validation);
 }
