@@ -57,12 +57,15 @@ export default function ReservationsPage() {
     const formatTimeFromISO = (isoString) => {
         if (!isoString) return "";
         const date = new Date(isoString);
+        let hours = date.getHours();
+        const minutes = date.getMinutes();
+
         return date.toLocaleTimeString(undefined, {
             hour: "2-digit",
             minute: "2-digit",
             timeZone: "Asia/Tbilisi",
             hour12: false
-        });
+        }).replace("24:", "00:"); // Замінюємо 24 на 00, якщо локаль видає такий формат
     };
 
     const handleEditClick = async (res) => {
