@@ -1,4 +1,5 @@
-﻿using Amazon.DynamoDBv2.DataModel;
+﻿using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.DataModel;
 using FluentAssertions;
 using Restaurant.Core.Models;
 using Restaurant.Infrastructure.Repositories;
@@ -10,12 +11,14 @@ namespace Restaurant.Infrastructure.IntegrationTests;
 public sealed class LocationRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
 {
     private readonly DynamoDBContext _context;
+    private readonly IAmazonDynamoDB _client;
     private readonly LocationRepository _repo;
 
     public LocationRepositoryIntegrationTests(DynamoDbFixture fixture)
     {
         _context = fixture.Context;
-        _repo = new LocationRepository(_context);
+        _client = fixture.Client;
+        _repo = new LocationRepository(_context, _client);
     }
 
     [Fact]
@@ -31,7 +34,8 @@ public sealed class LocationRepositoryIntegrationTests : IClassFixture<DynamoDbF
             TotalCapacity = 10,
             AverageOccupancy = 0.5,
             ImageUrl = "http://img",
-            Rating = 4.2
+            TotalRating = 420,
+            FeedbacksAmount = 100 
         });
 
         var items = await _repo.GetLocationsAsync();
@@ -52,7 +56,8 @@ public sealed class LocationRepositoryIntegrationTests : IClassFixture<DynamoDbF
             TotalCapacity = 20,
             AverageOccupancy = 0.7,
             ImageUrl = "http://img2",
-            Rating = 4.8
+            TotalRating = 480,
+            FeedbacksAmount = 100 
         });
 
         var items = await _repo.GetLocationOptionsAsync();
@@ -73,7 +78,8 @@ public sealed class LocationRepositoryIntegrationTests : IClassFixture<DynamoDbF
             TotalCapacity = 40,
             AverageOccupancy = 0.2,
             ImageUrl = "http://img3",
-            Rating = 4.1
+            TotalRating = 410,
+            FeedbacksAmount = 100 
         });
 
         var item = await _repo.GetByIdAsync(id);

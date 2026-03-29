@@ -41,6 +41,7 @@ public class DynamoDbFixture : IAsyncLifetime
         await EnsureLocationsTableAsync();
         await EnsureTablesTableAsync();
         await EnsureTableDaysTableAsync();
+        await EnsureFeedbacksTableAsync();
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -440,6 +441,66 @@ public class DynamoDbFixture : IAsyncLifetime
             }
         };
  
+        await EnsureTableAsync(request);
+    }
+    
+    private async Task EnsureFeedbacksTableAsync()
+    {
+        const string tableName = "Feedbacks";
+
+        var request = new CreateTableRequest
+        {
+            TableName = tableName,
+            AttributeDefinitions =
+            [
+                new AttributeDefinition("id",              ScalarAttributeType.S),
+                new AttributeDefinition("reservationId",   ScalarAttributeType.S),
+                new AttributeDefinition("locationId#type", ScalarAttributeType.S),
+                new AttributeDefinition("date",            ScalarAttributeType.S),
+                new AttributeDefinition("rate",            ScalarAttributeType.N),
+            ],
+            KeySchema =
+            [
+                new KeySchemaElement("id", KeyType.HASH)
+            ],
+            ProvisionedThroughput = new ProvisionedThroughput(5, 5),
+            GlobalSecondaryIndexes =
+            [
+                new GlobalSecondaryIndex
+                {
+                    IndexName = "reservationId-index",
+                    KeySchema =
+                    [
+                        new KeySchemaElement("reservationId", KeyType.HASH)
+                    ],
+                    Projection            = new Projection { ProjectionType = ProjectionType.ALL },
+                    ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+                },
+                new GlobalSecondaryIndex
+                {
+                    IndexName = "LocationType-Date-Index",
+                    KeySchema =
+                    [
+                        new KeySchemaElement("locationId#type", KeyType.HASH),
+                        new KeySchemaElement("date",            KeyType.RANGE)
+                    ],
+                    Projection            = new Projection { ProjectionType = ProjectionType.ALL },
+                    ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+                },
+                new GlobalSecondaryIndex
+                {
+                    IndexName = "LocationType-Rate-Index",
+                    KeySchema =
+                    [
+                        new KeySchemaElement("locationId#type", KeyType.HASH),
+                        new KeySchemaElement("rate",            KeyType.RANGE)
+                    ],
+                    Projection            = new Projection { ProjectionType = ProjectionType.ALL },
+                    ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+                }
+            ]
+        };
+
         await EnsureTableAsync(request);
     }
 

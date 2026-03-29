@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Restaurant.Api.Contracts.Responses;
-
 namespace Restaurant.Api.Middlewares;
 
 public class GlobalExceptionHandler : IExceptionHandler

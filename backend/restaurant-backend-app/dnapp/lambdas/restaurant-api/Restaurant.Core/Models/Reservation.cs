@@ -72,4 +72,6 @@ public sealed class Reservation
 
     [DynamoDBProperty("updatedAt")]
     public string UpdatedAt { get; set; } = null!;
+    [DynamoDBProperty("secretCode")]
+    public string? SecretCode { get; set; }
 }

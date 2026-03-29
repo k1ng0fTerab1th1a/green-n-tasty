@@ -2,9 +2,8 @@ using Amazon.DynamoDBv2.DataModel;
 using FluentAssertions;
 using Restaurant.Core.Models;
 using Restaurant.Infrastructure.Repositories;
-using Restaurant.IntegrationTests.Infrastructure;
 
-namespace Restaurant.Infrastructure.IntegrationTests;
+namespace Restaurant.IntegrationTests.Infrastructure;
 
 public sealed class TableRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
 {

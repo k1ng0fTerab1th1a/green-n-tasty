@@ -40,4 +40,8 @@ public class User
 
     [DynamoDBProperty("updatedAt")]
     public string UpdatedAt { get; set; } = string.Empty;
+    [DynamoDBProperty("rating")]
+    public int TotalRating { get; set; }
+    [DynamoDBProperty("feedbacksNumber")]
+    public int FeedbacksCount { get; set; } 
 }

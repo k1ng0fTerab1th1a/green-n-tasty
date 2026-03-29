@@ -12,11 +12,6 @@ namespace Restaurant.Infrastructure.Repositories;
 public class FeedbackRepository(IDynamoDBContext context,
     IAmazonDynamoDB client) : IFeedbackRepository
 {
-    public async Task SaveAsync(Feedback feedback)
-    {
-        feedback.LocationIdAndType = $"{feedback.LocationId}#{feedback.Type}";
-        await context.SaveAsync(feedback);
-    }
 
     public async Task<FeedbackPaginatedDBResponseDto> GetByLocationAsync(string locationId,
         int size, string type = "waiter", List<string>? sort = null, string? pageToken = null, CancellationToken ct = default)
@@ -72,5 +67,60 @@ public class FeedbackRepository(IDynamoDBContext context,
             Feedbacks = response.Items.Select(item => context.FromDocument<Feedback>(Document.FromAttributeMap(item))).ToList(),
             NextPageToken = nextToken
         };
+    }
+    
+    public async Task SaveBatchAsync(IEnumerable<Feedback> feedbacks, CancellationToken ct = default)
+    {
+        var batch = context.CreateBatchWrite<Feedback>();
+
+        foreach (var feedback in feedbacks)
+        {
+            feedback.LocationIdAndType = $"{feedback.LocationId}#{feedback.Type}";
+            batch.AddPutItem(feedback);
+        }
+
+        await batch.ExecuteAsync(ct);
+    }
+
+    public async Task<string?> GetSecretCodeByReservationIdAsync(string reservationId, CancellationToken ct = default)
+    {
+        var request = new GetItemRequest
+        {
+            TableName = "Reservations",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "id", new AttributeValue { S = reservationId } }
+            },
+            ProjectionExpression = "secretCode"
+        };
+
+        var response = await client.GetItemAsync(request, ct);
+        return response.Item.TryGetValue("secretCode", out var attr)
+            ? attr.S
+            : null;
+    }
+
+    public async Task<bool> IsFeedbackAlreadyMade(string reservationId, string feedbackType, CancellationToken ct)
+    {
+        var request = new QueryRequest
+        {
+            TableName                 = "Feedbacks",
+            IndexName                 = "reservationId-index",
+            KeyConditionExpression    = "reservationId = :rid",
+            FilterExpression          = "#t = :type",
+            ExpressionAttributeNames  = new Dictionary<string, string>
+            {
+                ["#t"] = "type"  // "type" is a reserved word in DynamoDB
+            },
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            {
+                [":rid"]  = new AttributeValue { S = reservationId },
+                [":type"] = new AttributeValue { S = feedbackType }
+            },
+            Select = Select.COUNT  // we only need the count, skip deserializing documents
+        };
+
+        var response = await client.QueryAsync(request, ct);
+        return response.Count > 0;
     }
 }

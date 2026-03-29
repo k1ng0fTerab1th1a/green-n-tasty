@@ -32,7 +32,8 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
             TotalCapacity = 120,
             AverageOccupancy = 0.354,
             ImageUrl = "http://img/loc-42",
-            Rating = 4.64
+            TotalRating = 460,
+            FeedbacksAmount = 100 
         });
 
         var res = await _client.GetAsync("/locations");
@@ -88,7 +89,8 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
             TotalCapacity = 120,
             AverageOccupancy = 0.354,
             ImageUrl = "http://img/loc-42",
-            Rating = 4.64
+            TotalRating = 460,
+            FeedbacksAmount = 100 
         });
 
         var res = await _client.GetAsync("/locations/loc-42");
@@ -156,7 +158,8 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
             TotalCapacity = 50,
             AverageOccupancy = 0.4,
             ImageUrl = "http://img/10",
-            Rating = 4.1
+            TotalRating = 410,
+            FeedbacksAmount = 100 
         });
 
         var res = await _client.GetAsync("/locations/select-options");
@@ -200,7 +203,7 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
     public async Task GetFeedbacks_WithTypeOnly_ShouldUseDefaultSort_AndReturnMappedResponse()
     {
         _factory.FeedbackService.Reset();
-        _factory.FeedbackService.Response = new FeedbackPaginatedDto
+        _factory.FeedbackService.GetFeedbacksResponse = new FeedbackPaginatedDto
         {
             Size = 20,
             NextPageToken = "next-token-1",
@@ -253,7 +256,7 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
     public async Task GetFeedbacks_WithExplicitParameters_ShouldPassAllQueryParamsToService()
     {
         _factory.FeedbackService.Reset();
-        _factory.FeedbackService.Response = new FeedbackPaginatedDto
+        _factory.FeedbackService.GetFeedbacksResponse = new FeedbackPaginatedDto
         {
             Size = 5,
             NextPageToken = "next-token-2",

@@ -41,7 +41,7 @@ public sealed class DevSeedController : ControllerBase
             TotalCapacity = req.TotalCapacity,
             AverageOccupancy = req.AverageOccupancy,
             ImageUrl = req.ImageUrl,
-            Rating = req.Rating
+            TotalRating = req.Rating
         };
 
         await _db.SaveAsync(item, ct);
@@ -123,5 +123,5 @@ public sealed class CreateLocationRequest
     public int TotalCapacity { get; set; }
     public double AverageOccupancy { get; set; }
     public string ImageUrl { get; set; } = null!;
-    public double Rating { get; set; }
+    public int Rating { get; set; }
 }

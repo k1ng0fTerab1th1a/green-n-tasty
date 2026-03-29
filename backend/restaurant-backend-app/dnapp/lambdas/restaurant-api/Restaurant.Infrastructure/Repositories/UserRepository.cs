@@ -1,5 +1,8 @@
-﻿using Amazon.DynamoDBv2.DataModel;
+﻿using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.DocumentModel;
+using Amazon.DynamoDBv2.Model;
+using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 
@@ -13,10 +16,12 @@ public class UserRepository : IUserRepository
     private const string EmailIndex = "customer-email-index";
 
     private readonly IDynamoDBContext _context;
+    private readonly IAmazonDynamoDB _client;
 
-    public UserRepository(IDynamoDBContext context)
+    public UserRepository(IDynamoDBContext context, IAmazonDynamoDB client)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _client = client;
     }
 
     public async Task CreateAsync(User user, CancellationToken ct = default)
@@ -53,6 +58,88 @@ public class UserRepository : IUserRepository
             .ToList();
     }
 
+    public async Task<(string username, string? iamgeUrl)> GetUserDataForFeedbackCreationByIdAsync(string userId, 
+        CancellationToken ct = default)
+    {
+        const string requiredFields = "firstName,lastName,imageUrl";
+        var request = FormGetRequestForFieldsGettingById(userId, requiredFields);
+
+        var response = await _client.GetItemAsync(request, ct);
+
+        if (response.Item.Count == 0) return (string.Empty, null);
+        var firstName = response.Item.GetValueOrDefault("firstName")?.S ?? string.Empty;
+        var lastName = response.Item .GetValueOrDefault("lastName")?.S ?? string.Empty;
+        var username = firstName + " " + lastName;
+        if (string.IsNullOrEmpty(username))
+            return (string.Empty, null);
+
+        var imageUrl = response.Item.GetValueOrDefault("imageUrl")?.S;
+        return (username, imageUrl);
+    }
+
+
+    public async Task UpdateUserRatingAsync(string userId, int newFeedbackRating, CancellationToken ct = default)
+    {
+        var request = new UpdateItemRequest
+        {
+            TableName = "Users",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "userId", new AttributeValue { S = userId } }
+            },
+            UpdateExpression = "ADD #r :newRating, #c :inc",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#r", "rating" },
+                { "#c", "feedbacksNumber" },
+            },
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            {
+                { ":newRating", new AttributeValue { N = newFeedbackRating.ToString() } },
+                { ":inc",       new AttributeValue { N = "1" } },
+            },
+            ReturnValues = ReturnValue.NONE
+        };
+
+        await _client.UpdateItemAsync(request, ct);
+    }
+
+    public async Task<WaiterFeedbackData> GetWaiterFeedbackDataAsync(string waiterId, CancellationToken ct = default)
+    {
+        var request = new GetItemRequest
+        {
+            TableName = "Users",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "userId", new AttributeValue { S = waiterId } }
+            },
+            ProjectionExpression = "#fn, #ln, #img, #r, #fn2",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#fn",  "firstName" },
+                { "#ln",  "lastName" },
+                { "#img", "imageUrl" },
+                { "#r",   "rating" },
+                { "#fn2", "feedbacksNumber" }
+            }
+        };
+
+        var response = await _client.GetItemAsync(request, ct);
+
+        if (!response.IsItemSet)
+            throw new KeyNotFoundException($"Waiter {waiterId} not found");
+
+        var item = response.Item;
+
+        return new WaiterFeedbackData
+        {
+            WaiterName           = $"{item["firstName"].S} {item["lastName"].S}",
+            WaiterImageUrl       = item.TryGetValue("imageUrl", out var img) ? img.S : null,
+            WaiterRating         = int.Parse(item["rating"].N),
+            WaiterFeedbacksNumber = int.Parse(item["feedbacksNumber"].N)
+        };
+    }
+
     private Task<List<User>> QueryByPrefixAsync(string indexName, string normalizedPrefix, CancellationToken ct)
     {
         var config = new DynamoDBOperationConfig
@@ -82,6 +169,19 @@ public class UserRepository : IUserRepository
         return value.Trim().ToLowerInvariant();
     }
 
+    private GetItemRequest FormGetRequestForFieldsGettingById(string userId, string fields)
+    {
+        return new GetItemRequest
+        {
+            TableName = "Users",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "userId", new AttributeValue { S = userId } }
+            },
+            ProjectionExpression = fields
+        };  
+    }
+    
     public async Task UpdateEmailAsync(string userId, string newEmail, CancellationToken ct = default)
     {
         var user = await _context.LoadAsync<User>(userId, ct);
