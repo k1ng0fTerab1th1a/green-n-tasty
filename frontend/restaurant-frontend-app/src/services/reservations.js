@@ -29,3 +29,21 @@ export const updateReservation = async (reservationData) => {
         throw error;
     }
 };
+
+export const getWaiterReservations = async () => {
+    try {
+        const response = await api.get('/reservations'); // GET /reservations згідно Swagger
+        return response.data; // Очікується { isSuccess: true, data: [...], ... }
+    } catch (error) {
+        return { isSuccess: false, message: error.message };
+    }
+};
+
+export const createWaiterReservation = async (reservationData) => {
+    try {
+        const response = await api.post('/reservations/waiter', reservationData); // POST /reservations/waiter
+        return response.data;
+    } catch (error) {
+        return { isSuccess: false, message: error.message };
+    }
+};
