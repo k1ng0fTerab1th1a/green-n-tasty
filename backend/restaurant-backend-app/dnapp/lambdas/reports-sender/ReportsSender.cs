@@ -36,7 +36,7 @@ public class ReportsSender
         var range = new DateRange(now.AddDays(-7), now);
         var comparisonRange = new DateRange(now.AddDays(-14), now.AddDays(-7));
 
-        var reportResult = await _reportService.GetFullReportAsync(range, comparisonRange, ct);
+        var reportResult = await _reportService.GetFullReportDataAsync(range, comparisonRange, ct);
         if (reportResult.IsFailed)
         {
             context.Logger.LogError($"Report generation failed: {string.Join("; ", reportResult.Errors)}");

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
 		<AssemblyName>Restaurant.Reports.Sender</AssemblyName>
@@ -17,7 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\Restaurant.Reports.Core\Restaurant.Reports.csproj" />
+      <ProjectReference Include="..\..\Restaurant.Reports\Restaurant.Reports.csproj" />
       <ProjectReference Include="..\restaurant-api\Restaurant.Core\Restaurant.Core.csproj" />
     </ItemGroup>
 
