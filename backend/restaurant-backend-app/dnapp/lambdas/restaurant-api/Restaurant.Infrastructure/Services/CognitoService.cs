@@ -109,21 +109,28 @@ public class CognitoService : ICognitoService
         }
     }
 
-    public async Task<string> RefreshTokenAsync(string refreshToken, CancellationToken ct = default)
+    public async Task<Result<string>> RefreshTokenAsync(string refreshToken, CancellationToken ct = default)
     {
-        var request = new InitiateAuthRequest
+        try
         {
-            AuthFlow = AuthFlowType.REFRESH_TOKEN_AUTH,
-            ClientId = _clientId,
-            AuthParameters = new Dictionary<string, string>
-        {
-            { "REFRESH_TOKEN", refreshToken }
+            var request = new InitiateAuthRequest
+            {
+                AuthFlow = AuthFlowType.REFRESH_TOKEN_AUTH,
+                ClientId = _clientId,
+                AuthParameters = new Dictionary<string, string>
+            {
+                { "REFRESH_TOKEN", refreshToken }
+            }
+            };
+
+            var response = await _client.InitiateAuthAsync(request, ct);
+
+            return response.AuthenticationResult.AccessToken;
         }
-        };
-
-        var response = await _client.InitiateAuthAsync(request, ct);
-
-        return response.AuthenticationResult.AccessToken;
+        catch (AmazonCognitoIdentityProviderException)
+        {
+            return AuthErrors.RefreshTokenFailed;
+        }
     }
 
     public async Task<Result> SignOutAsync(string refreshToken, CancellationToken ct = default)
@@ -146,6 +153,33 @@ public class CognitoService : ICognitoService
         catch (AmazonCognitoIdentityProviderException)
         {
             return AuthErrors.SignOutFailed;
+        }
+    }
+
+    public async Task<Result> UpdateUserEmailAsync(string userId, string newEmail, CancellationToken ct = default)
+    {
+        try
+        {
+            await _client.AdminUpdateUserAttributesAsync(new AdminUpdateUserAttributesRequest
+            {
+                UserPoolId = _userPoolId,
+                Username = userId,
+                UserAttributes = new List<AttributeType>
+                {
+                    new() { Name = "email", Value = newEmail },
+                    new() { Name = "email_verified", Value = "true" }
+                }
+            }, ct);
+
+            return Result.Ok();
+        }
+        catch (UserNotFoundException)
+        {
+            return AuthErrors.UserNotFound;
+        }
+        catch (AliasExistsException)
+        {
+            return AuthErrors.UserAlreadyExists;
         }
     }
 }

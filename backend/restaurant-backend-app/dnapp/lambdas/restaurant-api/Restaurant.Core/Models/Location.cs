@@ -33,5 +33,7 @@ public class Location
     public int TotalCapacity { get; set; }
 
     [DynamoDBProperty("rating")]
-    public double Rating { get; set; }
+    public int TotalRating { get; set; }
+    [DynamoDBProperty("feedbacksAmount")]
+    public int FeedbacksAmount { get; set; }
 }

@@ -53,6 +53,11 @@ public interface IReservationRepository
         Reservation reservation,
         ReservationStatus expectedCurrentStatus,
         ReservationStatus newStatus,
-        List<string> slotsToRelease,
-        CancellationToken ct);
+        List<string>? slotsToRelease = null,
+        CancellationToken ct = default);
+
+    Task ClearSecretCode(string reservationId, CancellationToken ct = default);
+
+    Task<Result<(string waiterId, string locationId)>> GetWaiterAndLocationIdFromReservationAsync(string reservationId,
+        CancellationToken ct = default);
 }

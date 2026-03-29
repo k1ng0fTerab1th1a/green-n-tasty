@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using FluentResults;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Errors;
@@ -53,7 +54,7 @@ public sealed class ReservationService : IReservationService
 
         return r;
     }
-
+    
     public async Task<Result> CancelReservation(string reservationId, string userId, bool isWaiter, CancellationToken ct = default)
     {
         var getResult = await GetByIdAsync(reservationId, userId, isWaiter, ct);
@@ -123,6 +124,7 @@ public sealed class ReservationService : IReservationService
             VisitorName = null,
             CreatedAt = DateTime.UtcNow.ToString("o"),
             UpdatedAt = DateTime.UtcNow.ToString("o"),
+            SecretCode = null
         };
 
         var success = await _repo.CreateWithSlotsAsync(reservation, dto.Date, slots, ct);
@@ -178,6 +180,8 @@ public sealed class ReservationService : IReservationService
         if (!string.Equals(schedule.WaiterId, waiterId, StringComparison.Ordinal))
             return ReservationErrors.WaiterNotAssignedForCreation;
 
+        var secretCode = Guid.NewGuid().ToString();
+        
         var reservation = new Reservation
         {
             Id = Guid.NewGuid().ToString(),
@@ -199,6 +203,7 @@ public sealed class ReservationService : IReservationService
             VisitorName = visitorName,
             CreatedAt = DateTime.UtcNow.ToString("o"),
             UpdatedAt = DateTime.UtcNow.ToString("o"),
+            SecretCode = secretCode,
         };
 
         var success = await _repo.CreateWithSlotsAsync(reservation, dto.Date, slots, ct);
@@ -386,4 +391,5 @@ public sealed class ReservationService : IReservationService
 
         return reservation;
     }
+    
 }

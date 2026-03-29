@@ -8,6 +8,7 @@ using Microsoft.OpenApi.Models;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Services;
+using Restaurant.Core.SharedModels;
 using Restaurant.Infrastructure.Repositories;
 using Restaurant.Infrastructure.Services;
 using Restaurant.Reports.Application;
@@ -66,6 +67,7 @@ public class Startup
 
         services.AddScoped<ICognitoService, CognitoService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IUserService, UserService>();
         services.AddScoped<IDishService, DishService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<ILocationService, LocationService>();
@@ -85,6 +87,9 @@ public class Startup
         services.AddScoped<IWaiterScheduleRepository, WaiterScheduleRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IReportsRepository, ReportsRepository>();
+
+        services.Configure<ClientSettings>(
+            _configuration.GetSection("ClientSettings"));
 
         services.AddSingleton<IAmazonS3>(sp =>
         {

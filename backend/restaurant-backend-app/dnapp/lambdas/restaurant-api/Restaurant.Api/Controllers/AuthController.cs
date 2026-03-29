@@ -48,10 +48,15 @@ public class AuthController : ControllerBase
 
     [HttpPost("refresh-token")]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
     public async Task<ApiResponse<string>> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken ct)
     {
-        var token = await _cognitoService.RefreshTokenAsync(request.RefreshToken, ct);
-        return ApiResponse<string>.Success(StatusCodes.Status200OK, token, "Token refreshed successfully");
+        var result = await _cognitoService.RefreshTokenAsync(request.RefreshToken, ct);
+
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<string>();
+
+        return ApiResponse<string>.Success(StatusCodes.Status200OK, result.Value, "Token refreshed successfully");
     }
 
     [HttpPost("sign-out")]

@@ -260,9 +260,11 @@ public sealed class ReservationRepository : IReservationRepository
 
         Result slotResult;
         if (!isTableDifferent && !isDayDifferent)
-            slotResult = await UpdateSameTableSameDayAsync(reservationItem, newSlots, oldSlots, reservation.TableKey, newDate, ttl, ct);
+            slotResult = await UpdateSameTableSameDayAsync(reservationItem, newSlots, oldSlots, reservation.TableKey, 
+            newDate, ttl, ct);
         else
-            slotResult = await UpdateDifferentTableOrDayAsync(reservationItem, newSlots, oldSlots, reservation.TableKey, oldTableKey, newDate, oldDate, ttl, ct);
+            slotResult = await UpdateDifferentTableOrDayAsync(reservationItem, newSlots, oldSlots, reservation.TableKey, 
+            oldTableKey, newDate, oldDate, ttl, ct);
 
         if (slotResult.IsFailed) return Result.Fail<Reservation>(slotResult.Errors);
         return reservation;
@@ -367,6 +369,56 @@ public sealed class ReservationRepository : IReservationRepository
         }
     }
 
+    public async Task ClearSecretCode(string reservationId, CancellationToken ct)
+    {
+        var request = new UpdateItemRequest
+        {
+            TableName = "Reservations",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "id", new AttributeValue { S = reservationId } }
+            },
+            UpdateExpression = "REMOVE #sc",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#sc", "secretCode" }
+            }
+        };
+
+        await _dynamoDb.UpdateItemAsync(request, ct);
+    }
+    
+    public async Task<Result<(string waiterId, string locationId)>> GetWaiterAndLocationIdFromReservationAsync(string 
+        reservationId,
+        CancellationToken ct)
+    {
+        var request = new GetItemRequest
+        {
+            TableName = "Reservations",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "id", new AttributeValue { S = reservationId } }
+            },
+            ProjectionExpression = "#w, #l",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#w", "waiterId" },
+                { "#l", "locationId" }
+            }
+        };
+
+        var response = await _dynamoDb.GetItemAsync(request, ct);
+
+        if (!response.IsItemSet)
+            return ReservationErrors.ReservationNotFound;
+
+        return Result.Ok((
+            waiterId: response.Item["waiterId"].S,
+            locationId: response.Item["locationId"].S
+        ));
+
+    }
+    
     private async Task<Result> UpdateSameTableSameDayAsync(
         Dictionary<string, AttributeValue> reservationItem,
         List<string> newSlots,

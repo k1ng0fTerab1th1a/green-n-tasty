@@ -12,7 +12,7 @@ public enum FeedbackType
 public class Feedback
 {
     [DynamoDBHashKey("id")]
-    public string Id { get; set; }
+    public string Id { get; set; } = string.Empty;
 
     [DynamoDBProperty("reservationId")]
     [DynamoDBGlobalSecondaryIndexHashKey("reservationId-index")]
@@ -22,24 +22,24 @@ public class Feedback
     public int Rate { get; set; }
 
     [DynamoDBProperty("comment")]
-    public string Comment { get; set; }
+    public string Comment { get; set; } = string.Empty;
 
-    [DynamoDBProperty("userId")]
-    public string UserId { get; set; }
+    [DynamoDBProperty("userId")] 
+    public string UserId { get; set; } = string.Empty;
 
-    [DynamoDBProperty("date")]
-    public string Date { get; set; }
+    [DynamoDBProperty("date")] 
+    public string Date { get; set; } = string.Empty;
 
     [DynamoDBProperty("locationId")]
-    public string LocationId { get; set; }
+    public string LocationId { get; set; } = string.Empty;
 
     [DynamoDBProperty("locationId#type")]
-    public string LocationIdAndType { get; set; }
+    public string LocationIdAndType { get; set; } = string.Empty;
 
     [DynamoDBProperty("type")]
-    public string Type { get; set; } // "waiter" | "kitchen"
+    public string Type { get; set; } = string.Empty; // "waiter" | "kitchen"
     [DynamoDBProperty("userName")]
-    public string UserName { get; set; }
+    public string UserName { get; set; } = string.Empty;
     [DynamoDBProperty("userAvatarUrl")]
-    public string UserAvatarUrl { get; set; }
+    public string UserAvatarUrl { get; set; } = string.Empty;
 }
