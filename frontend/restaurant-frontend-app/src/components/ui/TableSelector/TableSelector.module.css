@@ -1,0 +1,42 @@
+.wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--neutral-900);
+    cursor: pointer;
+    user-select: none;
+}
+
+.arrow {
+    width: 12px;
+    height: 12px;
+}
+
+.menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--neutral-0);
+    border: 1px solid var(--neutral-200);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+    z-index: 10;
+    min-width: 100px;
+    overflow: hidden;
+}
+
+.item {
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.item:hover {
+    background: var(--neutral-100);
+}

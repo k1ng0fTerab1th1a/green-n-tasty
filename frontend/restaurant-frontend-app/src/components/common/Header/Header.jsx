@@ -63,7 +63,7 @@ export default function Header({
         if (normalizedRole === "WAITER") {
             return [
                 { to: "/main", label: "Main page" },
-                { to: "/reservations", label: "Reservations", end: true },
+                { to: "/waiter/reservations", label: "Reservations", end: true },
                 { to: "/menu", label: "Menu" },
             ];
         }
