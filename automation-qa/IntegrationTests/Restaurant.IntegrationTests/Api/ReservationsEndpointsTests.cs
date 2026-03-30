@@ -28,21 +28,21 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
     }
 
     [Fact]
-    public async Task GetMy_WithoutUserHeader_ShouldReturn401()
+    public async Task GetByCustomer_WithoutUserHeader_ShouldReturn401()
     {
         _factory.ReservationService.Reset();
 
-        var res = await _client.GetAsync("/reservations");
+        var res = await _client.GetAsync("/reservations/customer");
 
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task GetMy_AsCustomer_ShouldReturn200_AndMapAllFields()
+    public async Task GetByCustomer_AsCustomer_ShouldReturn200_AndMapAllFields()
     {
         _factory.ReservationService.Reset();
 
-        var res = await _client.SendAsync(Authed(HttpMethod.Get, "/reservations", userId: "customer-1"));
+        var res = await _client.SendAsync(Authed(HttpMethod.Get, "/reservations/customer", userId: "customer-1"));
 
         res.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -72,11 +72,11 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
     }
 
     [Fact]
-    public async Task GetMy_AsWaiter_ShouldReturn200_WithOnlyAssignedReservations()
+    public async Task GetByWaiter_AsWaiter_ShouldReturn200_WithOnlyAssignedReservations()
     {
         _factory.ReservationService.Reset();
 
-        var res = await _client.SendAsync(Authed(HttpMethod.Get, "/reservations", userId: "waiter-1", role: "WAITER"));
+        var res = await _client.SendAsync(Authed(HttpMethod.Get, "/reservations/waiter", userId: "waiter-1", role: "WAITER"));
 
         res.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -99,11 +99,11 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
     }
 
     [Fact]
-    public async Task GetMy_WhenNoReservations_ShouldReturn200_WithEmptyArray()
+    public async Task GetByCustomer_WhenNoReservations_ShouldReturn200_WithEmptyArray()
     {
         _factory.ReservationService.Reset();
 
-        var res = await _client.SendAsync(Authed(HttpMethod.Get, "/reservations", userId: "customer-empty"));
+        var res = await _client.SendAsync(Authed(HttpMethod.Get, "/reservations/customer", userId: "customer-empty"));
 
         res.StatusCode.Should().Be(HttpStatusCode.OK);
 

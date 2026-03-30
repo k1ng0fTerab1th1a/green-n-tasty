@@ -34,14 +34,32 @@ public sealed class ReservationService : IReservationService
         _userRepository = userRepository;
     }
 
-    public async Task<IReadOnlyList<Reservation>> GetMyAsync(string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
+    public async Task<Result<IReadOnlyList<Reservation>>> GetByCustomer(string actorUserId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(actorUserId))
-            return Array.Empty<Reservation>();
+            return Result.Ok<IReadOnlyList<Reservation>>(Array.Empty<Reservation>());
 
-        return actorIsWaiter
-            ? await _repo.QueryByWaiterAsync(actorUserId, ct)
-            : await _repo.QueryByCustomerAsync(actorUserId, ct);
+        var reservations = await _repo.QueryByCustomerAsync(actorUserId, ct);
+        return Result.Ok(reservations);
+    }
+
+    public async Task<Result<IReadOnlyList<Reservation>>> GetByWaiter(string actorUserId, DateOnly? date, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+            return Result.Ok<IReadOnlyList<Reservation>>(Array.Empty<Reservation>());
+
+        IReadOnlyList<Reservation> reservations;
+        if (date.HasValue)
+        {
+            var startPrefix = date.Value.ToString("yyyy-MM-dd");
+            reservations = await _repo.QueryByWaiterAsync(actorUserId, startPrefix, ct);
+        }
+        else
+        {
+            reservations = await _repo.QueryByWaiterAsync(actorUserId, ct);
+        }
+
+        return Result.Ok(reservations);
     }
 
     public async Task<Result<Reservation>> GetByIdAsync(string id, string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
