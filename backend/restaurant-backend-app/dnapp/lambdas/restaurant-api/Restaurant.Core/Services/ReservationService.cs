@@ -345,17 +345,13 @@ public sealed class ReservationService : IReservationService
         if (reservation.Status != ReservationStatus.InProgress)
             return ReservationErrors.NotMarkable;
 
-        reservation.Status = ReservationStatus.MealsServed;
+        if (reservation.IsMealServed)
+            return reservation;
+
+        reservation.IsMealServed = true;
         reservation.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
 
-        var success = await _repo.UpdateLifecycleAsync(
-            reservation,
-            ReservationStatus.InProgress,
-            ReservationStatus.MealsServed,
-            ct);
-
-        if (!success)
-            return ReservationErrors.MarkFailed;
+        await _repo.UpdateAsync(reservation, ct);
 
         return reservation;
     }
@@ -367,7 +363,7 @@ public sealed class ReservationService : IReservationService
 
         var reservation = getResult.Value;
 
-        if (reservation.Status != ReservationStatus.MealsServed)
+        if (reservation.Status != ReservationStatus.InProgress)
             return ReservationErrors.NotFinishable;
 
         var actualEnd = DateTimeOffset.UtcNow.ToString("O");
@@ -381,7 +377,7 @@ public sealed class ReservationService : IReservationService
 
         var success = await _repo.UpdateLifecycleAsync(
             reservation,
-            ReservationStatus.MealsServed,
+            ReservationStatus.InProgress,
             ReservationStatus.Finished,
             slots,
             ct);

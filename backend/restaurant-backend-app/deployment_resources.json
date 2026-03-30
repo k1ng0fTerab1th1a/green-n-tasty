@@ -34,7 +34,8 @@
             "sqs:DeleteMessage",
             "sqs:GetQueueAttributes",
             "ses:SendEmail",
-            "ses:SendRawEmail"
+            "ses:SendRawEmail",
+            "s3:GetObject"
           ],
           "Effect": "Allow",
           "Resource": "*"

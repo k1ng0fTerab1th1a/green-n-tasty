@@ -58,6 +58,9 @@ public sealed class Reservation
     [DynamoDBProperty("status", typeof(ReservationStatusConverter))]
     public ReservationStatus Status { get; set; } = ReservationStatus.Reserved;
 
+    [DynamoDBProperty("isMealServed")]
+    public bool IsMealServed { get; set; }
+
     [DynamoDBProperty("isCreatedByWaiter")]
     public bool IsCreatedByWaiter { get; set; }
 
