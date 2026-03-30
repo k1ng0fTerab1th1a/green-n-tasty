@@ -1,0 +1,53 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.imageWrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.image {
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.name {
+    margin: 0;
+}
+
+.description {
+    font-size: 14px;
+    color: var(--neutral-600);
+    line-height: 1.5;
+}
+
+.nutrition {
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.vitamins {
+    margin-top: 4px;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--neutral-100);
+}
+
+.weight {
+    color: var(--neutral-600);
+    font-size: 14px;
+}
