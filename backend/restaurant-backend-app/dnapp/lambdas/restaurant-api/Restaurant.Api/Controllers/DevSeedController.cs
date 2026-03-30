@@ -1,6 +1,7 @@
 using Amazon.DynamoDBv2.DataModel;
 using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.Contracts.Responses;
+using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
 
 namespace Restaurant.Api.Controllers;
@@ -9,10 +10,12 @@ namespace Restaurant.Api.Controllers;
 public sealed class DevSeedController : ControllerBase
 {
     private readonly IDynamoDBContext _db;
+    private readonly IDishService _dishService;
 
-    public DevSeedController(IDynamoDBContext db)
+    public DevSeedController(IDynamoDBContext db, IDishService dishService)
     {
         _db = db;
+        _dishService = dishService;
     }
 
     private bool IsAllowed()
@@ -95,6 +98,48 @@ public sealed class DevSeedController : ControllerBase
         await _db.SaveAsync(item, ct);
 
         return ApiResponse<Reservation>.Success(StatusCodes.Status201Created, item);
+    }
+
+    [HttpPost("seed/dishes/search-index/rebuild")]
+    public async Task<IActionResult> RebuildDishSearchIndex(CancellationToken ct)
+    {
+        if (!IsAllowed())
+            return ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, "Seed endpoint is disabled.");
+
+        var result = await _dishService.RebuildSearchIndexAsync(ct);
+        if (result.IsFailed)
+            return ApiResponse<object>.Fail(StatusCodes.Status500InternalServerError, "Failed to rebuild dish search index.");
+
+        return ApiResponse<object>.Success(StatusCodes.Status200OK, new
+        {
+            indexed = result.Value
+        });
+    }
+
+    [HttpPost("seed/dishes/{dishId}/search-index")]
+    public async Task<IActionResult> UpsertDishSearchIndex([FromRoute] string dishId, CancellationToken ct)
+    {
+        if (!IsAllowed())
+            return ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, "Seed endpoint is disabled.");
+
+        var result = await _dishService.UpsertDishSearchIndexAsync(dishId, ct);
+        if (result.IsFailed)
+            return ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Dish not found.");
+
+        return ApiResponse<object>.Success(StatusCodes.Status200OK, new { dishId });
+    }
+
+    [HttpDelete("seed/dishes/{dishId}/search-index")]
+    public async Task<IActionResult> RemoveDishSearchIndex([FromRoute] string dishId, CancellationToken ct)
+    {
+        if (!IsAllowed())
+            return ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, "Seed endpoint is disabled.");
+
+        var result = await _dishService.RemoveDishSearchIndexAsync(dishId, ct);
+        if (result.IsFailed)
+            return ApiResponse<object>.Fail(StatusCodes.Status500InternalServerError, "Failed to remove dish from search index.");
+
+        return ApiResponse<object>.Success(StatusCodes.Status200OK, new { dishId });
     }
 }
 

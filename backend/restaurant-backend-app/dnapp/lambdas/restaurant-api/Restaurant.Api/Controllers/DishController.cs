@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Api.Extensions;
 using Restaurant.Api.Mappers;
@@ -40,10 +41,28 @@ public class DishController(IDishService _dishService, S3FileService _s3FileServ
 
     [HttpGet("menu")]
     [ProducesResponseType(typeof(ApiResponse<List<DishBriefDTO>>), StatusCodes.Status200OK)]
-    public async Task<ApiResponse<List<DishBriefDTO>>> GetMenuDishes(CancellationToken ct, [FromQuery] string? type = null, string sort = 
-        "price,asc")
+    public async Task<ApiResponse<List<DishBriefDTO>>> GetMenuDishes(
+        CancellationToken ct,
+        [FromQuery] string? type = null,
+        [FromQuery] string sort = "price,asc")
     {
         var result = await _dishService.GetMenuBriefDishesAsync(type, sort, ct);
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<List<DishBriefDTO>>();
+
+        return ApiResponse<List<DishBriefDTO>>.Success(StatusCodes.Status200OK, result.Value.ToList());
+    }
+
+    [HttpGet("search")]
+    [Authorize(Roles = "WAITER")]
+    [ProducesResponseType(typeof(ApiResponse<List<DishBriefDTO>>), StatusCodes.Status200OK)]
+    public async Task<ApiResponse<List<DishBriefDTO>>> SearchDishes(
+        [FromQuery] string query,
+        CancellationToken ct,
+        [FromQuery] string? type = null,
+        [FromQuery] int limit = 20)
+    {
+        var result = await _dishService.SearchDishesAsync(query, type, limit, ct);
         if (result.IsFailed)
             return result.Errors[0].ToApiResponse<List<DishBriefDTO>>();
 
