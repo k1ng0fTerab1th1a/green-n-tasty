@@ -529,7 +529,7 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
     }
 
     [Fact]
-    public async Task MarkMealsServed_AsAssignedWaiter_ShouldReturn200_AndSetMealsServedStatus()
+    public async Task MarkMealsServed_AsAssignedWaiter_ShouldReturn200_AndKeepInProgressStatus()
     {
         _factory.ReservationService.Reset();
 
@@ -544,7 +544,7 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
 
         using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
         var data = doc.RootElement.GetPropertyIgnoreCase("data");
-        data.GetPropertyIgnoreCase("status").GetString().Should().Be("MealsServed");
+        data.GetPropertyIgnoreCase("status").GetString().Should().Be("InProgress");
         data.GetPropertyIgnoreCase("actualStartTime").GetString().Should().NotBeNullOrWhiteSpace();
         data.GetPropertyIgnoreCase("actualEndTime").ValueKind.Should().Be(JsonValueKind.Null);
     }
@@ -555,7 +555,8 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         _factory.ReservationService.Reset();
 
         var reservation = _factory.ReservationService.SeedReservations.Single(x => x.Id == "r-customer-1");
-        reservation.Status = Restaurant.Core.Models.ReservationStatus.MealsServed;
+        reservation.Status = Restaurant.Core.Models.ReservationStatus.InProgress;
+        reservation.IsMealServed = true;
         reservation.ActualStartTime = DateTimeOffset.UtcNow.AddHours(-1).ToString("O");
 
         var res = await _client.SendAsync(Authed(HttpMethod.Post, "/reservations/r-customer-1/finish", userId: "waiter-1", role: "WAITER"));

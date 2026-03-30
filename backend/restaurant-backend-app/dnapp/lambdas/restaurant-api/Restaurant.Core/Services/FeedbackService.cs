@@ -99,7 +99,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
 
         if (dto.CuisineRating.HasValue)
         {
-            if (reservation.Status < ReservationStatus.MealsServed)
+            if (reservation.IsMealServed != true)
                 return FeedbackErrors.MealNotYetServedForFeedback;
 
             if (checkDuplicates && await feedbackRepository.IsFeedbackAlreadyMade(reservation.Id, "kitchen", ct))

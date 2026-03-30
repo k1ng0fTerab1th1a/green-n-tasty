@@ -388,7 +388,8 @@ public async Task SaveAuthorisedFeedback_WhenCuisineFeedbackAlreadyMade_ShouldRe
         CustomerId = "user-1",
         WaiterId = "waiter-1",
         LocationId = "loc-1",
-        Status = ReservationStatus.MealsServed
+        Status = ReservationStatus.InProgress,
+        IsMealServed = true
     };
 
     _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>()))
@@ -465,7 +466,8 @@ public async Task SaveAuthorisedFeedback_WithBothRatings_ShouldSaveTwoFeedbacks_
         CustomerId = "user-1",
         WaiterId = "waiter-1",
         LocationId = "loc-1",
-        Status = ReservationStatus.MealsServed
+        Status = ReservationStatus.InProgress,
+        IsMealServed = true
     };
 
     _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>()))
@@ -781,7 +783,8 @@ public async Task SaveVisitorFeedback_WithBothRatings_ShouldSaveTwoFeedbacks_And
         Id = "rsv-1",
         WaiterId = "waiter-1",
         LocationId = "loc-1",
-        Status = ReservationStatus.MealsServed,
+        Status = ReservationStatus.InProgress,
+        IsMealServed = true,
         SecretCode = "BRAVO-2K"
     };
 
