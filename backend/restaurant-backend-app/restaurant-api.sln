@@ -21,6 +21,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "restaurant-api", "restauran
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Restaurant.IntegrationTests", "..\..\automation-qa\IntegrationTests\Restaurant.IntegrationTests\Restaurant.IntegrationTests.csproj", "{C544D9D1-F19C-4C1A-870D-C4D59579B69B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Restaurant.Reports", "dnapp\Restaurant.Reports\Restaurant.Reports.csproj", "{E81BF60E-03B3-C57B-D691-74EBC4328BE1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -103,6 +105,18 @@ Global
 		{C544D9D1-F19C-4C1A-870D-C4D59579B69B}.Release|x64.Build.0 = Release|Any CPU
 		{C544D9D1-F19C-4C1A-870D-C4D59579B69B}.Release|x86.ActiveCfg = Release|Any CPU
 		{C544D9D1-F19C-4C1A-870D-C4D59579B69B}.Release|x86.Build.0 = Release|Any CPU
+		{E81BF60E-03B3-C57B-D691-74EBC4328BE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E81BF60E-03B3-C57B-D691-74EBC4328BE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E81BF60E-03B3-C57B-D691-74EBC4328BE1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E81BF60E-03B3-C57B-D691-74EBC4328BE1}.Debug|x64.Build.0 = Debug|Any CPU
+		{E81BF60E-03B3-C57B-D691-74EBC4328BE1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E81BF60E-03B3-C57B-D691-74EBC4328BE1}.Debug|x86.Build.0 = Debug|Any CPU
+		{E81BF60E-03B3-C57B-D691-74EBC4328BE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E81BF60E-03B3-C57B-D691-74EBC4328BE1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E81BF60E-03B3-C57B-D691-74EBC4328BE1}.Release|x64.ActiveCfg = Release|Any CPU
+		{E81BF60E-03B3-C57B-D691-74EBC4328BE1}.Release|x64.Build.0 = Release|Any CPU
+		{E81BF60E-03B3-C57B-D691-74EBC4328BE1}.Release|x86.ActiveCfg = Release|Any CPU
+		{E81BF60E-03B3-C57B-D691-74EBC4328BE1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

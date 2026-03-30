@@ -11,6 +11,8 @@ using Restaurant.Core.Services;
 using Restaurant.Core.SharedModels;
 using Restaurant.Infrastructure.Repositories;
 using Restaurant.Infrastructure.Services;
+using Restaurant.Reports.Application;
+using Restaurant.Reports.Infrastructure;
 
 namespace Restaurant.Api;
 
@@ -72,6 +74,7 @@ public class Startup
         services.AddScoped<IReservationService, ReservationService>();
         services.AddScoped<ITableService, TableService>();
         services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<IReportService, ReportService>();
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IWaiterListRepository, WaiterListRepository>();
@@ -83,6 +86,7 @@ public class Startup
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<IWaiterScheduleRepository, WaiterScheduleRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IReportsRepository, ReportsRepository>();
 
         services.Configure<ClientSettings>(
             _configuration.GetSection("ClientSettings"));
