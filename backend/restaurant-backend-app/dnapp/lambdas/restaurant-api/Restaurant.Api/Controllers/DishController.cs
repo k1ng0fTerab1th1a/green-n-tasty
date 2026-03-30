@@ -56,4 +56,11 @@ public class DishController(IDishService _dishService, S3FileService _s3FileServ
         var stream = await _s3FileService.GetFileStreamAsync("restaurant-menu/menu.pdf", ct);
         return File(stream, "application/pdf");
     }
+
+    [HttpGet("menu-url")]
+    public async Task<ApiResponse<string>> GetMenuUrl()
+    {
+        return ApiResponse<string>.Success(200, "https://run20-tm2-frontend-bucket.s3.eu-west-2.amazonaws" +
+            ".com/uploads/menu/menu.pdf");
+    }
 }
