@@ -69,52 +69,119 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
     public async Task CreateAsyncForReservation_WhenValidRequest_PersistsOrderAndUpdatesDishCount()
     {
         var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.InProgress, dishCount: 0);
-        var dish1 = BuildDish(state: "ON", price: 10m);
-        var dish2 = BuildDish(state: "ON", price: 25m);
+        var dish1 = BuildDish("dish-1", state: "ON", price: 10m);
+        var dish2 = BuildDish("dish-2", state: "ON", price: 25m);
 
         await _context.SaveAsync(reservation);
         await _context.SaveAsync(dish1);
         await _context.SaveAsync(dish2);
 
-        var dto = BuildDto(
-            reservation.Id,
-            (dish1.Id, 2),
-            (dish2.Id, 1));
+        var dto = new CreateOrderDTO
+        {
+            ReservationId = reservation.Id,
+            Dishes = new List<OrderDishItemDTO>
+            {
+                new() { DishId = dish1.Id, Quantity = 2 },
+                new() { DishId = dish2.Id, Quantity = 1 }
+            }
+        };
 
-        var result = await _sut.CreateAsyncForReservation("waiter-1", dto);
+        var result = await _sut.CreateAsyncForReservation("waiter-1", dto, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.ReservationId.Should().Be(reservation.Id);
-        result.Value.WaiterId.Should().Be("waiter-1");
+        result.Value.Id.Should().Be(reservation.Id);
         result.Value.TotalAmount.Should().Be(45m);
 
         var reservationAfter = await _context.LoadAsync<Reservation>(reservation.Id);
-        reservationAfter.Should().NotBeNull();
         reservationAfter!.DishCount.Should().Be(3);
 
-        var orderSearch = _context.QueryAsync<Order>(reservation.Id, new DynamoDBOperationConfig
-        {
-            IndexName = "reservationId-index"
-        });
-        var orders = await orderSearch.GetRemainingAsync();
-
-        orders.Should().HaveCount(1);
-        orders[0].TotalAmount.Should().Be(45m);
-
-        orders[0].Dishes.Should().HaveCount(2);
-        orders[0].Dishes.Sum(x => x.Quantity).Should().Be(3);
+        var order = await _context.LoadAsync<Order>(reservation.Id);
+        order.Should().NotBeNull();
+        order!.Dishes.Should().HaveCount(2);
     }
 
-    private static CreateOrderDTO BuildDto(string reservationId, params (string dishId, int quantity)[] items)
-        => new()
+    [Fact]
+    public async Task AddDishAsync_WhenOperationIdRepeated_DoesNotIncrementTwice()
+    {
+        var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.InProgress, dishCount: 2);
+        var existingOrder = BuildOrder(reservation.Id);
+        var newDish = BuildDish("dish-2", state: "ON", price: 25m);
+
+        await _context.SaveAsync(reservation);
+        await _context.SaveAsync(existingOrder);
+        await _context.SaveAsync(newDish);
+
+        var dto = new AddDishToOrderDTO
         {
-            ReservationId = reservationId,
-            Dishes = items.Select(x => new OrderDishItemDTO
-            {
-                DishId = x.dishId,
-                Quantity = x.quantity
-            }).ToList()
+            OperationId = "op-add-dup",
+            DishId = newDish.Id,
+            Quantity = 1
         };
+
+        var first = await _sut.AddDishAsync("waiter-1", reservation.Id, dto, CancellationToken.None);
+        var second = await _sut.AddDishAsync("waiter-1", reservation.Id, dto, CancellationToken.None);
+
+        first.IsSuccess.Should().BeTrue();
+        second.IsSuccess.Should().BeTrue();
+
+        var reservationAfter = await _context.LoadAsync<Reservation>(reservation.Id);
+        reservationAfter!.DishCount.Should().Be(3);
+
+        var orderAfter = await _context.LoadAsync<Order>(reservation.Id);
+        orderAfter!.ProcessedOperationIds.Should().Contain("op-add-dup");
+    }
+
+    [Fact]
+    public async Task DeleteDishAsync_WhenValidRequest_UpdatesOrderAndReservationDishCount()
+    {
+        var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.InProgress, dishCount: 2);
+        var existingOrder = BuildOrder(reservation.Id);
+
+        await _context.SaveAsync(reservation);
+        await _context.SaveAsync(existingOrder);
+
+        var dto = new DeleteDishFromOrderDTO
+        {
+            OperationId = "op-del-1",
+            DishId = "dish-1",
+            Quantity = 1
+        };
+
+        var result = await _sut.DeleteDishAsync("waiter-1", reservation.Id, dto, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+
+        var reservationAfter = await _context.LoadAsync<Reservation>(reservation.Id);
+        reservationAfter!.DishCount.Should().Be(1);
+
+        var orderAfter = await _context.LoadAsync<Order>(reservation.Id);
+        orderAfter!.Dishes.Should().ContainSingle();
+        orderAfter.Dishes[0].Quantity.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CompleteAsync_WhenValidRequest_CompletesOrder()
+    {
+        var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.MealsServed, dishCount: 2);
+        var existingOrder = BuildOrder(reservation.Id);
+
+        await _context.SaveAsync(reservation);
+        await _context.SaveAsync(existingOrder);
+
+        var dto = new CompleteOrderDTO
+        {
+            OperationId = "op-complete-1"
+        };
+
+        var result = await _sut.CompleteAsync("waiter-1", reservation.Id, dto, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Status.Should().Be(OrderStatus.Completed);
+
+        var orderAfter = await _context.LoadAsync<Order>(reservation.Id);
+        orderAfter!.Status.Should().Be(OrderStatus.Completed);
+        orderAfter.CompletedAt.Should().NotBeNull();
+    }
 
     private static Reservation BuildReservation(string waiterId, ReservationStatus status, int dishCount)
     {
@@ -142,15 +209,49 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
         };
     }
 
-    private static Dish BuildDish(string state, decimal price = 12m)
+    private static Dish BuildDish(string id, string state, decimal price = 12m)
         => new()
         {
-            Id = $"dish-{Guid.NewGuid():N}",
-            Name = "Dish",
+            Id = id,
+            Name = $"Dish {id}",
             DishType = "MAIN",
             Price = price,
             State = state,
             Description = "desc",
             ImageUrl = "img"
+        };
+
+    private static Order BuildOrder(string reservationId)
+        => new()
+        {
+            Id = reservationId,
+            ReservationId = reservationId,
+            LocationId = "loc-1",
+            LocationAddress = "Main street 1",
+            WaiterId = "waiter-1",
+            WaiterName = "Waiter",
+            CustomerId = "customer-1",
+            CustomerName = "Customer",
+            VisitorName = null,
+            TableNumber = 3,
+            GuestsCount = 2,
+            Status = OrderStatus.Open,
+            Dishes = new List<OrderDishSnapshot>
+            {
+                new()
+                {
+                    DishId = "dish-1",
+                    Name = "Dish 1",
+                    Description = "desc",
+                    PhotoUrl = "img",
+                    PriceAtOrder = 10m,
+                    Quantity = 2
+                }
+            },
+            TotalAmount = 20m,
+            CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
+            CompletedAt = null,
+            Version = 1,
+            ProcessedOperationIds = []
         };
 }

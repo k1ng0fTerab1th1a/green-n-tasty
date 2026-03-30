@@ -42,6 +42,7 @@ public class DynamoDbFixture : IAsyncLifetime
         await EnsureTablesTableAsync();
         await EnsureTableDaysTableAsync();
         await EnsureFeedbacksTableAsync();
+        await EnsureDishSearchTableAsync();
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -504,4 +505,26 @@ public class DynamoDbFixture : IAsyncLifetime
         await EnsureTableAsync(request);
     }
 
+    private async Task EnsureDishSearchTableAsync()
+    {
+        const string tableName = "DishSearch";
+
+        var request = new CreateTableRequest
+        {
+            TableName = tableName,
+            AttributeDefinitions =
+            [
+                new AttributeDefinition("token", ScalarAttributeType.S),
+            new AttributeDefinition("dishId", ScalarAttributeType.S)
+            ],
+            KeySchema =
+            [
+                new KeySchemaElement("token", KeyType.HASH),
+            new KeySchemaElement("dishId", KeyType.RANGE)
+            ],
+            ProvisionedThroughput = new ProvisionedThroughput(5, 5)
+        };
+
+        await EnsureTableAsync(request);
+    }
 }

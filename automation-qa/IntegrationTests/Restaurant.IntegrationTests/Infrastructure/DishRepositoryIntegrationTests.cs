@@ -194,7 +194,7 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         item.Should().NotBeNull();
         item!.Name.Should().Be("Mapped Dish");
         item.DishType.Should().Be("DESSERT");
-        item.Price.Should().BeApproximately(7.5f, 0.001f);
+        item.Price.Should().BeApproximately(7.5m, 0.001m);
         item.State.Should().Be("ON");
         item.ImageUrl.Should().Be("http://img/mapped");
         item.Weight.Should().Be(150);
@@ -319,5 +319,127 @@ public sealed class DishRepositoryIntegrationTests : IClassFixture<DynamoDbFixtu
         result.Should().HaveCount(2);
         result.Select(d => d.Name).Should().BeInAscendingOrder(
             "unknown sort property should fall back to name ascending");
+    }
+
+    [Fact]
+    public async Task RebuildSearchIndexAsync_ShouldCreatePrefixIndexAndSearchByPrefix()
+    {
+        var id1 = DishId();
+        var id2 = DishId();
+
+        await _context.SaveAsync(new Dish
+        {
+            Id = id1,
+            Name = "Селедка під шубой",
+            DishType = "MAIN",
+            Price = 10m,
+            State = "ON"
+        });
+
+        await _context.SaveAsync(new Dish
+        {
+            Id = id2,
+            Name = "Селера салат",
+            DishType = "SALAD",
+            Price = 8m,
+            State = "ON"
+        });
+
+        var indexed = await _repo.RebuildSearchIndexAsync(CancellationToken.None);
+        indexed.Should().BeGreaterThan(0);
+
+        var result = await _repo.SearchAsync("селед", null, 20, CancellationToken.None);
+
+        result.Should().ContainSingle(x => x.Id == id1);
+        result.Should().NotContain(x => x.Id == id2);
+    }
+
+    [Fact]
+    public async Task SearchAsync_ShouldRespectTypeAndLimit()
+    {
+        var id1 = DishId();
+        var id2 = DishId();
+
+        await _context.SaveAsync(new Dish
+        {
+            Id = id1,
+            Name = "Селедка рол",
+            DishType = "MAIN",
+            Price = 12m,
+            State = "ON"
+        });
+
+        await _context.SaveAsync(new Dish
+        {
+            Id = id2,
+            Name = "Селедка салат",
+            DishType = "SALAD",
+            Price = 9m,
+            State = "ON"
+        });
+
+        await _repo.RebuildSearchIndexAsync(CancellationToken.None);
+
+        var result = await _repo.SearchAsync("селед", "SALAD", 1, CancellationToken.None);
+
+        result.Should().HaveCount(1);
+        result[0].Id.Should().Be(id2);
+    }
+
+    [Fact]
+    public async Task UpsertDishSearchIndexAsync_ShouldRefreshSingleDishIndex()
+    {
+        var id = DishId();
+
+        var dish = new Dish
+        {
+            Id = id,
+            Name = "Селедка класика",
+            DishType = "MAIN",
+            Price = 12m,
+            State = "ON"
+        };
+
+        await _context.SaveAsync(dish);
+        await _repo.UpsertDishSearchIndexAsync(dish, CancellationToken.None);
+
+        var result = await _repo.SearchAsync("селед", null, 20, CancellationToken.None);
+        result.Should().Contain(x => x.Id == id);
+
+        dish.Name = "Тунець класика";
+        await _context.SaveAsync(dish);
+        await _repo.UpsertDishSearchIndexAsync(dish, CancellationToken.None);
+
+        var oldResult = await _repo.SearchAsync("селед", null, 20, CancellationToken.None);
+        oldResult.Should().NotContain(x => x.Id == id);
+
+        var newResult = await _repo.SearchAsync("тун", null, 20, CancellationToken.None);
+        newResult.Should().Contain(x => x.Id == id);
+    }
+
+    [Fact]
+    public async Task RemoveDishSearchIndexAsync_ShouldDeleteDishFromIndex()
+    {
+        var id = DishId();
+
+        var dish = new Dish
+        {
+            Id = id,
+            Name = "Селедка хрустка",
+            DishType = "MAIN",
+            Price = 11m,
+            State = "ON"
+        };
+
+        await _context.SaveAsync(dish);
+        await _repo.UpsertDishSearchIndexAsync(dish, CancellationToken.None);
+
+        var before = await _repo.SearchAsync("селед", null, 20, CancellationToken.None);
+        before.Should().Contain(x => x.Id == id);
+
+        await _repo.RemoveDishSearchIndexAsync(id, CancellationToken.None);
+
+        var after = await _repo.SearchAsync("селед", null, 20, CancellationToken.None);
+        after.Should().NotContain(x => x.Id == id);
     }
 }

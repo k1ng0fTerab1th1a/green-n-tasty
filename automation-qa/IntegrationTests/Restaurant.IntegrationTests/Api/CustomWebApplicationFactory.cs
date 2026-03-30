@@ -135,6 +135,14 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public CreateOrderDTO? LastDto { get; private set; }
         public BusinessError? CreateFailResult { get; set; }
         public Order CreateResponse { get; set; } = BuildDefaultOrder();
+        public string? LastReservationId { get; private set; }
+        public CreateOrderDTO? LastCreateDto { get; private set; }
+        public AddDishToOrderDTO? LastAddDishDto { get; private set; }
+        public DeleteDishFromOrderDTO? LastDeleteDishDto { get; private set; }
+        public CompleteOrderDTO? LastCompleteDto { get; private set; }
+
+        public BusinessError? FailResult { get; set; }
+        public Order Response { get; set; } = BuildDefaultOrder();
 
         public void Reset()
         {
@@ -142,23 +150,79 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastDto = null;
             CreateFailResult = null;
             CreateResponse = BuildDefaultOrder();
+            LastReservationId = null;
+            LastCreateDto = null;
+            LastAddDishDto = null;
+            LastDeleteDishDto = null;
+            LastCompleteDto = null;
+            FailResult = null;
+            Response = BuildDefaultOrder();
         }
 
         public Task<Result<Order>> CreateAsyncForReservation(string actorId, CreateOrderDTO dto, CancellationToken ct = default)
         {
             LastActorId = actorId;
             LastDto = dto;
+            LastReservationId = dto.ReservationId;
+            LastCreateDto = dto;
 
-            if (CreateFailResult is not null)
-                return Task.FromResult(Result.Fail<Order>(CreateFailResult));
+            if (FailResult is not null)
+                return Task.FromResult(Result.Fail<Order>(FailResult));
 
-            return Task.FromResult(Result.Ok(CreateResponse));
+            return Task.FromResult(Result.Ok(Response));
+        }
+
+        public Task<Result<Order>> GetByReservationAsync(string actorId, string reservationId, CancellationToken ct)
+        {
+            LastActorId = actorId;
+            LastReservationId = reservationId;
+
+            if (FailResult is not null)
+                return Task.FromResult(Result.Fail<Order>(FailResult));
+
+            return Task.FromResult(Result.Ok(Response));
+        }
+
+        public Task<Result<Order>> AddDishAsync(string actorId, string reservationId, AddDishToOrderDTO dto, CancellationToken ct)
+        {
+            LastActorId = actorId;
+            LastReservationId = reservationId;
+            LastAddDishDto = dto;
+
+            if (FailResult is not null)
+                return Task.FromResult(Result.Fail<Order>(FailResult));
+
+            return Task.FromResult(Result.Ok(Response));
+        }
+
+        public Task<Result<Order>> DeleteDishAsync(string actorId, string reservationId, DeleteDishFromOrderDTO dto, CancellationToken ct)
+        {
+            LastActorId = actorId;
+            LastReservationId = reservationId;
+            LastDeleteDishDto = dto;
+
+            if (FailResult is not null)
+                return Task.FromResult(Result.Fail<Order>(FailResult));
+
+            return Task.FromResult(Result.Ok(Response));
+        }
+
+        public Task<Result<Order>> CompleteAsync(string actorId, string reservationId, CompleteOrderDTO dto, CancellationToken ct)
+        {
+            LastActorId = actorId;
+            LastReservationId = reservationId;
+            LastCompleteDto = dto;
+
+            if (FailResult is not null)
+                return Task.FromResult(Result.Fail<Order>(FailResult));
+
+            return Task.FromResult(Result.Ok(Response));
         }
 
         private static Order BuildDefaultOrder()
             => new()
             {
-                Id = "o-1",
+                Id = "r-customer-1",
                 ReservationId = "r-customer-1",
                 LocationId = "loc-1",
                 LocationAddress = "Main street 1",
@@ -171,9 +235,11 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 GuestsCount = 2,
                 Status = OrderStatus.Open,
                 Dishes = new List<OrderDishSnapshot>(),
-                TotalAmount = 0,
+                TotalAmount = 0m,
                 CreatedAt = "2026-03-01T00:00:00.0000000Z",
-                CompletedAt = null
+                CompletedAt = null,
+                Version = 1,
+                ProcessedOperationIds = []
             };
     }
 
@@ -594,114 +660,114 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         }
     }
 
-public sealed class FakeFeedbackService : IFeedbackService
-{
-
-    public string? LastLocationId { get; private set; }
-    public int LastSize { get; private set; }
-    public string? LastType { get; private set; }
-    public List<string> LastSort { get; private set; } = new();
-    public string? LastPageToken { get; private set; }
-    public FeedbackPaginatedDto GetFeedbacksResponse { get; set; } = new();
-
-
-    public CreateFeedbackDTO? LastAuthorisedDto { get; private set; }
-    public string? LastAuthorisedUserId { get; private set; }
-    public Result SaveAuthorisedFeedbackResponse { get; set; } = Result.Ok();
-
-
-    public CreateFeedbackDTO? LastVisitorDto { get; private set; }
-    public string? LastVisitorSecretCode { get; private set; }
-    public Result SaveVisitorFeedbackResponse { get; set; } = Result.Ok();
-
-
-    public string? LastQrReservationId { get; private set; }
-    public Result<byte[]> GenerateFeedbackQrResponse { get; set; } = Result.Ok(Array.Empty<byte>());
-
-
-    public string? LastCalculatedReservationId { get; private set; }
-    public Result<WaiterLocationFeedbackDTO> GetCalculatedFeedbackDataResponse { get; set; } =
-        Result.Ok(new WaiterLocationFeedbackDTO());
-
-
-    public FakeFeedbackService() => Reset();
-
-    public void Reset()
+    public sealed class FakeFeedbackService : IFeedbackService
     {
-        LastLocationId  = null;
-        LastSize        = 0;
-        LastType        = null;
-        LastSort        = new List<string>();
-        LastPageToken   = null;
-        GetFeedbacksResponse = new FeedbackPaginatedDto
+
+        public string? LastLocationId { get; private set; }
+        public int LastSize { get; private set; }
+        public string? LastType { get; private set; }
+        public List<string> LastSort { get; private set; } = new();
+        public string? LastPageToken { get; private set; }
+        public FeedbackPaginatedDto GetFeedbacksResponse { get; set; } = new();
+
+
+        public CreateFeedbackDTO? LastAuthorisedDto { get; private set; }
+        public string? LastAuthorisedUserId { get; private set; }
+        public Result SaveAuthorisedFeedbackResponse { get; set; } = Result.Ok();
+
+
+        public CreateFeedbackDTO? LastVisitorDto { get; private set; }
+        public string? LastVisitorSecretCode { get; private set; }
+        public Result SaveVisitorFeedbackResponse { get; set; } = Result.Ok();
+
+
+        public string? LastQrReservationId { get; private set; }
+        public Result<byte[]> GenerateFeedbackQrResponse { get; set; } = Result.Ok(Array.Empty<byte>());
+
+
+        public string? LastCalculatedReservationId { get; private set; }
+        public Result<WaiterLocationFeedbackDTO> GetCalculatedFeedbackDataResponse { get; set; } =
+            Result.Ok(new WaiterLocationFeedbackDTO());
+
+
+        public FakeFeedbackService() => Reset();
+
+        public void Reset()
         {
-            Size          = 20,
-            Content       = new List<FeedbackDTO>(),
-            NextPageToken = null
-        };
+            LastLocationId  = null;
+            LastSize        = 0;
+            LastType        = null;
+            LastSort        = new List<string>();
+            LastPageToken   = null;
+            GetFeedbacksResponse = new FeedbackPaginatedDto
+            {
+                Size          = 20,
+                Content       = new List<FeedbackDTO>(),
+                NextPageToken = null
+            };
 
-        LastAuthorisedDto    = null;
-        LastAuthorisedUserId = null;
-        SaveAuthorisedFeedbackResponse = Result.Ok();
+            LastAuthorisedDto    = null;
+            LastAuthorisedUserId = null;
+            SaveAuthorisedFeedbackResponse = Result.Ok();
 
-        LastVisitorDto        = null;
-        LastVisitorSecretCode = null;
-        SaveVisitorFeedbackResponse = Result.Ok();
+            LastVisitorDto        = null;
+            LastVisitorSecretCode = null;
+            SaveVisitorFeedbackResponse = Result.Ok();
 
-        LastQrReservationId       = null;
-        GenerateFeedbackQrResponse = Result.Ok(Array.Empty<byte>());
+            LastQrReservationId       = null;
+            GenerateFeedbackQrResponse = Result.Ok(Array.Empty<byte>());
 
-        LastCalculatedReservationId   = null;
-        GetCalculatedFeedbackDataResponse = Result.Ok(new WaiterLocationFeedbackDTO());
+            LastCalculatedReservationId   = null;
+            GetCalculatedFeedbackDataResponse = Result.Ok(new WaiterLocationFeedbackDTO());
+        }
+
+        public Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(
+            string locationId, int size, string type, List<string> sort,
+            string? pageToken = null, CancellationToken ct = default)
+        {
+            LastLocationId = locationId;
+            LastSize       = size;
+            LastType       = type;
+            LastSort       = sort.ToList();
+            LastPageToken  = pageToken;
+
+            return Task.FromResult(Result.Ok(GetFeedbacksResponse));
+        }
+
+        public Task<Result> SaveAuthorisedFeedback(
+            CreateFeedbackDTO dto, string userId, CancellationToken ct = default)
+        {
+            LastAuthorisedDto    = dto;
+            LastAuthorisedUserId = userId;
+
+            return Task.FromResult(SaveAuthorisedFeedbackResponse);
+        }
+
+        public Task<Result> SaveVisitorFeedback(
+            CreateFeedbackDTO dto, string secretCode, CancellationToken ct = default)
+        {
+            LastVisitorDto        = dto;
+            LastVisitorSecretCode = secretCode;
+
+            return Task.FromResult(SaveVisitorFeedbackResponse);
+        }
+
+        public Task<Result<byte[]>> GenerateFeedbackQr(
+            string reservationId, CancellationToken ct = default)
+        {
+            LastQrReservationId = reservationId;
+
+            return Task.FromResult(GenerateFeedbackQrResponse);
+        }
+
+        public Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(
+            string reservationId, CancellationToken ct = default)
+        {
+            LastCalculatedReservationId = reservationId;
+
+            return Task.FromResult(GetCalculatedFeedbackDataResponse);
+        }
     }
-
-    public Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(
-        string locationId, int size, string type, List<string> sort,
-        string? pageToken = null, CancellationToken ct = default)
-    {
-        LastLocationId = locationId;
-        LastSize       = size;
-        LastType       = type;
-        LastSort       = sort.ToList();
-        LastPageToken  = pageToken;
-
-        return Task.FromResult(Result.Ok(GetFeedbacksResponse));
-    }
-
-    public Task<Result> SaveAuthorisedFeedback(
-        CreateFeedbackDTO dto, string userId, CancellationToken ct = default)
-    {
-        LastAuthorisedDto    = dto;
-        LastAuthorisedUserId = userId;
-
-        return Task.FromResult(SaveAuthorisedFeedbackResponse);
-    }
-
-    public Task<Result> SaveVisitorFeedback(
-        CreateFeedbackDTO dto, string secretCode, CancellationToken ct = default)
-    {
-        LastVisitorDto        = dto;
-        LastVisitorSecretCode = secretCode;
-
-        return Task.FromResult(SaveVisitorFeedbackResponse);
-    }
-
-    public Task<Result<byte[]>> GenerateFeedbackQr(
-        string reservationId, CancellationToken ct = default)
-    {
-        LastQrReservationId = reservationId;
-
-        return Task.FromResult(GenerateFeedbackQrResponse);
-    }
-
-    public Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(
-        string reservationId, CancellationToken ct = default)
-    {
-        LastCalculatedReservationId = reservationId;
-
-        return Task.FromResult(GetCalculatedFeedbackDataResponse);
-    }
-}
 
     public sealed class FakeDishService : IDishService
     {
@@ -709,10 +775,21 @@ public sealed class FakeFeedbackService : IFeedbackService
         public string? LastDishId { get; private set; }
         public string? LastMenuType { get; private set; }
         public string? LastMenuSort { get; private set; }
+
+        public string? LastSearchQuery { get; private set; }
+        public string? LastSearchType { get; private set; }
+        public int? LastSearchLimit { get; private set; }
+
+        public string? LastUpsertDishId { get; private set; }
+        public string? LastRemoveDishId { get; private set; }
+
         public Dictionary<string, IReadOnlyList<Dish>> DishesByLocation { get; } = new();
         public List<Dish> PopularDishes { get; } = new();
         public Dictionary<string, Dish> DishesById { get; } = new();
         public List<DishBriefDTO> MenuDishes { get; } = new();
+        public List<DishBriefDTO> SearchResults { get; } = new();
+
+        public int RebuildIndexedCount { get; set; } = 0;
 
         public FakeDishService()
         {
@@ -725,6 +802,11 @@ public sealed class FakeFeedbackService : IFeedbackService
             LastDishId = null;
             LastMenuType = null;
             LastMenuSort = null;
+            LastSearchQuery = null;
+            LastSearchType = null;
+            LastSearchLimit = null;
+            LastUpsertDishId = null;
+            LastRemoveDishId = null;
 
             DishesByLocation.Clear();
             DishesByLocation["loc-1"] = Array.Empty<Dish>();
@@ -732,6 +814,8 @@ public sealed class FakeFeedbackService : IFeedbackService
             PopularDishes.Clear();
             DishesById.Clear();
             MenuDishes.Clear();
+            SearchResults.Clear();
+            RebuildIndexedCount = 0;
         }
 
         public Task<Result<IReadOnlyList<Dish>>> GetSpecialityDishesByLocationIdAsync(
@@ -745,8 +829,6 @@ public sealed class FakeFeedbackService : IFeedbackService
 
             return Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(Array.Empty<Dish>()));
         }
-
-
 
         public Task<Result<IReadOnlyList<Dish>>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(PopularDishes));
@@ -762,11 +844,42 @@ public sealed class FakeFeedbackService : IFeedbackService
         }
 
         public Task<Result<IReadOnlyList<DishBriefDTO>>> GetMenuBriefDishesAsync(
-            string? type, string sort, CancellationToken cancellationToken = default)
+            string? type,
+            string sort,
+            CancellationToken cancellationToken = default)
         {
             LastMenuType = type;
             LastMenuSort = sort;
             return Task.FromResult(Result.Ok<IReadOnlyList<DishBriefDTO>>(MenuDishes));
+        }
+
+        public Task<Result<IReadOnlyList<DishBriefDTO>>> SearchDishesAsync(
+            string query,
+            string? type,
+            int limit,
+            CancellationToken cancellationToken = default)
+        {
+            LastSearchQuery = query;
+            LastSearchType = type;
+            LastSearchLimit = limit;
+            return Task.FromResult(Result.Ok<IReadOnlyList<DishBriefDTO>>(SearchResults));
+        }
+
+        public Task<Result<int>> RebuildSearchIndexAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(Result.Ok(RebuildIndexedCount));
+        }
+
+        public Task<Result> UpsertDishSearchIndexAsync(string dishId, CancellationToken cancellationToken = default)
+        {
+            LastUpsertDishId = dishId;
+            return Task.FromResult(Result.Ok());
+        }
+
+        public Task<Result> RemoveDishSearchIndexAsync(string dishId, CancellationToken cancellationToken = default)
+        {
+            LastRemoveDishId = dishId;
+            return Task.FromResult(Result.Ok());
         }
     }
 

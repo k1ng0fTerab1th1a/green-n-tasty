@@ -13,6 +13,7 @@ public sealed partial class ReservationServiceTests
     private readonly Mock<ILocationRepository> _locationRepo;
     private readonly Mock<ITableRepository> _tableRepo;
     private readonly Mock<IUserRepository> _userRepo;
+    private readonly Mock<IOrderRepository> _orderRepo;
     private readonly ReservationService _sut;
 
     public ReservationServiceTests()
@@ -22,13 +23,15 @@ public sealed partial class ReservationServiceTests
         _locationRepo = new Mock<ILocationRepository>(MockBehavior.Strict);
         _tableRepo = new Mock<ITableRepository>(MockBehavior.Strict);
         _userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
+        _orderRepo = new Mock<IOrderRepository>(MockBehavior.Strict);
 
         _sut = new ReservationService(
             _repo.Object,
             _waiterScheduleRepo.Object,
             _locationRepo.Object,
             _tableRepo.Object,
-            _userRepo.Object);
+            _userRepo.Object,
+            _orderRepo.Object);
     }
 
     private static CreateReservationDTO BuildDto(DateOnly date, TimeOnly from, TimeOnly to)
@@ -47,7 +50,7 @@ public sealed partial class ReservationServiceTests
             TotalCapacity = 120,
             AverageOccupancy = 0.35,
             TotalRating = 460,
-            FeedbacksAmount = 100 
+            FeedbacksAmount = 100
         };
 
     private static User BuildWaiter(string userId)
