@@ -11,7 +11,7 @@ public sealed class Order
 
     [DynamoDBProperty("reservationId")]
     [DynamoDBGlobalSecondaryIndexHashKey("reservationId-index")]
-    public string? ReservationId { get; set; }
+    public string ReservationId { get; set; } = null!;
 
     [DynamoDBProperty("locationId")]
     public string LocationId { get; set; } = null!;
@@ -54,4 +54,10 @@ public sealed class Order
 
     [DynamoDBProperty("completedAt")]
     public string? CompletedAt { get; set; }
+
+    [DynamoDBProperty("version")]
+    public int Version { get; set; }
+
+    [DynamoDBProperty("processedOperationIds")]
+    public HashSet<string> ProcessedOperationIds { get; set; } = [];
 }
