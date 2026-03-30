@@ -34,4 +34,17 @@ public class UserController : ControllerBase
 
         return ApiResponse<object>.Success(StatusCodes.Status200OK, null, "Email updated successfully");
     }
+
+    [HttpPut("username")]
+    public async Task<ApiResponse<object>> UpdateUsername([FromBody] UpdateUsernameRequest request, CancellationToken
+        ct)
+    {
+        var userId = User.GetUserId();
+
+        var result = await _userService.UpdateUserNameAsync(userId, request.FirstName, request.LastName, ct);
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<object>();
+        
+        return ApiResponse<object>.Success(StatusCodes.Status200OK, null, "Username updated successfully");
+    }
 }
