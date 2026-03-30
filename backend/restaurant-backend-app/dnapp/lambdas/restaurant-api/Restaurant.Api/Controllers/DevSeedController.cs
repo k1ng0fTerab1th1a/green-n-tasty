@@ -55,8 +55,6 @@ public sealed class DevSeedController : ControllerBase
         if (!IsAllowed())
             return ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, "Seed endpoint is disabled.");
 
-        if (string.IsNullOrWhiteSpace(req.CustomerId))
-            return ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "CustomerId is required.");
         if (string.IsNullOrWhiteSpace(req.WaiterId))
             return ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "WaiterId is required.");
         if (string.IsNullOrWhiteSpace(req.LocationId))
