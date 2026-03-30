@@ -80,14 +80,22 @@ public sealed class DevSeedController : ControllerBase
         {
             Id = string.IsNullOrWhiteSpace(req.Id) ? Guid.NewGuid().ToString("N") : req.Id,
             CustomerId = req.CustomerId,
+            CustomerName = req.CustomerName,
+            VisitorName = req.VisitorName,
             WaiterId = req.WaiterId,
+            WaiterName = req.WaiterName ?? string.Empty,
             LocationId = req.LocationId,
+            LocationAddress = req.LocationAddress ?? string.Empty,
             TableNumber = req.TableNumber,
             TableKey = $"{req.LocationId}#{req.TableNumber}",
             StartDateTime = startDto.ToUniversalTime().ToString("O"),
             EndDateTime = endDto.ToUniversalTime().ToString("O"),
+            ActualStartTime = req.ActualStartTime,
+            ActualEndTime = req.ActualEndTime,
             GuestsCount = req.GuestsCount,
             Status = req.Status ?? ReservationStatus.Reserved,
+            SecretCode = req.SecretCode,
+            IsCreatedByWaiter = req.IsCreatedByWaiter,
             CreatedAt = nowIso,
             UpdatedAt = nowIso
         };
@@ -96,23 +104,88 @@ public sealed class DevSeedController : ControllerBase
 
         return ApiResponse<Reservation>.Success(StatusCodes.Status201Created, item);
     }
+
+    [HttpPost("seed/orders")]
+    public async Task<IActionResult> SeedOrder([FromBody] DevSeedOrderRequest req, CancellationToken ct)
+    {
+        if (!IsAllowed())
+            return ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, "Seed endpoint is disabled.");
+
+        if (string.IsNullOrWhiteSpace(req.ReservationId))
+            return ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "ReservationId is required.");
+        if (string.IsNullOrWhiteSpace(req.WaiterId))
+            return ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "WaiterId is required.");
+        if (string.IsNullOrWhiteSpace(req.LocationId))
+            return ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "LocationId is required.");
+
+        var nowIso = DateTimeOffset.UtcNow.ToString("O");
+
+        var item = new Order
+        {
+            Id = string.IsNullOrWhiteSpace(req.Id) ? Guid.NewGuid().ToString("N") : req.Id,
+            ReservationId = req.ReservationId,
+            LocationId = req.LocationId,
+            LocationAddress = req.LocationAddress ?? string.Empty,
+            WaiterId = req.WaiterId,
+            WaiterName = req.WaiterName ?? string.Empty,
+            CustomerId = req.CustomerId,
+            CustomerName = req.CustomerName,
+            VisitorName = req.VisitorName,
+            TableNumber = req.TableNumber,
+            GuestsCount = req.GuestsCount,
+            Status = req.Status ?? OrderStatus.Completed,
+            Dishes = req.Dishes ?? [],
+            TotalAmount = req.Dishes?.Sum(d => d.PriceAtOrder * d.Quantity) ?? 0,
+            CreatedAt = nowIso,
+            CompletedAt = nowIso,
+        };
+
+        await _db.SaveAsync(item, ct);
+
+        return ApiResponse<Order>.Success(StatusCodes.Status201Created, item);
+    }
 }
 
 public sealed class DevSeedReservationRequest
 {
     public string? Id { get; set; }
 
-    public string CustomerId { get; set; } = null!;
+    public string? CustomerId { get; set; }
+    public string? CustomerName { get; set; }
+    public string? VisitorName { get; set; }
+    public string? SecretCode { get; set; }
+    public bool IsCreatedByWaiter { get; set; }
     public string WaiterId { get; set; } = null!;
+    public string? WaiterName { get; set; }
     public string LocationId { get; set; } = null!;
+    public string? LocationAddress { get; set; }
     public int TableNumber { get; set; }
 
     public string StartDateTime { get; set; } = null!;
     public string EndDateTime { get; set; } = null!;
+    public string? ActualStartTime { get; set; }
+    public string? ActualEndTime { get; set; }
 
     public int GuestsCount { get; set; }
 
     public ReservationStatus? Status { get; set; }
+}
+
+public sealed class DevSeedOrderRequest
+{
+    public string? Id { get; set; }
+    public string ReservationId { get; set; } = null!;
+    public string LocationId { get; set; } = null!;
+    public string? LocationAddress { get; set; }
+    public string WaiterId { get; set; } = null!;
+    public string? WaiterName { get; set; }
+    public string? CustomerId { get; set; }
+    public string? CustomerName { get; set; }
+    public string? VisitorName { get; set; }
+    public int TableNumber { get; set; }
+    public int GuestsCount { get; set; }
+    public OrderStatus? Status { get; set; }
+    public List<OrderDishSnapshot>? Dishes { get; set; }
 }
 
 public sealed class CreateLocationRequest
