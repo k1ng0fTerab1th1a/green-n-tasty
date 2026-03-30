@@ -53,8 +53,8 @@ public class DishController(IDishService _dishService, S3FileService _s3FileServ
     [HttpGet("menu-file")]
     public async Task<IActionResult> GetMenuFile(CancellationToken ct)
     {
-        var stream = await _s3FileService.GetFileStreamAsync("restaurant-menu/menu.pdf", ct);
-        return File(stream, "application/pdf");
+        var stream = await _s3FileService.GetFileStreamAsync("uploads/menu/menu.pdf", ct);
+        return File(stream, "application/pdf", enableRangeProcessing:false);
     }
 
     [HttpGet("menu-url")]
