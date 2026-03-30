@@ -60,4 +60,7 @@ public interface IReservationRepository
 
     Task<Result<(string waiterId, string locationId)>> GetWaiterAndLocationIdFromReservationAsync(string reservationId,
         CancellationToken ct = default);
+    
+    Task<Result> SetFeedbackIdInReservation(string reservationId, string feedbackId, string fieldName,
+        CancellationToken ct);
 }

@@ -9,6 +9,4 @@ public interface IFeedbackRepository
     Task<string?> GetSecretCodeByReservationIdAsync(string reservationId, CancellationToken ct);
     Task<FeedbackPaginatedDBResponseDto> GetByLocationAsync(string locationId,
         int size, string type, List<string>? sort, string? pageToken, CancellationToken ct);
-
-    Task<bool> IsFeedbackAlreadyMade(string reservationId, string feedbackType, CancellationToken ct);
 }
