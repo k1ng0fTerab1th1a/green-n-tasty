@@ -159,11 +159,13 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
 
         var cuisineRatingData = await locationRepository.GetLocationFeedbacksDataAsync(ids.locationId, ct);
 
-        double cuisineRating = cuisineRatingData.rating / (double)cuisineRatingData.feedbacksAmount;
+        double cuisineRating = cuisineRatingData.feedbacksAmount <= 0 ? 0 
+            : cuisineRatingData.rating / (double) cuisineRatingData.feedbacksAmount;
 
         var waiterRatingData = await userRepository.GetWaiterFeedbackDataAsync(ids.waiterId, ct);
 
-        double waiterRating = waiterRatingData.WaiterRating / (double)waiterRatingData.WaiterFeedbacksNumber;
+        double waiterRating = waiterRatingData.WaiterFeedbacksNumber <= 0 ? 0 
+            : waiterRatingData.WaiterRating / (double) waiterRatingData.WaiterFeedbacksNumber;
 
         return Result.Ok(new WaiterLocationFeedbackDTO()
         {
@@ -186,7 +188,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
                ?? Result.Ok();
     }
 
-    private static Result ValidateRatingAndComment(int? rating, string? comment)
+    private static Result? ValidateRatingAndComment(int? rating, string? comment)
     {
         if (rating < 1 || rating > 5)
             return FeedbackErrors.RatingValidationDiapasonError;
