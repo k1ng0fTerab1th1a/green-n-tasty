@@ -4,8 +4,10 @@ import {
     MainLayout,
     PageBanner,
     Toast,
-    ReservationModal
+    ReservationModal,
+    FeedbackModal
 } from "../../components/index.js";
+import { submitAuthorisedFeedback } from "../../services/feedbacks";
 import { getClientReservations, deleteReservation } from "../../services/reservations";
 import { getAvailableTables } from "../../services/bookings";
 import { useAuth } from "../../auth/AuthContext.jsx";
@@ -18,6 +20,9 @@ export default function ReservationsPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedReservation, setSelectedReservation] = useState(null);
     const [toast, setToast] = useState({ open: false, type: "success", title: "", message: "" });
+    const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+    const [feedbackReservationId, setFeedbackReservationId] = useState(null);
+    const [currentBookingStatus, setCurrentBookingStatus] = useState(null);
 
     const welcomeTitle = `Hello, ${auth.username || "Guest"}`;
 
@@ -54,6 +59,12 @@ export default function ReservationsPage() {
         }
     };
 
+    const handleFeedbackClick = (booking) => {
+        setFeedbackReservationId(booking.id);
+        setCurrentBookingStatus(booking.status); // Зберігаємо статус для модалки
+        setIsFeedbackModalOpen(true);
+    };
+
     const formatTimeFromISO = (isoString) => {
         if (!isoString) return "";
         const date = new Date(isoString);
@@ -62,13 +73,39 @@ export default function ReservationsPage() {
             minute: "2-digit",
             timeZone: "Asia/Tbilisi",
             hour12: false
-        });
+        }).replace("24:", "00:");
+    };
+
+    const handleFeedbackSubmit = async (data) => {
+        try {
+            const payload = { reservationId: data.reservationId };
+
+            // Додаємо поля ТІЛЬКИ якщо вони були заповнені (не 0)
+            if (data.serviceRating > 0) {
+                payload.serviceRating = data.serviceRating;
+                payload.serviceComment = data.serviceComment || "";
+            } else if (data.culinaryRating > 0) {
+                payload.cuisineRating = data.culinaryRating;
+                payload.cuisineComment = data.cuisineComment || "";
+            }
+
+            const result = await submitAuthorisedFeedback(payload);
+
+            if (result.isSuccess) {
+                showToast("success", "Thank you!", "Your feedback has been submitted.");
+                setIsFeedbackModalOpen(false);
+                loadData();
+            } else {
+                showToast("error", "Failed", result.message);
+            }
+        } catch (error) {
+            showToast("error", "Error", "Could not submit feedback");
+        }
     };
 
     const handleEditClick = async (res) => {
         try {
             setLoading(true);
-
             const reservationDate = res.startDateTime.split('T')[0];
             const response = await getAvailableTables({
                 locationId: res.locationId,
@@ -159,6 +196,8 @@ export default function ReservationsPage() {
                                         }}
                                         onCancel={() => handleCancel(res.id)}
                                         onEdit={() => handleEditClick(res)}
+                                        onFeedback={handleFeedbackClick}
+                                        hasFeedback={res.hasFeedback}
                                     />
                                 );
                             })}
@@ -173,6 +212,16 @@ export default function ReservationsPage() {
                     onClose={() => setIsEditModalOpen(false)}
                     onSuccess={handleUpdateSuccess}
                     tableInfo={selectedReservation}
+                />
+            )}
+
+            {isFeedbackModalOpen && (
+                <FeedbackModal
+                    isOpen={isFeedbackModalOpen}
+                    onClose={() => setIsFeedbackModalOpen(false)}
+                    onSubmit={handleFeedbackSubmit}
+                    reservationId={feedbackReservationId}
+                    bookingStatus={currentBookingStatus} // Передаємо статус
                 />
             )}
 

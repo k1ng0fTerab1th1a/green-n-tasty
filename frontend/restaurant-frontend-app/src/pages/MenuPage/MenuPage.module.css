@@ -142,3 +142,9 @@
         justify-content: space-between;
     }
 }
+
+.downloadBtn {
+    margin-top: 16px;
+    backdrop-filter: blur(4px);
+    width: fit-content;
+}

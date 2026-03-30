@@ -6,12 +6,12 @@ import clockIcon from "../../../assets/icons/clock.svg";
 import userIcon from "../../../assets/icons/people.svg";
 
 export default function ReservationCard({
-                                        booking,
-                                        onCancel,
-                                        onEdit,
-                                        onFeedback,
-                                        hasFeedback
-                                    }) {
+                                            booking,
+                                            onCancel,
+                                            onEdit,
+                                            onFeedback,
+                                            hasFeedback
+                                        }) {
     const { address, date, time, guests, status } = booking;
 
     const getStatusKey = (s) => {
@@ -20,8 +20,18 @@ export default function ReservationCard({
         return normalized || "";
     };
 
+    const formatStatus = (s) => {
+        if (!s) return "";
+        const key = getStatusKey(s);
+        if (key === "inprogress") return "In Progress";
+        if (key === "mealsserved") return "Meal Served";
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    };
+
     const statusKey = getStatusKey(status);
     const statusClass = styles[statusKey] || "";
+
+    const canLeaveFeedback = ["inprogress", "mealsserved", "finished"].includes(statusKey);
 
     return (
         <div className={`card ${styles.card}`}>
@@ -31,7 +41,7 @@ export default function ReservationCard({
                     <span className="body-bold">{address}</span>
                 </div>
                 <div className={`${styles.badge} ${statusClass}`}>
-                    <span className="caption">{status}</span>
+                    <span className="caption">{formatStatus(status)}</span>
                 </div>
             </div>
 
@@ -53,30 +63,17 @@ export default function ReservationCard({
             <div className={styles.actions}>
                 {statusKey === "reserved" && (
                     <>
-                        <Button
-                            variant="tertiary"
-                            onClick={onCancel}
-                            className={styles.cancelBtn}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="secondary"
-                            size="lg"
-                            onClick={onEdit}
-                            className={styles.editBtn}
-                        >
-                            Edit
-                        </Button>
+                        <Button variant="tertiary" onClick={onCancel} className={styles.cancelBtn}>Cancel</Button>
+                        <Button variant="secondary" size="lg" onClick={onEdit} className={styles.editBtn}>Edit</Button>
                     </>
                 )}
 
-                {(statusKey === "inprogress" || statusKey === "finished") && (
+                {canLeaveFeedback && (
                     <Button
                         variant="secondary"
                         size="lg"
                         fullWidth
-                        onClick={onFeedback}
+                        onClick={() => onFeedback(booking)}
                     >
                         {statusKey === "finished" && hasFeedback ? "Update Feedback" : "Leave Feedback"}
                     </Button>

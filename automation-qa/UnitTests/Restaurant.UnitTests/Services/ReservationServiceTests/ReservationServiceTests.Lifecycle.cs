@@ -154,7 +154,7 @@ public sealed partial class ReservationServiceTests
     }
 
     [Fact]
-    public async Task MarkMealsServedAsync_WhenValid_ShouldSetMealsServedStatus()
+    public async Task MarkMealsServedAsync_WhenValid_ShouldSetMealServedFlag()
     {
         var reservation = new Reservation
         {
@@ -176,19 +176,52 @@ public sealed partial class ReservationServiceTests
 
         _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
-        _repo.Setup(r => r.UpdateLifecycleAsync(
-                reservation,
-                ReservationStatus.InProgress,
-                ReservationStatus.MealsServed,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        _repo.Setup(r => r.UpdateAsync(reservation, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var result = await _sut.MarkMealsServedAsync("r1", "waiter-1", default);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.Status.Should().Be(ReservationStatus.MealsServed);
+        result.Value.Status.Should().Be(ReservationStatus.InProgress);
+        result.Value.IsMealServed.Should().BeTrue();
         result.Value.ActualStartTime.Should().NotBeNullOrWhiteSpace();
         result.Value.ActualEndTime.Should().BeNull();
+
+        _repo.Verify(r => r.UpdateAsync(reservation, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task MarkMealsServedAsync_WhenAlreadyMarked_ShouldReturnSuccessWithoutUpdate()
+    {
+        var reservation = new Reservation
+        {
+            Id = "r1",
+            CustomerId = "customer-1",
+            WaiterId = "waiter-1",
+            LocationId = "loc-1",
+            LocationAddress = "Main street 1",
+            TableNumber = 3,
+            TableKey = "loc-1#3",
+            StartDateTime = DateTimeOffset.UtcNow.AddMinutes(-30).ToString("O"),
+            EndDateTime = DateTimeOffset.UtcNow.AddHours(1).ToString("O"),
+            ActualStartTime = DateTimeOffset.UtcNow.AddMinutes(-20).ToString("O"),
+            GuestsCount = 2,
+            Status = ReservationStatus.InProgress,
+            IsMealServed = true,
+            CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
+            UpdatedAt = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(reservation);
+
+        var result = await _sut.MarkMealsServedAsync("r1", "waiter-1", default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.IsMealServed.Should().BeTrue();
+
+        _repo.Verify(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()), Times.Once);
+        _repo.Verify(r => r.UpdateAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -205,7 +238,7 @@ public sealed partial class ReservationServiceTests
     }
 
     [Fact]
-    public async Task FinishReservationAsync_WhenStatusIsNotMealsServed_ShouldReturnNotFinishableError()
+    public async Task FinishReservationAsync_WhenStatusIsNotInProgress_ShouldReturnNotFinishableError()
     {
         var reservation = new Reservation
         {
@@ -220,7 +253,7 @@ public sealed partial class ReservationServiceTests
             EndDateTime = DateTimeOffset.UtcNow.AddMinutes(15).ToString("O"),
             ActualStartTime = DateTimeOffset.UtcNow.AddMinutes(-50).ToString("O"),
             GuestsCount = 2,
-            Status = ReservationStatus.InProgress,
+            Status = ReservationStatus.Reserved,
             CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
             UpdatedAt = DateTimeOffset.UtcNow.ToString("O")
         };
@@ -252,7 +285,7 @@ public sealed partial class ReservationServiceTests
             EndDateTime = end.ToString("O"),
             ActualStartTime = start.AddMinutes(5).ToString("O"),
             GuestsCount = 2,
-            Status = ReservationStatus.MealsServed,
+            Status = ReservationStatus.InProgress,
             CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
             UpdatedAt = DateTimeOffset.UtcNow.ToString("O")
         };
@@ -263,7 +296,7 @@ public sealed partial class ReservationServiceTests
             .ReturnsAsync(reservation);
         _repo.Setup(r => r.UpdateLifecycleAsync(
                 reservation,
-                ReservationStatus.MealsServed,
+                ReservationStatus.InProgress,
                 ReservationStatus.Finished,
                 It.Is<List<string>>(slots => slots.SequenceEqual(expectedSlots)),
                 It.IsAny<CancellationToken>()))
@@ -278,7 +311,7 @@ public sealed partial class ReservationServiceTests
 
         _repo.Verify(r => r.UpdateLifecycleAsync(
             reservation,
-            ReservationStatus.MealsServed,
+            ReservationStatus.InProgress,
             ReservationStatus.Finished,
             It.Is<List<string>>(slots => slots.SequenceEqual(expectedSlots)),
             It.IsAny<CancellationToken>()), Times.Once);

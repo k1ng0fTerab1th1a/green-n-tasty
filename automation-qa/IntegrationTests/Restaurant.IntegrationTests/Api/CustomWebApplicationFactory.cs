@@ -509,7 +509,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             if (entity.WaiterId != waiterId)
                 return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.Forbidden));
 
-            entity.Status = ReservationStatus.MealsServed;
+            entity.IsMealServed = true;
             entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
             return Task.FromResult(Result.Ok(entity));
         }

@@ -1,4 +1,5 @@
 using FluentResults;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 
@@ -24,5 +25,20 @@ public class UserService : IUserService
         await _userRepository.UpdateEmailAsync(userId, newEmail, ct);
 
         return Result.Ok();
+    }
+
+    public async Task<Result> UpdateUserNameAsync(string userId, string firstName, string lastName, CancellationToken
+            ct)
+    {
+        try
+        {
+            await _userRepository.UpdateUserNameAsync(userId, firstName, lastName, ct);
+            return Result.Ok();
+        }
+        catch (Exception)
+        {
+            return UserErrors.UpdateNotSuccessful;
+        }
+
     }
 }
