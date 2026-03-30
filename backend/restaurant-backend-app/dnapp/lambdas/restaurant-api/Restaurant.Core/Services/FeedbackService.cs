@@ -1,16 +1,14 @@
 ﻿using FluentResults;
-using Microsoft.Extensions.Options;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
-using Restaurant.Core.SharedModels;
 
 namespace Restaurant.Core.Services;
 
 public class FeedbackService(IFeedbackRepository feedbackRepository, IReservationRepository reservationRepository, 
-    IUserRepository userRepository, ILocationRepository locationRepository, IOptions<ClientSettings> options) : IFeedbackService
+    IUserRepository userRepository, ILocationRepository locationRepository) : IFeedbackService
 {
     public async Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(string locationId, int size, string type, List<string> sort, string? pageToken = null, CancellationToken ct = default)
     {
@@ -143,22 +141,6 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
     }
 
 
-
-    public async Task<Result<byte[]>> GenerateFeedbackQr(string reservationId, CancellationToken ct = default)
-    {
-        var secretCode = await feedbackRepository.GetSecretCodeByReservationIdAsync(reservationId, ct);
-        if (string.IsNullOrEmpty(secretCode))
-        {
-            return Result.Fail("Secret code for this reservation was not received");
-        }
-        
-        string combinedUrl = options.Value.ClientUrl + "/feedback" + 
-            $"?reservationId={reservationId}&secretCode={secretCode}";
-
-        QrCoder coder = new QrCoder();
-        var qrCode = coder.GenerateQrCode(combinedUrl);
-        return Result.Ok(qrCode);
-    }
 
     public async Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(string reservationId,
         CancellationToken ct = default)

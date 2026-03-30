@@ -13,6 +13,4 @@ public interface IFeedbackService
 
     Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(string reservationId,
         CancellationToken ct = default);
-
-    Task<Result<byte[]>> GenerateFeedbackQr(string reservationId, CancellationToken ct);
 }
