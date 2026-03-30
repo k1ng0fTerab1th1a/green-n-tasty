@@ -11,8 +11,8 @@ public interface IFeedbackService
     Task<Result> SaveAuthorisedFeedback(CreateFeedbackDTO dto, string userId, CancellationToken ct);
     Task<Result> SaveVisitorFeedback(CreateFeedbackDTO dto, string secretCode, CancellationToken ct);
 
-    Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(string reservationId,
-        CancellationToken ct = default);
+    Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(string reservationId, bool isForUpdate,
+        CancellationToken ct);
 
     Task<Result<byte[]>> GenerateFeedbackQr(string reservationId, CancellationToken ct);
 }

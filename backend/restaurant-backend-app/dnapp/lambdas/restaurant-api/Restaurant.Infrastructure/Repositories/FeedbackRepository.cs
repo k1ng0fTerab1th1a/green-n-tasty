@@ -123,4 +123,10 @@ public class FeedbackRepository(IDynamoDBContext context,
         var response = await client.QueryAsync(request, ct);
         return response.Count > 0;
     }
+
+    public async Task<Feedback?> GetByIdAsync(string feedbackId, CancellationToken ct)
+    {
+        var feedback = await context.LoadAsync<Feedback?>(feedbackId, ct);
+        return feedback;
+    }
 }
