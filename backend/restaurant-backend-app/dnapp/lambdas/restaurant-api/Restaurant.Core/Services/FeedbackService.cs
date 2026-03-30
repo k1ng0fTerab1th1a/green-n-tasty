@@ -44,10 +44,14 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         if (reservation.CustomerId != userId)
             return FeedbackErrors.ReservationUnauthorizedAccess;
 
+        if ((reservation.ServiceFeedbackId != null && dto.ServiceRating != null) ||
+            (reservation.KitchenFeedbackId != null && dto.CuisineRating != null))
+            return FeedbackErrors.FeedbackAlreadyMade;
+
         var userData = await userRepository.GetUserDataForFeedbackCreationByIdAsync(userId, ct);
         var author = new FeedbackAuthor(userId, userData.username, userData.iamgeUrl ?? string.Empty);
 
-        return await ProcessFeedbackAsync(dto, reservation, author, checkDuplicates: true, ct);
+        return await ProcessFeedbackAsync(dto, reservation, author, ct);
     }
 
     public async Task<Result> SaveVisitorFeedback(CreateFeedbackDTO dto, string secretCode, CancellationToken ct = default)
@@ -64,7 +68,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
 
         var author = new FeedbackAuthor(string.Empty, "Visitor", string.Empty);
 
-        var result = await ProcessFeedbackAsync(dto, reservation, author, checkDuplicates: false, ct);
+        var result = await ProcessFeedbackAsync(dto, reservation, author, ct);
         if (result.IsFailed)
             return result;
 
@@ -77,24 +81,22 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         CreateFeedbackDTO dto,
         Reservation reservation,
         FeedbackAuthor author,
-        bool checkDuplicates,
         CancellationToken ct)
     {
-
         var feedbacksToSave = new List<Feedback>();
         var ratingUpdates   = new List<Func<CancellationToken, Task>>();
+        string fieldName = "";
 
         if (dto.ServiceRating.HasValue)
         {
             if (reservation.Status < ReservationStatus.InProgress)
                 return FeedbackErrors.TooEarlyServiceFeedback;
 
-            if (checkDuplicates && await feedbackRepository.IsFeedbackAlreadyMade(reservation.Id, "waiter", ct))
-                return FeedbackErrors.FeedbackAlreadyMade;
-
             feedbacksToSave.Add(BuildFeedback(dto.ServiceRating.Value, dto.ServiceComment, "waiter", reservation, author));
             ratingUpdates.Add(c => userRepository.UpdateUserRatingAsync(reservation.WaiterId, dto.ServiceRating.Value, 
                 c));
+            
+            fieldName = "serviceFeedbackId";
         }
 
         if (dto.CuisineRating.HasValue)
@@ -102,17 +104,28 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             if (reservation.IsMealServed != true)
                 return FeedbackErrors.MealNotYetServedForFeedback;
 
-            if (checkDuplicates && await feedbackRepository.IsFeedbackAlreadyMade(reservation.Id, "kitchen", ct))
-                return FeedbackErrors.FeedbackAlreadyMade;
-
-            feedbacksToSave.Add(BuildFeedback(dto.CuisineRating.Value, dto.CuisineComment, "kitchen", reservation, author));
+            var newFeedback = BuildFeedback(dto.CuisineRating.Value, dto.CuisineComment, "kitchen", reservation, 
+                author);
+            feedbacksToSave.Add(newFeedback);
             ratingUpdates.Add(c => locationRepository.UpdateKitchenRatingAsync(reservation.LocationId, dto.CuisineRating.Value, c));
+            fieldName = "kitchenFeedbackId";
         }
 
         if (feedbacksToSave.Count == 0)
             return FeedbackErrors.NoFeedbackProvided;
 
         await feedbackRepository.SaveBatchAsync(feedbacksToSave, ct);
+
+        foreach (var feedback in feedbacksToSave)
+        {
+            var res = await reservationRepository.SetFeedbackIdInReservation(reservation.Id, feedback.Id, feedback
+                .Type == "waiter"
+                ? "serviceFeedbackId"
+                : "kitchenFeedbackId", ct);
+
+            if (res.IsFailed)
+                return Result.Fail(res.Errors);
+        }
 
         if (ratingUpdates.Count > 0)
         {
@@ -159,11 +172,13 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
 
         var cuisineRatingData = await locationRepository.GetLocationFeedbacksDataAsync(ids.locationId, ct);
 
-        double cuisineRating = cuisineRatingData.rating / (double)cuisineRatingData.feedbacksAmount;
+        double cuisineRating = cuisineRatingData.feedbacksAmount <= 0 ? 0 
+            : cuisineRatingData.rating / (double) cuisineRatingData.feedbacksAmount;
 
         var waiterRatingData = await userRepository.GetWaiterFeedbackDataAsync(ids.waiterId, ct);
 
-        double waiterRating = waiterRatingData.WaiterRating / (double)waiterRatingData.WaiterFeedbacksNumber;
+        double waiterRating = waiterRatingData.WaiterFeedbacksNumber <= 0 ? 0 
+            : waiterRatingData.WaiterRating / (double) waiterRatingData.WaiterFeedbacksNumber;
 
         return Result.Ok(new WaiterLocationFeedbackDTO()
         {
@@ -186,7 +201,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
                ?? Result.Ok();
     }
 
-    private static Result ValidateRatingAndComment(int? rating, string? comment)
+    private static Result? ValidateRatingAndComment(int? rating, string? comment)
     {
         if (rating < 1 || rating > 5)
             return FeedbackErrors.RatingValidationDiapasonError;

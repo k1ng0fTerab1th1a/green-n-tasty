@@ -418,7 +418,40 @@ public sealed class ReservationRepository : IReservationRepository
         ));
 
     }
-    
+
+    public async Task<Result> SetFeedbackIdInReservation(string reservationId, string feedbackId, string fieldName,
+        CancellationToken ct)
+    {
+        var request = new UpdateItemRequest
+        {
+            TableName = "Reservations",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "id", new AttributeValue { S = reservationId } }
+            },
+            UpdateExpression = "SET #f = :feedbackId",
+            ConditionExpression = "attribute_exists(id) AND attribute_not_exists(#f)",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#f", fieldName }
+            },
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            {
+                { ":feedbackId", new AttributeValue { S = feedbackId } }
+            }
+        };
+
+        try
+        {
+            await _dynamoDb.UpdateItemAsync(request, ct);
+            return Result.Ok();
+        }
+        catch (Exception)
+        {
+            return ReservationErrors.UpdateFailed;
+        }
+    }
+
     private async Task<Result> UpdateSameTableSameDayAsync(
         Dictionary<string, AttributeValue> reservationItem,
         List<string> newSlots,
