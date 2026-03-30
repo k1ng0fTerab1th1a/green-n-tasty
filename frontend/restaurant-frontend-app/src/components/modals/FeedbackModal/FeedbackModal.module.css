@@ -83,7 +83,6 @@
     padding: 16px;
     border: 1px solid var(--neutral-200);
     border-radius: var(--radius-sm);
-    font-family: var(--font-family);
     font-size: 14px;
     resize: none;
     outline: none;
@@ -96,5 +95,33 @@
 
 .submitBtn {
     margin-top: 8px;
-    background-color: var(--green-200) !important;
+}
+
+.grayTab {
+    color: var(--neutral-400) !important;
+    filter: grayscale(1);
+}
+
+.disabledContent {
+    opacity: 0.6;
+}
+
+.infoBox {
+    background: var(--neutral-100);
+    border-left: 4px solid var(--orange-400);
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+}
+
+.infoText {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--neutral-600);
+    margin: 0;
+}
+
+.textarea:disabled {
+    cursor: not-allowed;
+    border-color: var(--neutral-200);
 }

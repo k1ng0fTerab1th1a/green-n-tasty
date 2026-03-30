@@ -4,3 +4,47 @@ export async function getPopularDishes() {
     const res = await api.get("/dishes/popular");
     return res.data.data;
 }
+
+export const getMenuDishes = async (type = "", sort = "price,asc") => {
+    try {
+        const response = await api.get("/dishes/menu", {
+            params: { type, sort }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching menu:", error);
+        throw error;
+    }
+};
+
+export const getDishById = async (id) => {
+    try {
+        const response = await api.get(`/dishes/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching dish details:", error);
+        throw error;
+    }
+};
+
+export const downloadMenuFile = async () => {
+    try {
+        const response = await api.get("/dishes/menu-file", {
+            responseType: 'blob'
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'GreenAndTasty_Menu.pdf');
+
+        document.body.appendChild(link);
+        link.click();
+
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error("Error downloading menu file:", error);
+        throw error;
+    }
+};

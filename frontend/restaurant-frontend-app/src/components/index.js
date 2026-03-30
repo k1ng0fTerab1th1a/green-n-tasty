@@ -28,5 +28,6 @@ export { default as WaiterReservationCard } from "./cards/WaiterReservationCard/
 export { default as TableSelector } from "./ui/TableSelector/TableSelector";
 export { default as CreateReservationModal } from "./modals/CreateReservationModal/CreateReservationModal";
 export { default as FeedbackModal } from "./modals/FeedbackModal/FeedbackModal";
-export { default as Checkbox } from "./ui/Checkbox/Checkbox";
+export { default as DishDetailsModal } from "./modals/DishDetailsModal/DishDetailsModal";
 export { default as Radio } from "./ui/Radio/Radio";
+export { default as Checkbox } from "./ui/Checkbox/Checkbox";
