@@ -30,4 +30,8 @@ export { default as CreateReservationModal } from "./modals/CreateReservationMod
 export { default as FeedbackModal } from "./modals/FeedbackModal/FeedbackModal";
 export { default as DishDetailsModal } from "./modals/DishDetailsModal/DishDetailsModal";
 export { default as Radio } from "./ui/Radio/Radio";
+export { default as CreateOrderModal } from "./modals/CreateOrderModal/CreateOrderModal";
+export { default as SearchDropdown } from "./ui/SearchDropdown/SearchDropdown";
+export { default as SelectedDishCard } from "./cards/SelectedDishCard/SelectedDishCard";
+export { default as EditOrderModal } from "./modals/EditOrderModal/EditOrderModal";
 export { default as Checkbox } from "./ui/Checkbox/Checkbox";

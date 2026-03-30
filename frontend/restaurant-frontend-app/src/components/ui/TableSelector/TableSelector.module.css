@@ -2,7 +2,7 @@
     position: relative;
     display: block;
     width: 100%;
-    box-sizing: border-box; /* Важливо для коректного розрахунку 100% */
+    box-sizing: border-box;
 }
 
 .control {
@@ -19,14 +19,14 @@
 .arrow {
     width: 12px;
     height: 12px;
-    flex-shrink: 0; /* Щоб стрілка не стискалася */
+    flex-shrink: 0;
 }
 
 .menu {
     position: absolute;
     top: calc(100% + 4px);
     right: 0;
-    width: 100%; /* Тепер меню буде такої ж ширини, як і селектор */
+    width: 100%;
     background: var(--neutral-0);
     border: 1px solid var(--neutral-200);
     border-radius: var(--radius-sm);

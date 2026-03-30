@@ -14,7 +14,7 @@
 }
 
 .modal {
-    background: var(--neutral-0);
+    background: #F7F7F7;
     padding: 32px;
     border-radius: var(--radius-lg);
     width: 100%;
