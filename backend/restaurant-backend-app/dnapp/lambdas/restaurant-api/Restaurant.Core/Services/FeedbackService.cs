@@ -153,7 +153,6 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         if (reservation == null)
             return ReservationErrors.ReservationNotFound;
 
-        // cuisine, waiter, and (optionally) both feedbacks — all in parallel
         var cuisineTask = locationRepository.GetLocationFeedbacksDataAsync(reservation.LocationId, ct);
         var waiterTask  = userRepository.GetWaiterFeedbackDataAsync(reservation.WaiterId, ct);
 

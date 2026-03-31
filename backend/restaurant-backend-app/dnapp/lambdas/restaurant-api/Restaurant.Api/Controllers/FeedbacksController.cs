@@ -73,7 +73,7 @@ public class FeedbacksController : ControllerBase
             request.FeedbackId, request.Comment, request.Rating, request.FeedbackType, ct);
         
         if (res.IsSuccess)
-            return ApiResponse<WaiterLocationFeedbackDTO>.Success(200, res.Value);
+            return ApiResponse<object>.Success(200, null);
         return res.Errors[0].ToApiResponse<object>();
     }
 }
