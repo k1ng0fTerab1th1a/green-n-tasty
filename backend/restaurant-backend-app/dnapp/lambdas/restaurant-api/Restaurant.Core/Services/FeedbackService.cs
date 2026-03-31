@@ -198,16 +198,22 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         return Result.Ok(resultDto);
     }
 
-    public async Task<Result> UpdateFeedback(string feedbackId, string comment, int rating, string feedbackType,
+    public async Task<Result> UpdateFeedback(UpdateFeedbackDto dto,
         CancellationToken ct)
     {
-        var feedback = await feedbackRepository.GetByIdAsync(feedbackId, ct);
+        var cuisineViolation = ValidateRatingAndComment(dto.CuisineRating, dto.CuisineComment);
+        if (cuisineViolation != null)
+            return cuisineViolation;
+        
+        var serviceViolation = ValidateRatingAndComment(dto.ServiceRating, dto.ServiceComment);
+        if (serviceViolation != null)
+            return serviceViolation;
+        
+        if ()
+        var serviceFeedback = await feedbackRepository.GetByIdAsync(dto.ServiceId, ct);
         if (feedback == null)
             return FeedbackErrors.FeedbackNotFound;
 
-        var validation = ValidateRatingAndComment(rating, comment);
-        if (validation != null)
-            return validation;
         
         var reservation = await reservationRepository.GetByIdAsync(feedback.ReservationId, ct);
         if (reservation == null)

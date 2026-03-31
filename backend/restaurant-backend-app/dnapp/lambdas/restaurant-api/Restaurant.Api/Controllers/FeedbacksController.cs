@@ -66,11 +66,10 @@ public class FeedbacksController : ControllerBase
     }
 
     [HttpPut("update-feedback")]
-    public async Task<ApiResponse<object>> UpdateFeedback([FromBody] UpdateFeedbackRequest request,
+    public async Task<ApiResponse<object>> UpdateFeedback([FromBody] UpdateFeedbackDto dto,
         CancellationToken ct)
     {
-        var res = await _feedbackService.UpdateFeedback(
-            request.FeedbackId, request.Comment, request.Rating, request.FeedbackType, ct);
+        var res = await _feedbackService.UpdateFeedback(TODO, ct);
         
         if (res.IsSuccess)
             return ApiResponse<object>.Success(200, null);
