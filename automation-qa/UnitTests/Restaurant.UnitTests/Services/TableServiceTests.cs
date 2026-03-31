@@ -1,4 +1,4 @@
-ï»¿using FluentAssertions;
+using FluentAssertions;
 using Moq;
 using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;
@@ -23,6 +23,7 @@ public sealed class TableServiceTests
     private readonly Mock<ITableRepository> _tableRepo;
     private readonly Mock<ITableDayRepository> _tableDayRepo;
     private readonly Mock<ILocationRepository> _locationRepo;
+    private readonly Mock<IReservationRepository> _reservationRepo;
     private readonly TableService _sut;
 
     public TableServiceTests()
@@ -30,7 +31,8 @@ public sealed class TableServiceTests
         _tableRepo = new Mock<ITableRepository>(MockBehavior.Strict);
         _tableDayRepo = new Mock<ITableDayRepository>(MockBehavior.Strict);
         _locationRepo = new Mock<ILocationRepository>(MockBehavior.Strict);
-        _sut = new TableService(_tableRepo.Object, _tableDayRepo.Object, _locationRepo.Object);
+        _reservationRepo = new Mock<IReservationRepository>(MockBehavior.Strict);
+        _sut = new TableService(_tableRepo.Object, _tableDayRepo.Object, _locationRepo.Object, _reservationRepo.Object);
     }
 
     private static Location MakeUtcLocation(string id, string openTime = "10:00", string closeTime = "22:00") =>
@@ -64,7 +66,7 @@ public sealed class TableServiceTests
         _tableRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Table>().AsReadOnly());
 
-        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: null, capacity: null, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: null, capacity: null, excludeReservationId: null, ct: default);
 
         result.Value.Should().BeEmpty();
         _tableRepo.Verify(r => r.GetAllAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -79,7 +81,7 @@ public sealed class TableServiceTests
         _tableRepo.Setup(r => r.GetByLocationIdAsync("loc1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Table>().AsReadOnly());
 
-        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: null, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: null, excludeReservationId: null, ct: default);
 
         result.Value.Should().BeEmpty();
         _tableRepo.Verify(r => r.GetByLocationIdAsync("loc1", It.IsAny<CancellationToken>()), Times.Once);
@@ -94,7 +96,7 @@ public sealed class TableServiceTests
         _tableRepo.Setup(r => r.GetByLocationIdAsync("loc1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Table> { MakeTable("loc1", 1, capacity: 2) }.AsReadOnly());
 
-        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: 4, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: 4, excludeReservationId: null, ct: default);
 
         result.Value.Should().BeEmpty();
         _tableRepo.Verify(r => r.GetByLocationIdAsync("loc1", It.IsAny<CancellationToken>()), Times.Once);
@@ -111,7 +113,7 @@ public sealed class TableServiceTests
         _locationRepo.Setup(r => r.GetByIdAsync("loc1", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Location?)null);
 
-        var act = async () => await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: null, ct: default);
+        var act = async () => await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: null, excludeReservationId: null, ct: default);
 
         await act.Should().ThrowAsync<InvalidDataException>();
     }
@@ -129,7 +131,7 @@ public sealed class TableServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, TableDay>());
 
-        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: null, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: null, excludeReservationId: null, ct: default);
 
         result.Value.Should().HaveCount(1);
         result.Value[0].TableNumber.Should().Be(1);
@@ -159,7 +161,7 @@ public sealed class TableServiceTests
                 }
             });
 
-        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: new TimeOnly(10, 0), locationId: "loc1", capacity: null, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: new TimeOnly(10, 0), locationId: "loc1", capacity: null, excludeReservationId: null, ct: default);
 
         result.Value.Should().BeEmpty();
     }
@@ -177,7 +179,7 @@ public sealed class TableServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, TableDay>());
 
-        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: new TimeOnly(10, 0), locationId: "loc1", capacity: null, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: new TimeOnly(10, 0), locationId: "loc1", capacity: null, excludeReservationId: null, ct: default);
 
         result.Value.Should().HaveCount(1);
         result.Value[0].TableNumber.Should().Be(1);
@@ -188,9 +190,9 @@ public sealed class TableServiceTests
     {
         _tableRepo.Setup(r => r.GetByLocationIdAsync("loc1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Table> { MakeTable("loc1", 1) }.AsReadOnly());
-        // Shift 10:00â€“13:00. Reserving 11:15â€“12:00 (+15 min gap) creates:
-        //   - free window 10:00â€“11:00 = 60 min -> qualifies, kept in slots
-        //   - free window 12:15â€“12:45 = 30 min -> below threshold, excluded from slots
+        // Shift 10:00–13:00. Reserving 11:15–12:00 (+15 min gap) creates:
+        //   - free window 10:00–11:00 = 60 min -> qualifies, kept in slots
+        //   - free window 12:15–12:45 = 30 min -> below threshold, excluded from slots
         _locationRepo.Setup(r => r.GetByIdAsync("loc1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeUtcLocation("loc1", openTime: "10:00", closeTime: "13:00"));
         _tableDayRepo.Setup(r => r.GetManyByTablesAndDateAsync(
@@ -213,7 +215,7 @@ public sealed class TableServiceTests
                 }
             });
 
-        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: null, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: null, excludeReservationId: null, ct: default);
 
         result.Value.Should().HaveCount(1);
         result.Value[0].AvailableSlots.Should().HaveCount(1, because: "only the 60-min window qualifies; the 30-min window is below the threshold");
@@ -234,7 +236,7 @@ public sealed class TableServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, TableDay>());
 
-        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: null, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: null, excludeReservationId: null, ct: default);
 
         result.Value.Should().BeEmpty();
     }
@@ -256,7 +258,7 @@ public sealed class TableServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, TableDay>());
 
-        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: 4, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: 4, excludeReservationId: null, ct: default);
 
         result.Value.Should().HaveCount(1);
         result.Value[0].TableNumber.Should().Be(2);
@@ -311,7 +313,7 @@ public sealed class TableServiceTests
                 }
             });
 
-        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: new TimeOnly(13, 0), locationId: null, capacity: null, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: new TimeOnly(13, 0), locationId: null, capacity: null, excludeReservationId: null, ct: default);
 
         result.Value.Should().HaveCount(1, because: "the Tbilisi table has 13:00 local reserved; the UTC table does not");
         result.Value[0].LocationId.Should().Be("loc-utc");
@@ -330,10 +332,10 @@ public sealed class TableServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, TableDay>());
 
-        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: null, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: null, locationId: "loc1", capacity: null, excludeReservationId: null, ct: default);
 
         result.Value.Should().HaveCount(1);
-        result.Value[0].AvailableSlots.Should().HaveCount(1, because: "the entire 12-hour shift is free â€” no split at midnight");
+        result.Value[0].AvailableSlots.Should().HaveCount(1, because: "the entire 12-hour shift is free — no split at midnight");
         result.Value[0].AvailableSlots[0].StartOffset.Should().Be(FutureDateAt(14, 0));
         result.Value[0].AvailableSlots[0].EndOffset.Should().Be(FutureDateNextDayAt(1, 45));
     }
@@ -359,7 +361,7 @@ public sealed class TableServiceTests
                 }
             });
 
-        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: new TimeOnly(1, 0), locationId: "loc1", capacity: null, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(FutureDate, time: new TimeOnly(1, 0), locationId: "loc1", capacity: null, excludeReservationId: null, ct: default);
 
         result.Value.Should().BeEmpty();
     }
@@ -369,7 +371,7 @@ public sealed class TableServiceTests
     {
         var pastDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1);
 
-        var result = await _sut.GetAvailableTablesAsync(pastDate, time: null, locationId: null, capacity: null, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(pastDate, time: null, locationId: null, capacity: null, excludeReservationId: null, ct: default);
 
         result.IsFailed.Should().BeTrue();
         result.Errors[0].Should().Be(TableErrors.RequestedSlotsFromPast);
@@ -380,7 +382,7 @@ public sealed class TableServiceTests
     {
         var farFutureDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(15);
 
-        var result = await _sut.GetAvailableTablesAsync(farFutureDate, time: null, locationId: null, capacity: null, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(farFutureDate, time: null, locationId: null, capacity: null, excludeReservationId: null, ct: default);
 
         result.IsFailed.Should().BeTrue();
         result.Errors[0].Should().Be(TableErrors.RequestedSlotsFromFarFuture);
@@ -397,7 +399,7 @@ public sealed class TableServiceTests
         _locationRepo.Setup(r => r.GetByIdAsync("loc1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeUtcLocation("loc1", openTime: "00:00", closeTime: "23:45"));
 
-        var result = await _sut.GetAvailableTablesAsync(today, time: pastLocalTime, locationId: "loc1", capacity: null, ct: default);
+        var result = await _sut.GetAvailableTablesAsync(today, time: pastLocalTime, locationId: "loc1", capacity: null, excludeReservationId: null, ct: default);
 
         result.Value.Should().BeEmpty(because: "the requested time is in the past for this location's timezone");
         _tableDayRepo.VerifyNoOtherCalls();

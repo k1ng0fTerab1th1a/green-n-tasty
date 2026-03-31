@@ -803,6 +803,7 @@ public sealed class FakeFeedbackService : IFeedbackService
             TimeOnly? time,
             string? locationId,
             int? capacity,
+            string? excludeReservationId,
             CancellationToken ct)
         {
             LastDate = date;

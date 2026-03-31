@@ -10,5 +10,6 @@ public interface ITableService
         TimeOnly? time,
         string? locationId,
         int? capacity,
+        string? excludeReservationId,
         CancellationToken ct);
 }
