@@ -13,4 +13,5 @@ public interface IFeedbackRepository
     Task<bool> IsFeedbackAlreadyMade(string reservationId, string feedbackType, CancellationToken ct);
 
     Task<Feedback?> GetByIdAsync(string feedbackId, CancellationToken ct);
+    Task UpdateFeedback(Feedback feedback, CancellationToken ct);
 }

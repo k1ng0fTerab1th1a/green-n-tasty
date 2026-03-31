@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Restaurant.Api.Contracts.Requests;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Api.Extensions;
 using Restaurant.Core.DTOs;
@@ -62,5 +63,12 @@ public class FeedbacksController : ControllerBase
         if (res.IsSuccess)
             return ApiResponse<WaiterLocationFeedbackDTO>.Success(200, res.Value);
         return res.Errors[0].ToApiResponse<WaiterLocationFeedbackDTO>();
+    }
+
+    [HttpPut("update-feedback")]
+    public async Task<ApiResponse<object>> UpdateFeedback([FromBody] UpdateFeedbackRequest request,
+        CancellationToken ct)
+    {
+        
     }
 }

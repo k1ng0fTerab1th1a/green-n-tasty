@@ -16,7 +16,7 @@ public class Feedback
 
     [DynamoDBProperty("reservationId")]
     [DynamoDBGlobalSecondaryIndexHashKey("reservationId-index")]
-    public string? ReservationId { get; set; }
+    public string ReservationId { get; set; } = string.Empty;
 
     [DynamoDBProperty("rate")]
     public int Rate { get; set; }

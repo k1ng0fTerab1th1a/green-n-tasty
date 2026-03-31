@@ -129,4 +129,9 @@ public class FeedbackRepository(IDynamoDBContext context,
         var feedback = await context.LoadAsync<Feedback?>(feedbackId, ct);
         return feedback;
     }
+
+    public async Task UpdateFeedback(Feedback feedback, CancellationToken ct)
+    {
+        await context.SaveAsync(feedback, ct);
+    }
 }

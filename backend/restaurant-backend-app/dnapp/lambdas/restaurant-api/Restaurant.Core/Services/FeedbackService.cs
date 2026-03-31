@@ -147,58 +147,107 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         return Result.Ok(qrCode);
     }
 
-    public async Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(string reservationId, bool
-            isForUpdate, CancellationToken ct)
+    public async Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(string reservationId, bool isForUpdate, CancellationToken ct)
     {
         var reservation = await reservationRepository.GetByIdAsync(reservationId, ct);
         if (reservation == null)
             return ReservationErrors.ReservationNotFound;
-        WaiterLocationFeedbackDTO resultDto = new WaiterLocationFeedbackDTO();
 
-        var cuisineRatingData = await locationRepository.GetLocationFeedbacksDataAsync(reservation.LocationId, ct);
+        // cuisine, waiter, and (optionally) both feedbacks — all in parallel
+        var cuisineTask = locationRepository.GetLocationFeedbacksDataAsync(reservation.LocationId, ct);
+        var waiterTask  = userRepository.GetWaiterFeedbackDataAsync(reservation.WaiterId, ct);
 
-        double cuisineRating = cuisineRatingData.feedbacksAmount <= 0 ? 0 
-            : cuisineRatingData.rating / (double) cuisineRatingData.feedbacksAmount;
+        var kitchenFeedbackTask = isForUpdate && !string.IsNullOrEmpty(reservation.KitchenFeedbackId)
+            ? feedbackRepository.GetByIdAsync(reservation.KitchenFeedbackId, ct)
+            : Task.FromResult<Feedback?>(null);
 
-        resultDto.CuisineRating = cuisineRating;
-        resultDto.CuisineFeedbacksNumber = cuisineRatingData.feedbacksAmount;
+        var serviceFeedbackTask = isForUpdate && !string.IsNullOrEmpty(reservation.ServiceFeedbackId)
+            ? feedbackRepository.GetByIdAsync(reservation.ServiceFeedbackId, ct)
+            : Task.FromResult<Feedback?>(null);
 
-        var waiterRatingData = await userRepository.GetWaiterFeedbackDataAsync(reservation.WaiterId, ct);
+        await Task.WhenAll(cuisineTask, waiterTask, kitchenFeedbackTask, serviceFeedbackTask);
 
-        double waiterRating = waiterRatingData.WaiterFeedbacksNumber <= 0 ? 0 
-            : waiterRatingData.WaiterRating / (double) waiterRatingData.WaiterFeedbacksNumber;
-        
-        resultDto.WaiterRating = waiterRating;
-        resultDto.WaiterFeedbacksNumber = waiterRatingData.WaiterFeedbacksNumber;
-        resultDto.WaiterName = waiterRatingData.WaiterName;
-        resultDto.WaiterImageUrl = waiterRatingData.WaiterImageUrl;
+        var cuisineRatingData = await cuisineTask;
+        var waiterRatingData  = await waiterTask;
+        var kitchenFeedback   = await kitchenFeedbackTask;
+        var serviceFeedback   = await serviceFeedbackTask;
 
-        if (isForUpdate && !string.IsNullOrEmpty(reservation.KitchenFeedbackId))
+        var resultDto = new WaiterLocationFeedbackDTO
         {
-            if (resultDto.UpdateUserData == null) resultDto.UpdateUserData = new FeedbackOfUserDTO();
-            var kitchenFeedback = await feedbackRepository.GetByIdAsync(reservation.KitchenFeedbackId, ct);
+            CuisineRating          = cuisineRatingData.feedbacksAmount <= 0 ? 0 : cuisineRatingData.rating / (double)cuisineRatingData.feedbacksAmount,
+            CuisineFeedbacksNumber = cuisineRatingData.feedbacksAmount,
+            WaiterRating           = waiterRatingData.WaiterFeedbacksNumber <= 0 ? 0 : waiterRatingData.WaiterRating / (double)waiterRatingData.WaiterFeedbacksNumber,
+            WaiterFeedbacksNumber  = waiterRatingData.WaiterFeedbacksNumber,
+            WaiterName             = waiterRatingData.WaiterName,
+            WaiterImageUrl         = waiterRatingData.WaiterImageUrl
+        };
+
+        if (kitchenFeedback != null || serviceFeedback != null)
+        {
+            resultDto.UpdateUserData = new FeedbackOfUserDTO();
+
             if (kitchenFeedback != null)
             {
                 resultDto.UpdateUserData.KitchenFeedbackId = reservation.KitchenFeedbackId;
-                resultDto.UpdateUserData.KitchenComment = kitchenFeedback.Comment;
-                resultDto.UpdateUserData.KitchenRating = kitchenFeedback.Rate;
+                resultDto.UpdateUserData.KitchenComment    = kitchenFeedback.Comment;
+                resultDto.UpdateUserData.KitchenRating     = kitchenFeedback.Rate;
             }
-        }
 
-        if (isForUpdate && !string.IsNullOrEmpty(reservation.ServiceFeedbackId))
-        {
-            if (resultDto.UpdateUserData == null) resultDto.UpdateUserData = new FeedbackOfUserDTO();
-            var serviceFeedback = await feedbackRepository.GetByIdAsync(reservation.ServiceFeedbackId, ct);
             if (serviceFeedback != null)
             {
                 resultDto.UpdateUserData.ServiceFeedbackId = reservation.ServiceFeedbackId;
-                resultDto.UpdateUserData.ServiceComment = serviceFeedback.Comment;
-                resultDto.UpdateUserData.ServiceRating = serviceFeedback.Rate;
+                resultDto.UpdateUserData.ServiceComment    = serviceFeedback.Comment;
+                resultDto.UpdateUserData.ServiceRating     = serviceFeedback.Rate;
             }
-            
         }
 
         return Result.Ok(resultDto);
+    }
+
+    public async Task<Result> UpdateFeedback(string feedbackId, string comment, int rating, string feedbackType,
+        CancellationToken ct)
+    {
+        var feedback = await feedbackRepository.GetByIdAsync(feedbackId, ct);
+        if (feedback == null)
+            return FeedbackErrors.FeedbackNotFound;
+
+        var validation = ValidateRatingAndComment(rating, comment);
+        if (validation != null)
+            return validation;
+        
+        var reservation = await reservationRepository.GetByIdAsync(feedback.ReservationId, ct);
+        if (reservation == null)
+            return ReservationErrors.ReservationNotFound;
+
+        if (feedbackType == "waiter")
+        {
+            var waiter = await userRepository.GetByIdAsync(reservation.WaiterId, ct);
+            if (waiter == null)
+                return ReservationErrors.WaiterNotFound;
+
+            waiter.TotalRating = waiter.TotalRating - feedback.Rate + rating;
+        }
+        else if (feedbackType == "kitchen")
+        {
+            var location = await locationRepository.GetByIdAsync(reservation.LocationId, ct);
+            if (location == null)
+                return ReservationErrors.LocationNotFound;
+
+            location.TotalRating = location.TotalRating - feedback.Rate + rating;
+        }
+
+        feedback.Rate = rating;
+        feedback.Comment = comment;
+        // here I will need to update feedback and then update user or location somehow
+        try
+        {
+            await feedbackRepository.UpdateFeedback(feedback, ct);
+            return Result.Ok();
+        }
+        catch (Exception)
+        {
+            return FeedbackErrors.FeedbackUpdateUnsuccessful;
+        }
     }
     
     private static Result ValidateFeedbackData(CreateFeedbackDTO dto)
@@ -211,7 +260,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
                ?? Result.Ok();
     }
 
-    private static Result ValidateRatingAndComment(int? rating, string? comment)
+    private static Result? ValidateRatingAndComment(int? rating, string? comment)
     {
         if (rating < 1 || rating > 5)
             return FeedbackErrors.RatingValidationDiapasonError;
