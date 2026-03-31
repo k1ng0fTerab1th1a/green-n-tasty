@@ -18,6 +18,7 @@ public class BookingController(ITableService _tableService) : ControllerBase
         [FromQuery] string? time,
         [FromQuery] string? locationId,
         [FromQuery] int? guests,
+        [FromQuery] string? excludeReservationId,
         CancellationToken ct)
     {
         if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out var parsedDate))
@@ -34,7 +35,8 @@ public class BookingController(ITableService _tableService) : ControllerBase
             }
         }
 
-        var availableTables = await _tableService.GetAvailableTablesAsync(parsedDate, parsedTime, locationId, guests, ct);
+        var availableTables = await _tableService.GetAvailableTablesAsync(
+            new GetAvailableTablesQuery(parsedDate, parsedTime, locationId, guests, excludeReservationId), ct);
 
         if (availableTables.IsFailed)
         {
