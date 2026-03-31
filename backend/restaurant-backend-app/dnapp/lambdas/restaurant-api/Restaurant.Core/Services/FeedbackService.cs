@@ -1,9 +1,11 @@
 using FluentResults;
+using Microsoft.Extensions.Options;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
+using Restaurant.Core.SharedModels;
 
 namespace Restaurant.Core.Services;
 
