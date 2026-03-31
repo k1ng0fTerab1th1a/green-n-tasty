@@ -40,5 +40,8 @@ public static class FeedbackErrors
     
     public static BusinessError FeedbackUpdateUnsuccessful =>
         new("Feedback update unsuccessful", ErrorType.Validation);
-    
+
+    public static BusinessError FeedbackWrongType =>
+        new("Wrong feedback type entered", ErrorType.Validation);
+
 }

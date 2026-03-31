@@ -15,4 +15,7 @@ public interface IFeedbackService
         CancellationToken ct);
 
     Task<Result<byte[]>> GenerateFeedbackQr(string reservationId, CancellationToken ct);
+
+    Task<Result> UpdateFeedback(string feedbackId, string comment, int rating, string feedbackType,
+        CancellationToken ct);
 }

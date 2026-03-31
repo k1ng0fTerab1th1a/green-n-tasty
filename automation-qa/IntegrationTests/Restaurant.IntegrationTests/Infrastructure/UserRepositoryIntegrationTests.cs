@@ -37,9 +37,10 @@ public class UserRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
             UpdatedAt = DateTimeOffset.UtcNow.ToString("O")
         };
 
-        await _repo.CreateAsync(user);
+        CancellationToken ct = CancellationToken.None;
+        await _repo.CreateAsync(user, ct);
 
-        var loaded = await _context.LoadAsync<User>(userId);
+        var loaded = await _context.LoadAsync<User>(userId, ct);
 
         loaded.Should().NotBeNull();
         loaded!.Role.Should().Be("CUSTOMER");
@@ -66,9 +67,10 @@ public class UserRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
             UpdatedAt = DateTimeOffset.UtcNow.ToString("O")
         };
 
-        await _repo.CreateAsync(user);
+        CancellationToken ct = CancellationToken.None;
+        await _repo.CreateAsync(user, ct);
 
-        var loaded = await _context.LoadAsync<User>(userId);
+        var loaded = await _context.LoadAsync<User>(userId, ct);
 
         loaded.Should().NotBeNull();
         loaded!.Role.Should().Be("WAITER");
@@ -150,7 +152,8 @@ public class UserRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
             CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
             UpdatedAt = DateTimeOffset.UtcNow.ToString("O")
         };
+        CancellationToken ct = CancellationToken.None;
 
-        await _repo.CreateAsync(user);
+        await _repo.CreateAsync(user, ct);
     }
 }

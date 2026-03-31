@@ -219,28 +219,37 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         if (reservation == null)
             return ReservationErrors.ReservationNotFound;
 
-        if (feedbackType == "waiter")
-        {
-            var waiter = await userRepository.GetByIdAsync(reservation.WaiterId, ct);
-            if (waiter == null)
-                return ReservationErrors.WaiterNotFound;
-
-            waiter.TotalRating = waiter.TotalRating - feedback.Rate + rating;
-        }
-        else if (feedbackType == "kitchen")
-        {
-            var location = await locationRepository.GetByIdAsync(reservation.LocationId, ct);
-            if (location == null)
-                return ReservationErrors.LocationNotFound;
-
-            location.TotalRating = location.TotalRating - feedback.Rate + rating;
-        }
-
-        feedback.Rate = rating;
-        feedback.Comment = comment;
-        // here I will need to update feedback and then update user or location somehow
         try
         {
+            switch (feedbackType)
+            {
+                case "waiter":
+                {
+                    var waiter = await userRepository.GetByIdAsync(reservation.WaiterId, ct);
+                    if (waiter == null)
+                        return ReservationErrors.WaiterNotFound;
+
+                    waiter.TotalRating = RecalculateRating(waiter.TotalRating, feedback.Rate, rating);
+                    await userRepository.CreateAsync(waiter, ct, true);
+                    break;
+                }
+                case "kitchen":
+                {
+                    var location = await locationRepository.GetByIdAsync(reservation.LocationId, ct);
+                    if (location == null)
+                        return ReservationErrors.LocationNotFound;
+
+                    location.TotalRating = RecalculateRating(location.TotalRating, feedback.Rate, rating);
+
+                    await locationRepository.UpdateAsync(location, ct);
+                    break;
+                }
+                default:
+                    return FeedbackErrors.FeedbackWrongType;
+            }
+
+            feedback.Rate = rating;
+            feedback.Comment = comment;
             await feedbackRepository.UpdateFeedback(feedback, ct);
             return Result.Ok();
         }
@@ -270,6 +279,9 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
 
         return null;
     }
+    
+    private int RecalculateRating(int currentTotal, int oldRate, int newRate)
+        => currentTotal - oldRate + newRate;
     
     
     private static Feedback BuildFeedback(
