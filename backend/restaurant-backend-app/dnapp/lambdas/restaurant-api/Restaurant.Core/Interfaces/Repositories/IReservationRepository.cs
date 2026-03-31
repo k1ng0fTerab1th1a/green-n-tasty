@@ -21,7 +21,6 @@ public interface IReservationRepository
     Task<IReadOnlyList<Reservation>> QueryByWaiterAsync(
         string waiterId,
         string? startFromIso,
-        string? startToIso,
         CancellationToken ct);
 
     Task<bool> CreateWithSlotsAsync(Reservation reservation, DateOnly date, List<string> slots, CancellationToken ct);

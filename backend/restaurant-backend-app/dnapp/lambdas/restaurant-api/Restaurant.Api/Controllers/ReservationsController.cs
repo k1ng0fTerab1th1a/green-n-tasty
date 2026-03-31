@@ -20,16 +20,30 @@ public sealed class ReservationsController : ControllerBase
         _reservationService = reservationService;
     }
 
-    [HttpGet]
+    [HttpGet("customer")]
     [ProducesResponseType(typeof(ApiResponse<List<ReservationResponse>>), StatusCodes.Status200OK)]
-    public async Task<ApiResponse<List<ReservationResponse>>> GetMy(CancellationToken ct)
+    public async Task<ApiResponse<List<ReservationResponse>>> GetByCustomer(CancellationToken ct)
     {
         var actorUserId = User.GetUserId();
-        var actorIsWaiter = User.IsWaiter();
+        var result = await _reservationService.GetByCustomer(actorUserId, ct);
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<List<ReservationResponse>>();
 
-        var items = await _reservationService.GetMyAsync(actorUserId, actorIsWaiter, ct);
+        var dto = result.Value.Select(x => x.ToResponse()).ToList();
+        return ApiResponse<List<ReservationResponse>>.Success(StatusCodes.Status200OK, dto);
+    }
 
-        var dto = items.Select(x => x.ToResponse()).ToList();
+    [HttpGet("waiter")]
+    [Authorize(Roles = "WAITER")]
+    [ProducesResponseType(typeof(ApiResponse<List<ReservationResponse>>), StatusCodes.Status200OK)]
+    public async Task<ApiResponse<List<ReservationResponse>>> GetByWaiter([FromQuery] DateOnly? date, CancellationToken ct)
+    {
+        var actorUserId = User.GetUserId();
+        var result = await _reservationService.GetByWaiter(actorUserId, date, ct);
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<List<ReservationResponse>>();
+
+        var dto = result.Value.Select(x => x.ToResponse()).ToList();
         return ApiResponse<List<ReservationResponse>>.Success(StatusCodes.Status200OK, dto);
     }
 

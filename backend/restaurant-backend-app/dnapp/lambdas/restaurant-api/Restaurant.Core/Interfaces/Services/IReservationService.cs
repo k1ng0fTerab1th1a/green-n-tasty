@@ -7,7 +7,8 @@ namespace Restaurant.Core.Interfaces.Services;
 public interface IReservationService
 {
     Task<Result<Reservation>> GetByIdAsync(string id, string actorUserId, bool actorIsWaiter, CancellationToken ct);
-    Task<IReadOnlyList<Reservation>> GetMyAsync(string actorUserId, bool actorIsWaiter, CancellationToken ct);
+    Task<Result<IReadOnlyList<Reservation>>> GetByCustomer(string actorUserId, CancellationToken ct);
+    Task<Result<IReadOnlyList<Reservation>>> GetByWaiter(string actorUserId, DateOnly? date, CancellationToken ct);
     Task<Result> CancelReservation(string reservationId, string userId, bool isWaiter, CancellationToken ct);
     Task<Result<Reservation>> CreateForClientAsync(string customerId, CreateReservationDTO dto, CancellationToken ct);
     Task<Result<Reservation>> CreateForWaiterAsync(string waiterId, CreateReservationForWaiterDTO dto, CancellationToken ct);
