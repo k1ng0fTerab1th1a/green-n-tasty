@@ -11,7 +11,7 @@ public class Dish
     [DynamoDBProperty("name")]
     public string Name { get; set; }
 
-    [DynamoDBProperty("dishType")] 
+    [DynamoDBProperty("dishType")]
     public string DishType { get; set; } = string.Empty;
 
     [DynamoDBProperty("price")]
@@ -43,6 +43,9 @@ public class Dish
 
     [DynamoDBProperty("vitamins")]
     public string? Vitamins { get; set; }
+
+    [DynamoDBProperty("popularity")]
+    public int Popularity { get; set; }
 
     [DynamoDBGlobalSecondaryIndexHashKey("PopularDishesIndex")]
     [DynamoDBProperty("popularityFlag")]

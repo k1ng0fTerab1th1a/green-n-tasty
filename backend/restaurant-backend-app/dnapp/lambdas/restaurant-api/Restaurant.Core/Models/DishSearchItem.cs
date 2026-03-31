@@ -29,6 +29,9 @@ public sealed class DishSearchItem
     [DynamoDBProperty("weight")]
     public int? Weight { get; set; }
 
+    [DynamoDBProperty("popularity")]
+    public int Popularity { get; set; }
+
     [DynamoDBProperty("state")]
     public string State { get; set; } = "ON";
 }

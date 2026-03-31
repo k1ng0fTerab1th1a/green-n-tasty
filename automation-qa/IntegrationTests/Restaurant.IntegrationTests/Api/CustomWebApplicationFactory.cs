@@ -166,10 +166,13 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastReservationId = dto.ReservationId;
             LastCreateDto = dto;
 
+            if (CreateFailResult is not null)
+                return Task.FromResult(Result.Fail<Order>(CreateFailResult));
+
             if (FailResult is not null)
                 return Task.FromResult(Result.Fail<Order>(FailResult));
 
-            return Task.FromResult(Result.Ok(Response));
+            return Task.FromResult(Result.Ok(CreateResponse));
         }
 
         public Task<Result<Order>> GetByReservationAsync(string actorId, string reservationId, CancellationToken ct)

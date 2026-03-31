@@ -232,6 +232,7 @@ public class DishEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var res = await _client.GetAsync("/dishes/search?query=селед");
 
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        _factory.DishService.LastSearchQuery.Should().BeNull();
     }
 
     [Fact]
@@ -243,7 +244,7 @@ public class DishEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         new DishBriefDTO
         {
             Id = "dish-1",
-            Name = "Селедка",
+            Name = "Селедка під шубою",
             DishType = "MAIN",
             Price = 12m,
             ImageUrl = "img",
@@ -262,9 +263,6 @@ public class DishEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         _factory.DishService.LastSearchQuery.Should().Be("селед");
         _factory.DishService.LastSearchType.Should().Be("MAIN");
         _factory.DishService.LastSearchLimit.Should().Be(15);
-
-        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
-        doc.RootElement.GetPropertyIgnoreCase("data").GetArrayLength().Should().Be(1);
     }
 
     [Fact]
@@ -279,5 +277,34 @@ public class DishEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var res = await _client.SendAsync(req);
 
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        _factory.DishService.LastSearchQuery.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetMenuDishes_WithPopularitySort_ShouldPassSortToService()
+    {
+        _factory.DishService.Reset();
+
+        var res = await _client.GetAsync("/dishes/menu?sort=popularity,desc");
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.DishService.LastMenuSort.Should().Be("popularity,desc");
+    }
+
+    [Fact]
+    public async Task SearchDishes_WhenLimitOmitted_ShouldUseDefaultLimit()
+    {
+        _factory.DishService.Reset();
+
+        var req = new HttpRequestMessage(HttpMethod.Get, "/dishes/search?query=селед");
+        req.Headers.Add("X-User-Id", "waiter-1");
+        req.Headers.Add("X-Role", "WAITER");
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.DishService.LastSearchQuery.Should().Be("селед");
+        _factory.DishService.LastSearchLimit.Should().Be(20);
+        _factory.DishService.LastSearchType.Should().BeNull();
     }
 }

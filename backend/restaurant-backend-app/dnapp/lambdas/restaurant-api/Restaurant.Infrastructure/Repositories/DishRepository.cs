@@ -53,18 +53,42 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
         return await _context.LoadAsync<Dish>(dishId, ct);
     }
 
+    public async Task IncrementPopularityAsync(string dishId, int quantity, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(dishId) || quantity <= 0)
+            return;
+
+        var request = new UpdateItemRequest
+        {
+            TableName = DishesTable,
+            Key = new Dictionary<string, AttributeValue>
+            {
+                ["id"] = new() { S = dishId }
+            },
+            UpdateExpression = "ADD popularity :increment SET popularityFlag = :popularityFlag",
+            ConditionExpression = "attribute_exists(id)",
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            {
+                [":increment"] = new() { N = quantity.ToString(System.Globalization.CultureInfo.InvariantCulture) },
+                [":popularityFlag"] = new() { S = "true" }
+            }
+        };
+
+        await _client.UpdateItemAsync(request, ct);
+    }
+
     // !!!IMPORTANT(шоб не забути)!!! So basically here we don't need GSI since the amount of dishes is not big and 
     //probably initially we will load all the dishes. But if we add GSI we can move to QueryRequest which will reduce 
     // RCU cost.
     public async Task<IReadOnlyList<DishBriefDTO>> GetShortenedDishesAsync(
-        string? type,
-        string sort,
-        CancellationToken ct = default)
+     string? type,
+     string sort,
+     CancellationToken ct = default)
     {
         var request = new ScanRequest
         {
             TableName = DishesTable,
-            ProjectionExpression = "id, #n, dishType, price, imageUrl, #w, #s",
+            ProjectionExpression = "id, #n, dishType, price, imageUrl, #w, #s, popularity",
             ExpressionAttributeNames = new Dictionary<string, string>
             {
                 ["#n"] = "name",
@@ -188,8 +212,13 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
             var request = new ScanRequest
             {
                 TableName = DishSearchTable,
-                ProjectionExpression = "token, dishId",
-                FilterExpression = "dishId = :dishId",
+                ProjectionExpression = "#token, #dishId",
+                FilterExpression = "#dishId = :dishId",
+                ExpressionAttributeNames = new Dictionary<string, string>
+                {
+                    ["#token"] = "token",
+                    ["#dishId"] = "dishId"
+                },
                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                 {
                     [":dishId"] = new() { S = dishId }
@@ -247,7 +276,11 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
             var request = new QueryRequest
             {
                 TableName = DishSearchTable,
-                KeyConditionExpression = "token = :token",
+                KeyConditionExpression = "#token = :token",
+                ExpressionAttributeNames = new Dictionary<string, string>
+                {
+                    ["#token"] = "token"
+                },
                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                 {
                     [":token"] = new() { S = token }
@@ -277,7 +310,12 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
             var request = new ScanRequest
             {
                 TableName = DishSearchTable,
-                ProjectionExpression = "token, dishId",
+                ProjectionExpression = "#token, #dishId",
+                ExpressionAttributeNames = new Dictionary<string, string>
+                {
+                    ["#token"] = "token",
+                    ["#dishId"] = "dishId"
+                },
                 ExclusiveStartKey = lastKey
             };
 
@@ -385,6 +423,7 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
                     Price = dish.Price,
                     ImageUrl = dish.ImageUrl,
                     Weight = dish.Weight,
+                    Popularity = dish.Popularity,
                     State = dish.State
                 };
             }
@@ -397,12 +436,15 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
         Name = item.TryGetValue("name", out var name) ? name.S : string.Empty,
         DishType = item.TryGetValue("dishType", out var type) ? type.S : string.Empty,
         Price = item.TryGetValue("price", out var price)
-            ? decimal.Parse(price.N, NumberStyles.Number, CultureInfo.InvariantCulture)
+            ? decimal.Parse(price.N, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture)
             : 0m,
         ImageUrl = item.TryGetValue("imageUrl", out var imgUrl) ? imgUrl.S : null,
         Weight = item.TryGetValue("weight", out var weight)
-            ? int.Parse(weight.N, NumberStyles.Integer, CultureInfo.InvariantCulture)
+            ? int.Parse(weight.N, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture)
             : null,
+        Popularity = item.TryGetValue("popularity", out var popularity)
+            ? int.Parse(popularity.N, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture)
+            : 0,
         State = item.TryGetValue("state", out var state) ? state.S : "ON"
     };
 
@@ -414,12 +456,15 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
         Name = item.TryGetValue("name", out var name) ? name.S : string.Empty,
         DishType = item.TryGetValue("dishType", out var type) ? type.S : string.Empty,
         Price = item.TryGetValue("price", out var price)
-            ? decimal.Parse(price.N, NumberStyles.Number, CultureInfo.InvariantCulture)
+            ? decimal.Parse(price.N, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture)
             : 0m,
         ImageUrl = item.TryGetValue("imageUrl", out var image) ? image.S : null,
         Weight = item.TryGetValue("weight", out var weight)
-            ? int.Parse(weight.N, NumberStyles.Integer, CultureInfo.InvariantCulture)
+            ? int.Parse(weight.N, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture)
             : null,
+        Popularity = item.TryGetValue("popularity", out var popularity)
+            ? int.Parse(popularity.N, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture)
+            : 0,
         State = item.TryGetValue("state", out var state) ? state.S : "ON"
     };
 
@@ -431,6 +476,7 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
         Price = item.Price,
         ImageUrl = item.ImageUrl,
         Weight = item.Weight,
+        Popularity = item.Popularity,
         State = item.State
     };
 
@@ -478,6 +524,7 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
             "dishtype" => d => d.DishType,
             "price" => d => d.Price,
             "weight" => d => d.Weight ?? 0,
+            "popularity" => d => d.Popularity,
             _ => d => d.Name
         };
 

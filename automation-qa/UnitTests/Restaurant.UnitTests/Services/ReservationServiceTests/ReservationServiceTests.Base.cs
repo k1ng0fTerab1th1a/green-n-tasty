@@ -49,7 +49,7 @@ public sealed partial class ReservationServiceTests
             ImageUrl = "http://img/loc-1",
             TotalCapacity = 120,
             AverageOccupancy = 0.35,
-            TotalRating = 460,
+            TotalRating = 464,
             FeedbacksAmount = 100
         };
 

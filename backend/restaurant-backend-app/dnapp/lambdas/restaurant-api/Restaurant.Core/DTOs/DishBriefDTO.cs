@@ -8,6 +8,7 @@ public class DishBriefDTO
     public decimal Price { get; set; }
     public string? ImageUrl { get; set; }
     public int? Weight { get; set; }
+    public int Popularity { get; set; }
     public string State { get; set; } = "ON";
 }
 

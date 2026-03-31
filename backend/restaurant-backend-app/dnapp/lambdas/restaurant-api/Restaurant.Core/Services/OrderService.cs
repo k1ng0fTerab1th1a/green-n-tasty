@@ -20,6 +20,15 @@ public class OrderService(
         if (dto.Dishes.Count == 0)
             return OrderErrors.NoDishesProvided;
 
+        var normalizedItems = dto.Dishes
+            .GroupBy(x => x.DishId, StringComparer.Ordinal)
+            .Select(x => new OrderDishItemDTO
+            {
+                DishId = x.Key,
+                Quantity = x.Sum(y => y.Quantity)
+            })
+            .ToList();
+
         var reservationResult = await GetReservationForActorAsync(actorId, dto.ReservationId, ct);
         if (reservationResult.IsFailed)
             return Result.Fail<Order>(reservationResult.Errors);
@@ -33,7 +42,7 @@ public class OrderService(
         if (existingOrder is not null)
             return OrderErrors.OrderAlreadyExists;
 
-        var dishIds = dto.Dishes.Select(x => x.DishId).Distinct().ToList();
+        var dishIds = normalizedItems.Select(x => x.DishId).Distinct().ToList();
         var dishes = await _dishRepo.GetByIdsAsync(dishIds, ct);
 
         var notFound = dishIds.Except(dishes.Select(d => d.Id)).FirstOrDefault();
@@ -45,7 +54,7 @@ public class OrderService(
             return OrderErrors.DishNotAvailable(inactiveDish.Id);
 
         var dishMap = dishes.ToDictionary(d => d.Id);
-        var dishSnapshots = dto.Dishes.Select(item =>
+        var dishSnapshots = normalizedItems.Select(item =>
         {
             var dish = dishMap[item.DishId];
             return new OrderDishSnapshot
@@ -123,10 +132,10 @@ public class OrderService(
     }
 
     public async Task<Result<Order>> AddDishAsync(
-        string actorId,
-        string reservationId,
-        AddDishToOrderDTO dto,
-        CancellationToken ct = default)
+    string actorId,
+    string reservationId,
+    AddDishToOrderDTO dto,
+    CancellationToken ct = default)
     {
         var reservationResult = await GetReservationForActorAsync(actorId, reservationId, ct);
         if (reservationResult.IsFailed)
@@ -260,10 +269,10 @@ public class OrderService(
     }
 
     public async Task<Result<Order>> CompleteAsync(
-        string actorId,
-        string reservationId,
-        CompleteOrderDTO dto,
-        CancellationToken ct = default)
+    string actorId,
+    string reservationId,
+    CompleteOrderDTO dto,
+    CancellationToken ct = default)
     {
         var reservationResult = await GetReservationForActorAsync(actorId, reservationId, ct);
         if (reservationResult.IsFailed)
@@ -299,10 +308,16 @@ public class OrderService(
             dto.OperationId,
             ct);
 
-        if (completed)
-            return order;
+        if (!completed)
+            return await ResolveMutationConflictAsync(reservationId, dto.OperationId, ct);
 
-        return await ResolveMutationConflictAsync(reservationId, dto.OperationId, ct);
+        await IncrementPopularityAsync(
+            order.Dishes
+                .GroupBy(x => x.DishId)
+                .Select(x => (DishId: x.Key, Quantity: x.Sum(y => y.Quantity))),
+            ct);
+
+        return order;
     }
 
     private async Task<Result<Reservation>> GetReservationForActorAsync(
@@ -335,6 +350,19 @@ public class OrderService(
         }
 
         return OrderErrors.OrderStateConflict;
+    }
+
+    private async Task IncrementPopularityAsync(
+        IEnumerable<(string DishId, int Quantity)> increments,
+        CancellationToken ct)
+    {
+        foreach (var item in increments)
+        {
+            if (string.IsNullOrWhiteSpace(item.DishId) || item.Quantity <= 0)
+                continue;
+
+            await _dishRepo.IncrementPopularityAsync(item.DishId, item.Quantity, ct);
+        }
     }
 
     private static decimal CalculateTotalAmount(IEnumerable<OrderDishSnapshot> dishes)

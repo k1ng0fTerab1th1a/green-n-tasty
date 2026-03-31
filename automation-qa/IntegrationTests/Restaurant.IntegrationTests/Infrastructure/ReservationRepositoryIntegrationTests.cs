@@ -9,7 +9,6 @@ namespace Restaurant.Infrastructure.IntegrationTests;
 
 [Collection("DynamoDb collection")]
 public sealed class ReservationRepositoryIntegrationTests
-    : IClassFixture<DynamoDbFixture>
 {
     private readonly DynamoDBContext _context;
     private readonly IAmazonDynamoDB _client;

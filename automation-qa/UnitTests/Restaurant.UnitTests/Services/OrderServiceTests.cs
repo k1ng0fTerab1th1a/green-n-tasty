@@ -76,6 +76,10 @@ public sealed class OrderServiceTests
             .Setup(r => r.GetByIdAsync("res-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
 
+        _orderRepo
+            .Setup(r => r.GetByReservationIdAsync("res-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Order?)null);
+
         _dishRepo
             .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Dish> { BuildDish("dish-1", "ON", 12m) });
@@ -86,10 +90,13 @@ public sealed class OrderServiceTests
         result.Errors[0].Should().Be(OrderErrors.DishNotFound("dish-2"));
 
         _reservationRepo.Verify(r => r.GetByIdAsync("res-1", It.IsAny<CancellationToken>()), Times.Once);
-        _dishRepo.Verify(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()), Times.Once);
         _reservationRepo.VerifyNoOtherCalls();
-        _dishRepo.VerifyNoOtherCalls();
+
+        _orderRepo.Verify(r => r.GetByReservationIdAsync("res-1", It.IsAny<CancellationToken>()), Times.Once);
         _orderRepo.VerifyNoOtherCalls();
+
+        _dishRepo.Verify(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _dishRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -102,6 +109,10 @@ public sealed class OrderServiceTests
             .Setup(r => r.GetByIdAsync("res-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
 
+        _orderRepo
+            .Setup(r => r.GetByReservationIdAsync("res-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Order?)null);
+
         _dishRepo
             .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Dish> { BuildDish("dish-1", "OFF", 12m) });
@@ -112,10 +123,13 @@ public sealed class OrderServiceTests
         result.Errors[0].Should().Be(OrderErrors.DishNotAvailable("dish-1"));
 
         _reservationRepo.Verify(r => r.GetByIdAsync("res-1", It.IsAny<CancellationToken>()), Times.Once);
-        _dishRepo.Verify(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()), Times.Once);
         _reservationRepo.VerifyNoOtherCalls();
-        _dishRepo.VerifyNoOtherCalls();
+
+        _orderRepo.Verify(r => r.GetByReservationIdAsync("res-1", It.IsAny<CancellationToken>()), Times.Once);
         _orderRepo.VerifyNoOtherCalls();
+
+        _dishRepo.Verify(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _dishRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -378,6 +392,10 @@ public sealed class OrderServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
+        _dishRepo
+            .Setup(r => r.IncrementPopularityAsync("dish-1", 2, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         var dto = new CompleteOrderDTO
         {
             OperationId = "op-4"
@@ -393,6 +411,7 @@ public sealed class OrderServiceTests
 
         _reservationRepo.VerifyAll();
         _orderRepo.VerifyAll();
+        _dishRepo.Verify(r => r.IncrementPopularityAsync("dish-1", 2, It.IsAny<CancellationToken>()), Times.Once);
         _dishRepo.VerifyNoOtherCalls();
     }
 

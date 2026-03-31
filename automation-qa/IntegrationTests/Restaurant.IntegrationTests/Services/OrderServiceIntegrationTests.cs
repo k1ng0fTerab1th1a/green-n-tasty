@@ -57,34 +57,25 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
         reservationAfter.Should().NotBeNull();
         reservationAfter!.DishCount.Should().Be(0);
 
-        var orderSearch = _context.QueryAsync<Order>(reservation.Id, new DynamoDBOperationConfig
-        {
-            IndexName = "reservationId-index"
-        });
-        var orders = await orderSearch.GetRemainingAsync();
-        orders.Should().BeEmpty();
+        var order = await _context.LoadAsync<Order>(reservation.Id);
+        order.Should().BeNull();
+
+        var dishAfter = await _context.LoadAsync<Dish>(unavailableDish.Id);
+        dishAfter!.Popularity.Should().Be(0);
     }
 
     [Fact]
-    public async Task CreateAsyncForReservation_WhenValidRequest_PersistsOrderAndUpdatesDishCount()
+    public async Task CreateAsyncForReservation_WhenValidRequest_PersistsOrder_UpdatesDishCount_AndIncrementsPopularity()
     {
         var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.InProgress, dishCount: 0);
-        var dish1 = BuildDish("dish-1", state: "ON", price: 10m);
-        var dish2 = BuildDish("dish-2", state: "ON", price: 25m);
+        var dish1 = BuildDish("dish-1", state: "ON", price: 10m, popularity: 2);
+        var dish2 = BuildDish("dish-2", state: "ON", price: 25m, popularity: 0);
 
         await _context.SaveAsync(reservation);
         await _context.SaveAsync(dish1);
         await _context.SaveAsync(dish2);
 
-        var dto = new CreateOrderDTO
-        {
-            ReservationId = reservation.Id,
-            Dishes = new List<OrderDishItemDTO>
-            {
-                new() { DishId = dish1.Id, Quantity = 2 },
-                new() { DishId = dish2.Id, Quantity = 1 }
-            }
-        };
+        var dto = BuildDto(reservation.Id, (dish1.Id, 2), (dish2.Id, 1));
 
         var result = await _sut.CreateAsyncForReservation("waiter-1", dto, CancellationToken.None);
 
@@ -98,14 +89,21 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
         var order = await _context.LoadAsync<Order>(reservation.Id);
         order.Should().NotBeNull();
         order!.Dishes.Should().HaveCount(2);
+
+        var dish1After = await _context.LoadAsync<Dish>(dish1.Id);
+        var dish2After = await _context.LoadAsync<Dish>(dish2.Id);
+        dish1After!.Popularity.Should().Be(2);
+        dish2After!.Popularity.Should().Be(0);
+        dish1After.PopularityFlag.Should().Be("true");
+        dish2After.PopularityFlag.Should().BeNull();
     }
 
     [Fact]
-    public async Task AddDishAsync_WhenOperationIdRepeated_DoesNotIncrementTwice()
+    public async Task AddDishAsync_WhenOperationIdRepeated_DoesNotIncrementDishCountOrPopularityTwice()
     {
         var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.InProgress, dishCount: 2);
         var existingOrder = BuildOrder(reservation.Id);
-        var newDish = BuildDish("dish-2", state: "ON", price: 25m);
+        var newDish = BuildDish("dish-2", state: "ON", price: 25m, popularity: 7);
 
         await _context.SaveAsync(reservation);
         await _context.SaveAsync(existingOrder);
@@ -129,16 +127,22 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
 
         var orderAfter = await _context.LoadAsync<Order>(reservation.Id);
         orderAfter!.ProcessedOperationIds.Should().Contain("op-add-dup");
+        orderAfter.Dishes.Should().ContainSingle(x => x.DishId == newDish.Id && x.Quantity == 1);
+
+        var dishAfter = await _context.LoadAsync<Dish>(newDish.Id);
+        dishAfter!.Popularity.Should().Be(7);
     }
 
     [Fact]
-    public async Task DeleteDishAsync_WhenValidRequest_UpdatesOrderAndReservationDishCount()
+    public async Task DeleteDishAsync_WhenValidRequest_UpdatesOrderAndReservationDishCount_ButDoesNotDecreasePopularity()
     {
         var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.InProgress, dishCount: 2);
         var existingOrder = BuildOrder(reservation.Id);
+        var dish = BuildDish("dish-1", state: "ON", price: 10m, popularity: 5);
 
         await _context.SaveAsync(reservation);
         await _context.SaveAsync(existingOrder);
+        await _context.SaveAsync(dish);
 
         var dto = new DeleteDishFromOrderDTO
         {
@@ -157,6 +161,9 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
         var orderAfter = await _context.LoadAsync<Order>(reservation.Id);
         orderAfter!.Dishes.Should().ContainSingle();
         orderAfter.Dishes[0].Quantity.Should().Be(1);
+
+        var dishAfter = await _context.LoadAsync<Dish>(dish.Id);
+        dishAfter!.Popularity.Should().Be(5);
     }
 
     [Fact]
@@ -164,7 +171,9 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
     {
         var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.MealsServed, dishCount: 2);
         var existingOrder = BuildOrder(reservation.Id);
+        var dish = BuildDish("dish-1", state: "ON", price: 10m, popularity: 5);
 
+        await _context.SaveAsync(dish);
         await _context.SaveAsync(reservation);
         await _context.SaveAsync(existingOrder);
 
@@ -181,7 +190,23 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
         var orderAfter = await _context.LoadAsync<Order>(reservation.Id);
         orderAfter!.Status.Should().Be(OrderStatus.Completed);
         orderAfter.CompletedAt.Should().NotBeNull();
+        var dishAfter = await _context.LoadAsync<Dish>("dish-1");
+        dishAfter!.Popularity.Should().Be(7);
+        dishAfter.PopularityFlag.Should().Be("true");
     }
+
+    private static CreateOrderDTO BuildDto(string reservationId, params (string DishId, int Quantity)[] dishes)
+        => new()
+        {
+            ReservationId = reservationId,
+            Dishes = dishes
+                .Select(x => new OrderDishItemDTO
+                {
+                    DishId = x.DishId,
+                    Quantity = x.Quantity
+                })
+                .ToList()
+        };
 
     private static Reservation BuildReservation(string waiterId, ReservationStatus status, int dishCount)
     {
@@ -209,17 +234,23 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
         };
     }
 
-    private static Dish BuildDish(string id, string state, decimal price = 12m)
-        => new()
+    private static Dish BuildDish(string? id = null, string state = "ON", decimal price = 12m, int popularity = 0)
+    {
+        var resolvedId = id ?? $"dish-{Guid.NewGuid():N}";
+
+        return new Dish
         {
-            Id = id,
-            Name = $"Dish {id}",
+            Id = resolvedId,
+            Name = $"Dish {resolvedId}",
             DishType = "MAIN",
             Price = price,
             State = state,
             Description = "desc",
-            ImageUrl = "img"
+            ImageUrl = "img",
+            Popularity = popularity,
+            PopularityFlag = popularity > 0 ? "true" : null
         };
+    }
 
     private static Order BuildOrder(string reservationId)
         => new()
