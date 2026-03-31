@@ -8,7 +8,7 @@ import {
     DishDetailsModal,
     Toast
 } from "../../components/index.js";
-import { getMenuDishes, getDishById, downloadMenuFile } from "../../services/dishes";
+import {getMenuDishes, getDishById, getMenuDownloadUrl} from "../../services/dishes";
 import styles from "./MenuPage.module.css";
 import fallbackImage from "../../assets/images/main-hero.jpg";
 
@@ -87,11 +87,18 @@ export default function MenuPage() {
     const handleDownloadMenu = async () => {
         try {
             setIsDownloading(true);
-            await downloadMenuFile();
-            showToast("success", "Success", "Menu download started!");
+            const result = await getMenuDownloadUrl();
+
+            if (result.isSuccess && result.data) {
+                window.location.assign(result.data);
+
+                showToast("success", "Success", "Opening menu...");
+            } else {
+                throw new Error(result.message || "Link not found");
+            }
         } catch (err) {
-            console.error("Download failed", err);
-            showToast("error", "Error", "Could not load menu");
+            console.error("Download failed:", err);
+            showToast("error", "Error", "Could not load menu link");
         } finally {
             setIsDownloading(false);
         }
@@ -135,7 +142,7 @@ export default function MenuPage() {
                                 disabled={isDownloading}
                                 className={styles.downloadBtn}
                             >
-                                {isDownloading ? "Downloading..." : "Download Menu (PDF)"}
+                                {isDownloading ? "Opening..." : "Open Menu (PDF)"}
                             </Button>
                         </div>
                     </div>

@@ -27,24 +27,34 @@ export const getDishById = async (id) => {
     }
 };
 
-export const downloadMenuFile = async () => {
+export const getMenuDownloadUrl = async () => {
     try {
-        const response = await api.get("/dishes/menu-file", {
-            responseType: 'blob'
-        });
-
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', 'GreenAndTasty_Menu.pdf');
-
-        document.body.appendChild(link);
-        link.click();
-
-        link.parentNode.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        const response = await api.get("/dishes/menu-url");
+        return response.data;
     } catch (error) {
-        console.error("Error downloading menu file:", error);
-        throw error;
+        console.error("Error fetching menu URL:", error);
+        return { isSuccess: false, message: error.response?.data?.message || error.message };
     }
 };
+
+// export const downloadMenuFile = async () => {
+//     try {
+//         const response = await api.get("/dishes/menu-file", {
+//             responseType: 'blob'
+//         });
+//
+//         const url = window.URL.createObjectURL(new Blob([response.data]));
+//         const link = document.createElement('a');
+//         link.href = url;
+//         link.setAttribute('download', 'GreenAndTasty_Menu.pdf');
+//
+//         document.body.appendChild(link);
+//         link.click();
+//
+//         link.parentNode.removeChild(link);
+//         window.URL.revokeObjectURL(url);
+//     } catch (error) {
+//         console.error("Error downloading menu file:", error);
+//         throw error;
+//     }
+// };
