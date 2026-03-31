@@ -21,7 +21,6 @@ public interface IReservationRepository
     Task<IReadOnlyList<Reservation>> QueryByWaiterAsync(
         string waiterId,
         string? startFromIso,
-        string? startToIso,
         CancellationToken ct);
 
     Task<bool> CreateWithSlotsAsync(Reservation reservation, DateOnly date, List<string> slots, CancellationToken ct);
@@ -60,4 +59,7 @@ public interface IReservationRepository
 
     Task<Result<(string waiterId, string locationId)>> GetWaiterAndLocationIdFromReservationAsync(string reservationId,
         CancellationToken ct = default);
+    
+    Task<Result> SetFeedbackIdInReservation(string reservationId, string feedbackId, string fieldName,
+        CancellationToken ct);
 }

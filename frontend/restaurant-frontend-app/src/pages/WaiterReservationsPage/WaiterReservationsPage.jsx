@@ -4,9 +4,13 @@ import {
     PageBanner,
     Toast,
     Button,
+    Dropdown,
+    CreateReservationModal,
     WaiterReservationCard,
-    Dropdown
+    CreateOrderModal,
+    EditOrderModal
 } from "../../components/index.js";
+
 import { useAuth } from "../../auth/AuthContext.jsx";
 import styles from "./WaiterReservationsPage.module.css";
 
@@ -17,70 +21,58 @@ import chevronDownIcon from "../../assets/icons/chevron-down.svg";
 
 const MOCK_RESERVATIONS = [
     {
-        id: 1,
+        id: "res-1",
+        locationId: "loc-1",
         locationAddress: "48 Rustaveli Avenue",
         startDateTime: "2024-10-14T10:30:00",
         endDateTime: "2024-10-14T12:00:00",
         dishCount: 2,
-        customerName: "Jasmine Smith",
+        visitorName: "Jasmine Smith",
+        waiterName: "Alex Caper",
         guestsCount: 10,
         tableNumber: 1,
-        status: "Pre-order"
+        status: "Reserved",
+        isCreatedByWaiter: false
     },
     {
-        id: 2,
+        id: "res-2",
+        locationId: "loc-1",
         locationAddress: "48 Rustaveli Avenue",
-        startDateTime: "2024-10-14T10:30:00",
-        endDateTime: "2024-10-14T12:00:00",
+        startDateTime: "2024-10-14T11:00:00",
+        endDateTime: "2024-10-14T13:00:00",
         dishCount: 0,
-        customerName: "Alex Caper (Visitor 1)",
+        visitorName: "Alex Caper",
+        waiterName: "Alex Caper",
         guestsCount: 5,
         tableNumber: 2,
-        status: ""
+        status: "InProgress",
+        isCreatedByWaiter: true
     },
     {
-        id: 3,
+        id: "res-3",
+        locationId: "loc-1",
         locationAddress: "48 Rustaveli Avenue",
-        startDateTime: "2024-10-14T10:30:00",
-        endDateTime: "2024-10-14T12:00:00",
-        dishCount: 2,
-        customerName: "Guadalupe Rath",
+        startDateTime: "2024-10-14T12:30:00",
+        dishCount: 4,
+        visitorName: "Guadalupe Rath",
+        waiterName: "Sarah Connor",
         guestsCount: 10,
         tableNumber: 3,
-        status: "Pre-order"
+        status: "MealsServed",
+        isCreatedByWaiter: false
     },
     {
-        id: 4,
+        id: "res-4",
+        locationId: "loc-1",
         locationAddress: "48 Rustaveli Avenue",
-        startDateTime: "2024-10-14T10:30:00",
-        endDateTime: "2024-10-14T12:00:00",
-        dishCount: 0,
-        customerName: "John Doe",
-        guestsCount: 4,
-        tableNumber: 4,
-        status: ""
-    },
-    {
-        id: 5,
-        locationAddress: "48 Rustaveli Avenue",
-        startDateTime: "2024-10-14T10:30:00",
-        endDateTime: "2024-10-14T12:00:00",
-        dishCount: 2,
-        customerName: "Marie Curie",
-        guestsCount: 2,
-        tableNumber: 5,
-        status: "Pre-order"
-    },
-    {
-        id: 6,
-        locationAddress: "48 Rustaveli Avenue",
-        startDateTime: "2024-10-14T10:30:00",
-        endDateTime: "2024-10-14T12:00:00",
-        dishCount: 0,
-        customerName: "Steve Jobs",
-        guestsCount: 8,
-        tableNumber: 6,
-        status: ""
+        startDateTime: "2024-10-14T12:30:00",
+        dishCount: 4,
+        visitorName: "Guadalupe Rath",
+        waiterName: "Sarah Connor",
+        guestsCount: 10,
+        tableNumber: 3,
+        status: "Finished",
+        isCreatedByWaiter: false
     }
 ];
 
@@ -88,11 +80,16 @@ export default function WaiterReservationsPage() {
     const { auth } = useAuth();
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [toast, setToast] = useState({ open: false, type: "success", title: "", message: "" });
 
-    const [filterDate, setFilterDate] = useState("2024-10-12");
-    const [filterTime, setFilterTime] = useState("10:30"); // Формат 24г
+    const [filterDate, setFilterDate] = useState("2024-10-14");
+    const [filterTime, setFilterTime] = useState("10:30");
     const [filterTable, setFilterTable] = useState("any");
+
+    const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+    const [selectedReservation, setSelectedReservation] = useState(null);
+    const [isEditOrderModalOpen, setIsEditOrderModalOpen] = useState(false);
 
     const welcomeTitle = `Hello, ${auth?.username || "Alex Caper"} (Waiter)`;
 
@@ -104,18 +101,42 @@ export default function WaiterReservationsPage() {
         return () => clearTimeout(timer);
     }, []);
 
-    const tableOptions = [
-        { value: "any", label: "Any table" },
-        { value: "1", label: "Table 1" },
-        { value: "2", label: "Table 2" },
-        { value: "3", label: "Table 3" }
-    ];
+    const showToast = (type, title, message) => {
+        setToast({ open: true, type, title, message });
+    };
+
+    const handleCreateReservation = async (data) => {
+        console.log("Form data submitted:", data);
+        showToast("success", "Success", "New Reservation has been created successfully.");
+        setIsCreateModalOpen(false);
+    };
 
     const displayDate = new Date(filterDate).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
+        month: "short", day: "numeric", year: "numeric",
     });
+
+    const handleOpenOrderModal = (reservation) => {
+        setSelectedReservation(reservation);
+        setIsOrderModalOpen(true);
+    };
+
+    const handleConfirmOrder = (dishes) => {
+        console.log("Order created for:", selectedReservation.id, "Dishes:", dishes);
+        showToast("success", "Success", "Order has been created successfully.");
+        setIsOrderModalOpen(false);
+    };
+
+    const handleSaveOrderChanges = (dishes) => {
+        console.log("Changes saved:", dishes);
+        setIsEditOrderModalOpen(false);
+        showToast(
+            "success",
+            "Success",
+            "All changes has been saved successfully."
+        );
+    };
+
+
 
     return (
         <MainLayout role="waiter">
@@ -123,9 +144,9 @@ export default function WaiterReservationsPage() {
                 <PageBanner title={welcomeTitle} />
 
                 <div className={styles.contentContainer}>
+                    {/* Фільтри */}
                     <div className={styles.filtersWrapper}>
                         <div className={styles.filtersBar}>
-
                             <div className={styles.filterInputGroup}>
                                 <img src={calendarIcon} alt="" className={styles.fieldIcon} />
                                 <div className={styles.nativeInputWrap}>
@@ -155,11 +176,14 @@ export default function WaiterReservationsPage() {
                             </div>
 
                             <Dropdown
-                                options={tableOptions}
+                                options={[
+                                    { value: "any", label: "Any table" },
+                                    { value: "1", label: "Table 1" },
+                                    { value: "2", label: "Table 2" }
+                                ]}
                                 value={filterTable}
                                 onChange={setFilterTable}
                                 className={styles.filterDropdown}
-                                controlClassName={styles.dropdownControl}
                             />
 
                             <button className={styles.searchBtn}>
@@ -172,7 +196,7 @@ export default function WaiterReservationsPage() {
                         <p className={`${styles.summaryText} body`}>
                             You have <strong>{reservations.length} reservations</strong> for {displayDate}, {filterTime}
                         </p>
-                        <Button className={styles.createBtn} size="lg">
+                        <Button className={styles.createBtn} onClick={() => setIsCreateModalOpen(true)}>
                             Create New Reservation
                         </Button>
                     </div>
@@ -184,22 +208,45 @@ export default function WaiterReservationsPage() {
                             {reservations.map((res) => (
                                 <WaiterReservationCard
                                     key={res.id}
-                                    booking={{
-                                        ...res,
-                                        address: res.locationAddress,
-                                        date: "Oct 14, 2024",
-                                        time: "10:30 - 12:00",
-                                        guests: res.guestsCount,
-                                        table: `Table ${res.tableNumber}`
+                                    booking={res}
+                                    onEdit={() => console.log("Edit Reservation Info")}
+
+                                    onEditOrder={() => {
+                                        setSelectedReservation(res);
+                                        setIsEditOrderModalOpen(true);
                                     }}
-                                    onCancel={() => console.log("Cancel", res.id)}
-                                    onEdit={() => console.log("Edit", res.id)}
+
+                                    onCreateOrder={handleOpenOrderModal}
+                                    onStart={() => showToast("success", "Started", "Reservation is now in progress")}
+                                    onFinish={() => showToast("success", "Finished", "Reservation completed")}
+                                    onMealServed={() => showToast("success", "Served", "Meals have been served")}
+                                    onReceipt={() => showToast("success", "Receipt", "Generating receipt...")}
                                 />
                             ))}
                         </div>
                     )}
                 </div>
             </div>
+
+            <CreateReservationModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onConfirm={handleCreateReservation}
+            />
+
+            <CreateOrderModal
+                isOpen={isOrderModalOpen}
+                onClose={() => setIsOrderModalOpen(false)}
+                reservation={selectedReservation}
+                onConfirm={handleConfirmOrder}
+            />
+
+            <EditOrderModal
+                isOpen={isEditOrderModalOpen}
+                onClose={() => setIsEditOrderModalOpen(false)}
+                reservation={selectedReservation}
+                onSave={handleSaveOrderChanges}
+            />
 
             <Toast
                 {...toast}

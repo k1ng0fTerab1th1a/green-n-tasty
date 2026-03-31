@@ -99,28 +99,4 @@ public class FeedbackRepository(IDynamoDBContext context,
             ? attr.S
             : null;
     }
-
-    public async Task<bool> IsFeedbackAlreadyMade(string reservationId, string feedbackType, CancellationToken ct)
-    {
-        var request = new QueryRequest
-        {
-            TableName                 = "Feedbacks",
-            IndexName                 = "reservationId-index",
-            KeyConditionExpression    = "reservationId = :rid",
-            FilterExpression          = "#t = :type",
-            ExpressionAttributeNames  = new Dictionary<string, string>
-            {
-                ["#t"] = "type"  // "type" is a reserved word in DynamoDB
-            },
-            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-            {
-                [":rid"]  = new AttributeValue { S = reservationId },
-                [":type"] = new AttributeValue { S = feedbackType }
-            },
-            Select = Select.COUNT  // we only need the count, skip deserializing documents
-        };
-
-        var response = await client.QueryAsync(request, ct);
-        return response.Count > 0;
-    }
 }

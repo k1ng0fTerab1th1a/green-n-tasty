@@ -71,13 +71,9 @@ public sealed class ReservationRepository : IReservationRepository
     }
 
     public Task<IReadOnlyList<Reservation>> QueryByWaiterAsync(string waiterId, CancellationToken ct)
-        => QueryByWaiterAsync(waiterId, null, null, ct);
+        => QueryByWaiterAsync(waiterId, null, ct);
 
-    public async Task<IReadOnlyList<Reservation>> QueryByWaiterAsync(
-        string waiterId,
-        string? startFromIso = null,
-        string? startToIso = null,
-        CancellationToken ct = default)
+    public async Task<IReadOnlyList<Reservation>> QueryByWaiterAsync(string waiterId, string? startFromIso = null, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(waiterId))
             return Array.Empty<Reservation>();
@@ -85,12 +81,12 @@ public sealed class ReservationRepository : IReservationRepository
         var op = new DynamoDBOperationConfig { IndexName = WaiterIndex };
 
         AsyncSearch<Reservation> search;
-        if (!string.IsNullOrWhiteSpace(startFromIso) && !string.IsNullOrWhiteSpace(startToIso))
+        if (!string.IsNullOrWhiteSpace(startFromIso))
         {
             search = _context.QueryAsync<Reservation>(
                 waiterId,
-                QueryOperator.Between,
-                new[] { startFromIso!, startToIso! },
+                QueryOperator.BeginsWith,
+                [startFromIso!],
                 op);
         }
         else
@@ -418,7 +414,40 @@ public sealed class ReservationRepository : IReservationRepository
         ));
 
     }
-    
+
+    public async Task<Result> SetFeedbackIdInReservation(string reservationId, string feedbackId, string fieldName,
+        CancellationToken ct)
+    {
+        var request = new UpdateItemRequest
+        {
+            TableName = "Reservations",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "id", new AttributeValue { S = reservationId } }
+            },
+            UpdateExpression = "SET #f = :feedbackId",
+            ConditionExpression = "attribute_exists(id) AND attribute_not_exists(#f)",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#f", fieldName }
+            },
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            {
+                { ":feedbackId", new AttributeValue { S = feedbackId } }
+            }
+        };
+
+        try
+        {
+            await _dynamoDb.UpdateItemAsync(request, ct);
+            return Result.Ok();
+        }
+        catch (Exception)
+        {
+            return ReservationErrors.UpdateFailed;
+        }
+    }
+
     private async Task<Result> UpdateSameTableSameDayAsync(
         Dictionary<string, AttributeValue> reservationItem,
         List<string> newSlots,

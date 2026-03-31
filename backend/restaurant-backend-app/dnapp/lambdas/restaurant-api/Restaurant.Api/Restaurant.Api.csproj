@@ -19,6 +19,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\..\..\Restaurant.Reports\Restaurant.Reports.csproj" />
 	  <ProjectReference Include="..\Restaurant.Core\Restaurant.Core.csproj" />
 	  <ProjectReference Include="..\Restaurant.Infrastructure\Restaurant.Infrastructure.csproj" />
 	</ItemGroup>

@@ -11,6 +11,7 @@ export default function DishCard({
                                      available = true,
                                      badgeText,
                                      onPreOrder,
+                                     onClick,
                                      currency = "$",
                                      className = "",
                                  }) {
@@ -22,7 +23,8 @@ export default function DishCard({
     return (
         <div
             className={`${styles.card} ${available ? styles.available : styles.notAvailable} ${className}`}
-            aria-disabled={!available}
+            onClick={available ? onClick : null} // 2. Вішаємо подію (тільки якщо доступно)
+            style={{ cursor: available ? 'pointer' : 'default' }} // Додай курсор для UX
         >
             {!available ? <div className={styles.badge}>{stopLabel}</div> : null}
 

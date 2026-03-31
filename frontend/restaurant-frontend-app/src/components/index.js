@@ -26,6 +26,12 @@ export { default as PageBanner } from "./common/PageBanner/PageBanner"
 export { default as Breadcrumbs } from "./common/Breadcrumbs/Breadcrumbs"
 export { default as WaiterReservationCard } from "./cards/WaiterReservationCard/WaiterReservationCard";
 export { default as TableSelector } from "./ui/TableSelector/TableSelector";
+export { default as CreateReservationModal } from "./modals/CreateReservationModal/CreateReservationModal";
 export { default as FeedbackModal } from "./modals/FeedbackModal/FeedbackModal";
-export { default as Checkbox } from "./ui/Checkbox/Checkbox";
+export { default as DishDetailsModal } from "./modals/DishDetailsModal/DishDetailsModal";
 export { default as Radio } from "./ui/Radio/Radio";
+export { default as CreateOrderModal } from "./modals/CreateOrderModal/CreateOrderModal";
+export { default as SearchDropdown } from "./ui/SearchDropdown/SearchDropdown";
+export { default as SelectedDishCard } from "./cards/SelectedDishCard/SelectedDishCard";
+export { default as EditOrderModal } from "./modals/EditOrderModal/EditOrderModal";
+export { default as Checkbox } from "./ui/Checkbox/Checkbox";

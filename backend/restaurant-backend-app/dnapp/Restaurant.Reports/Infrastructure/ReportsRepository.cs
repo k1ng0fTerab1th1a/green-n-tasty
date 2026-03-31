@@ -1,6 +1,5 @@
 ﻿using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
-using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
 using Restaurant.Core.Models;
 using Restaurant.Reports.Domain.Entities;
@@ -23,9 +22,7 @@ public class ReportsRepository : IReportsRepository
     public ReportsRepository()
     {
         _client = new AmazonDynamoDBClient();
-        _dbContext = new DynamoDBContextBuilder()
-            .WithDynamoDBClient(() => _client)
-            .Build();
+        _dbContext = new DynamoDBContext(_client);
     }
 
     public async Task<Reservation?> GetReservationAsync(string reservationId, CancellationToken ct)
@@ -42,7 +39,7 @@ public class ReportsRepository : IReportsRepository
     {
         var query = _dbContext.QueryAsync<Order>(
             reservationId,
-            new QueryConfig
+            new DynamoDBOperationConfig
             {
                 IndexName = "reservationId-index"
             }
@@ -56,7 +53,7 @@ public class ReportsRepository : IReportsRepository
     {
         var query = _dbContext.QueryAsync<Feedback>(
             reservationId,
-            new QueryConfig
+            new DynamoDBOperationConfig
             {
                 IndexName = "reservationId-index"
             }
@@ -165,7 +162,6 @@ public class ReportsRepository : IReportsRepository
 
         return users;
     }
-
     public async Task<Dictionary<string, int>> GetWaiterShiftCountsAsync(DateTime from, DateTime to, CancellationToken ct)
     {
         var fromStr = from.ToString("yyyy-MM-dd");
@@ -222,17 +218,17 @@ public class ReportsRepository : IReportsRepository
             CompletedAt = item["completedAt"].S,
             Date = item["date"].S,
             WaiterId = item["waiterId"].S,
-            TotalRevenue = decimal.Parse(item["totalRevenue"].N),
+            TotalRevenue = decimal.Parse(item["totalRevenue"].N, CultureInfo.InvariantCulture),
             DurationMinutes = item.TryGetValue("durationMinutes", out var dur)
-                ? int.Parse(dur.N)
+                ? int.Parse(dur.N, CultureInfo.InvariantCulture)
                 : 0,
 
             ServiceFeedback = item.TryGetValue("serviceFeedback", out var sf)
-                ? int.Parse(sf.N)
+                ? int.Parse(sf.N, CultureInfo.InvariantCulture)
                 : null,
 
             CuisineFeedback = item.TryGetValue("cuisineFeedback", out var cf)
-                ? int.Parse(cf.N)
+                ? int.Parse(cf.N, CultureInfo.InvariantCulture)
                 : null
         };
     }

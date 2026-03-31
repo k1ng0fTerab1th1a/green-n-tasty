@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal, Tab, Star, Button } from "../../index.js";
 import styles from "./FeedbackModal.module.css";
 
@@ -8,12 +8,18 @@ export default function FeedbackModal({
                                           onSubmit,
                                           reservationId,
                                           waiter,
+                                          bookingStatus,
                                           initialData
                                       }) {
     const [activeTab, setActiveTab] = useState("service");
     const [serviceRating, setServiceRating] = useState(initialData?.serviceRating || 4);
     const [culinaryRating, setCulinaryRating] = useState(initialData?.culinaryRating || 4);
-    const [comment, setComment] = useState(initialData?.comment || "");
+
+    const [serviceComment, setServiceComment] = useState(initialData?.serviceComment || "");
+    const [cuisineComment, setCuisineComment] = useState(initialData?.cuisineComment || "");
+
+    // Кухня сіра ТІЛЬКИ якщо статус InProgress
+    const isCulinaryDisabled = bookingStatus?.toLowerCase().replace(/\s+/g, "") === "inprogress";
 
     const displayWaiter = waiter || {
         name: "Mario Jast",
@@ -23,14 +29,20 @@ export default function FeedbackModal({
     };
 
     const handleSubmit = () => {
+        const isService = activeTab === "service";
+        if (!isService && isCulinaryDisabled) return;
+
         onSubmit?.({
             reservationId,
-            serviceRating,
-            culinaryRating,
-            comment,
-            submittedAt: new Date().toISOString()
+            serviceRating: isService ? serviceRating : 0,
+            serviceComment: isService ? serviceComment : "",
+            culinaryRating: !isService ? culinaryRating : 0,
+            cuisineComment: !isService ? cuisineComment : ""
         });
     };
+
+    const isCurrentTabDisabled = activeTab === "culinary" && isCulinaryDisabled;
+    const currentComment = activeTab === "service" ? serviceComment : cuisineComment;
 
     return (
         <Modal
@@ -44,7 +56,11 @@ export default function FeedbackModal({
                     <Tab active={activeTab === "service"} onClick={() => setActiveTab("service")}>
                         Service
                     </Tab>
-                    <Tab active={activeTab === "culinary"} onClick={() => setActiveTab("culinary")}>
+                    <Tab
+                        active={activeTab === "culinary"}
+                        onClick={() => setActiveTab("culinary")}
+                        className={isCulinaryDisabled ? styles.grayTab : ""}
+                    >
                         Culinary Experience
                     </Tab>
                 </div>
@@ -82,14 +98,22 @@ export default function FeedbackModal({
                             </div>
                         </div>
                     ) : (
-                        <div className={styles.culinarySection}>
+                        <div className={`${styles.culinarySection} ${isCulinaryDisabled ? styles.disabledContent : ""}`}>
+                            {isCulinaryDisabled && (
+                                <div className={styles.infoBox}>
+                                    <p className={styles.infoText}>
+                                        <b>Kitchen feedback is currently unavailable.</b><br/>
+                                        You can rate the culinary experience once your meal has been served.
+                                    </p>
+                                </div>
+                            )}
                             <div className={styles.ratingRow}>
                                 <div className={styles.stars}>
                                     {[1, 2, 3, 4, 5].map((val) => (
                                         <Star
                                             key={val}
                                             checked={val <= culinaryRating}
-                                            onChange={() => setCulinaryRating(val)}
+                                            onChange={() => !isCulinaryDisabled && setCulinaryRating(val)}
                                             size={32}
                                         />
                                     ))}
@@ -102,14 +126,24 @@ export default function FeedbackModal({
                     <div className={styles.commentField}>
                         <textarea
                             className={styles.textarea}
-                            placeholder="Add your comments"
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
+                            placeholder={isCurrentTabDisabled ? "Feedback is locked for this section" : "Add your comments"}
+                            value={currentComment}
+                            onChange={(e) => {
+                                if (activeTab === "service") setServiceComment(e.target.value);
+                                else setCuisineComment(e.target.value);
+                            }}
+                            disabled={isCurrentTabDisabled}
                         />
                     </div>
                 </div>
 
-                <Button variant="primary" fullWidth onClick={handleSubmit} className={styles.submitBtn}>
+                <Button
+                    variant={isCurrentTabDisabled ? "secondary" : "primary"}
+                    fullWidth
+                    onClick={handleSubmit}
+                    className={styles.submitBtn}
+                    disabled={isCurrentTabDisabled}
+                >
                     Submit Feedback
                 </Button>
             </div>

@@ -58,6 +58,8 @@ public class UserRepository : IUserRepository
             .ToList();
     }
 
+
+
     public async Task<(string username, string? iamgeUrl)> GetUserDataForFeedbackCreationByIdAsync(string userId, 
         CancellationToken ct = default)
     {
@@ -193,4 +195,16 @@ public class UserRepository : IUserRepository
 
         await _context.SaveAsync(user, ct);
     }
+    
+    public async Task UpdateUserNameAsync(string userId, string firstName, string lastName, CancellationToken ct)
+    {
+        var user = await _context.LoadAsync<User>(userId, ct);
+        if (user == null) return;
+
+        user.FirstName = firstName;
+        user.LastName = lastName;
+        user.UpdatedAt = DateTime.UtcNow.ToString("o");
+
+        await _context.SaveAsync(user, ct);
+    } 
 }

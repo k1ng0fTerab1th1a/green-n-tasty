@@ -453,7 +453,7 @@ public sealed class ReservationRepositoryIntegrationTests
     }
 
     [Fact]
-    public async Task UpdateLifecycleAsync_MarkMealsServed_ShouldSetMealsServedStatus_WithoutChangingSlots()
+    public async Task UpdateAsync_MarkMealServed_ShouldSetFlag_WithoutChangingSlots()
     {
         var id = Guid.NewGuid().ToString("N");
         var tableKey = $"loc-lifecycle#{Guid.NewGuid():N}";
@@ -493,18 +493,14 @@ public sealed class ReservationRepositoryIntegrationTests
             Ttl = DateTimeOffset.UtcNow.AddDays(2).ToUnixTimeSeconds()
         });
 
-        reservation.Status = ReservationStatus.MealsServed;
+        reservation.IsMealServed = true;
         reservation.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
 
-        var result = await _repo.UpdateLifecycleAsync(
-            reservation,
-            ReservationStatus.InProgress,
-            ReservationStatus.MealsServed);
-
-        result.Should().BeTrue();
+        await _repo.UpdateAsync(reservation);
 
         var loaded = await _repo.GetByIdAsync(id);
-        loaded!.Status.Should().Be(ReservationStatus.MealsServed);
+        loaded!.Status.Should().Be(ReservationStatus.InProgress);
+        loaded.IsMealServed.Should().BeTrue();
 
         var tableDay = await _context.LoadAsync<TableDay>(tableKey, date.ToString("yyyy-MM-dd"));
         tableDay!.ReservedSlots.Should().HaveCount(5);
@@ -539,7 +535,7 @@ public sealed class ReservationRepositoryIntegrationTests
             EndDateTime = new DateTimeOffset(DateTime.SpecifyKind(date.ToDateTime(new TimeOnly(19, 0)), DateTimeKind.Utc)).ToString("O"),
             ActualStartTime = DateTimeOffset.UtcNow.AddMinutes(-45).ToString("O"),
             GuestsCount = 4,
-            Status = ReservationStatus.MealsServed,
+            Status = ReservationStatus.InProgress,
             CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
             UpdatedAt = DateTimeOffset.UtcNow.ToString("O")
         };
@@ -559,7 +555,7 @@ public sealed class ReservationRepositoryIntegrationTests
 
         var result = await _repo.UpdateLifecycleAsync(
             reservation,
-            ReservationStatus.MealsServed,
+            ReservationStatus.InProgress,
             ReservationStatus.Finished,
             slots);
 
@@ -606,7 +602,7 @@ public sealed class ReservationRepositoryIntegrationTests
 
         var result = await _repo.UpdateLifecycleAsync(
             reservation,
-            ReservationStatus.MealsServed,
+            ReservationStatus.Reserved,
             ReservationStatus.Finished,
             new List<string>());
 

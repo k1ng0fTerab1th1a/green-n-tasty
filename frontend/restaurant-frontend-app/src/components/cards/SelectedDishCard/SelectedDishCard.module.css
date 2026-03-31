@@ -1,0 +1,91 @@
+.card {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.content {
+    display: flex;
+    gap: 16px;
+}
+
+.dishImage {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.deleteBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.description {
+    color: #666666;
+    line-height: 1.4;
+    margin-bottom: 8px;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+}
+
+.counter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.countBtn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #ffffff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #000000;
+    transition: all 0.2s ease-in-out;
+}
+
+.active {
+    border-color: #00b000 !important;
+    color: #00b000 !important;
+    font-weight: bold;
+}
+
+.active:hover {
+    background-color: #f0fff0;
+}
+
+.countBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #e0e0e0 !important;
+    color: #000000 !important;
+}
