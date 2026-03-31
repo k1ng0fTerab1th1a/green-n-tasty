@@ -35,7 +35,8 @@ public class BookingController(ITableService _tableService) : ControllerBase
             }
         }
 
-        var availableTables = await _tableService.GetAvailableTablesAsync(parsedDate, parsedTime, locationId, guests, excludeReservationId, ct);
+        var availableTables = await _tableService.GetAvailableTablesAsync(
+            new GetAvailableTablesQuery(parsedDate, parsedTime, locationId, guests, excludeReservationId), ct);
 
         if (availableTables.IsFailed)
         {

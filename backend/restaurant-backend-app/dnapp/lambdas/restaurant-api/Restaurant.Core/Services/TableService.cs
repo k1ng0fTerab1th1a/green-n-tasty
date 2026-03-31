@@ -19,13 +19,11 @@ public class TableService(
     private const int FORBID_IF_IN_FUTURE_MORE_THAN_DAYS = 14;
 
     public async Task<Result<IList<TableWithAvailableSlots>>> GetAvailableTablesAsync(
-        DateOnly date,
-        TimeOnly? time,
-        string? locationId,
-        int? capacity,
-        string? excludeReservationId,
+        GetAvailableTablesQuery query,
         CancellationToken ct)
     {
+        var (date, time, locationId, capacity, excludeReservationId) = query;
+
         int daysInFuture = date.DayNumber - DateOnly.FromDateTime(DateTime.UtcNow).DayNumber;
         if (daysInFuture < 0)
         {
