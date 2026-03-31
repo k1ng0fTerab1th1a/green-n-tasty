@@ -37,24 +37,31 @@ export const getMenuDownloadUrl = async () => {
     }
 };
 
-// export const downloadMenuFile = async () => {
-//     try {
-//         const response = await api.get("/dishes/menu-file", {
-//             responseType: 'blob'
-//         });
-//
-//         const url = window.URL.createObjectURL(new Blob([response.data]));
-//         const link = document.createElement('a');
-//         link.href = url;
-//         link.setAttribute('download', 'GreenAndTasty_Menu.pdf');
-//
-//         document.body.appendChild(link);
-//         link.click();
-//
-//         link.parentNode.removeChild(link);
-//         window.URL.revokeObjectURL(url);
-//     } catch (error) {
-//         console.error("Error downloading menu file:", error);
-//         throw error;
-//     }
-// };
+export const downloadMenuFile = async () => {
+    try {
+        const response = await api.get("/dishes/menu-file", {
+            responseType: 'blob',
+            headers: {
+                'Accept': 'application/pdf'
+            }
+        });
+
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'GreenAndTasty_Menu.pdf');
+
+        document.body.appendChild(link);
+        link.click();
+
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        return { isSuccess: true };
+    } catch (error) {
+        console.error("Error downloading menu file:", error);
+        throw error;
+    }
+};
