@@ -937,16 +937,13 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         }
 
         public Task<Result<IList<TableWithAvailableSlots>>> GetAvailableTablesAsync(
-            DateOnly date,
-            TimeOnly? time,
-            string? locationId,
-            int? capacity,
+            GetAvailableTablesQuery query,
             CancellationToken ct)
         {
-            LastDate = date;
-            LastTime = time;
-            LastLocationId = locationId;
-            LastCapacity = capacity;
+            LastDate = query.Date;
+            LastTime = query.Time;
+            LastLocationId = query.LocationId;
+            LastCapacity = query.Capacity;
 
             if (FailResult is not null)
                 return Task.FromResult(Result.Fail<IList<TableWithAvailableSlots>>(FailResult));
