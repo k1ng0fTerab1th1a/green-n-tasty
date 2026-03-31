@@ -354,7 +354,8 @@ public sealed partial class ReservationServiceTests
             EndDateTime = DateTimeOffset.UtcNow.AddMinutes(30).ToString("O"),
             ActualStartTime = DateTimeOffset.UtcNow.AddMinutes(-20).ToString("O"),
             GuestsCount = 2,
-            Status = ReservationStatus.MealsServed,
+            Status = ReservationStatus.InProgress,
+            IsMealServed = true,
             CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
             UpdatedAt = DateTimeOffset.UtcNow.ToString("O")
         };
@@ -364,7 +365,7 @@ public sealed partial class ReservationServiceTests
 
         _repo.Setup(r => r.UpdateLifecycleAsync(
                 reservation,
-                ReservationStatus.MealsServed,
+                ReservationStatus.InProgress,
                 ReservationStatus.Finished,
                 It.IsAny<List<string>>(),
                 It.IsAny<CancellationToken>()))

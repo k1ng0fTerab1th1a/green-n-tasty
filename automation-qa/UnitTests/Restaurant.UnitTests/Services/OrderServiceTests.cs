@@ -372,7 +372,11 @@ public sealed class OrderServiceTests
     [Fact]
     public async Task CompleteAsync_WhenValidRequest_CompletesOrder()
     {
-        var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.MealsServed, dishCount: 2);
+        var reservation = BuildReservation(
+            waiterId: "waiter-1",
+            status: ReservationStatus.InProgress,
+            dishCount: 2,
+            isMealServed: true);
         var order = BuildOrder("res-1");
 
         _reservationRepo
@@ -428,26 +432,31 @@ public sealed class OrderServiceTests
                 .ToList()
         };
 
-    private static Reservation BuildReservation(string waiterId, ReservationStatus status, int dishCount)
-        => new()
-        {
-            Id = "res-1",
-            CustomerId = "customer-1",
-            CustomerName = "Customer One",
-            WaiterId = waiterId,
-            WaiterName = "Waiter One",
-            LocationId = "loc-1",
-            LocationAddress = "Main street 1",
-            TableNumber = 3,
-            TableKey = "loc-1#3",
-            StartDateTime = DateTimeOffset.UtcNow.AddMinutes(-30).ToString("O"),
-            EndDateTime = DateTimeOffset.UtcNow.AddMinutes(30).ToString("O"),
-            GuestsCount = 2,
-            DishCount = dishCount,
-            Status = status,
-            CreatedAt = DateTimeOffset.UtcNow.AddHours(-1).ToString("O"),
-            UpdatedAt = DateTimeOffset.UtcNow.AddMinutes(-10).ToString("O")
-        };
+    private static Reservation BuildReservation(
+        string waiterId,
+        ReservationStatus status,
+        int dishCount,
+        bool isMealServed = false)
+    => new()
+    {
+        Id = "res-1",
+        CustomerId = "customer-1",
+        CustomerName = "Customer One",
+        WaiterId = waiterId,
+        WaiterName = "Waiter One",
+        LocationId = "loc-1",
+        LocationAddress = "Main street 1",
+        TableNumber = 3,
+        TableKey = "loc-1#3",
+        StartDateTime = DateTimeOffset.UtcNow.AddMinutes(-30).ToString("O"),
+        EndDateTime = DateTimeOffset.UtcNow.AddMinutes(30).ToString("O"),
+        GuestsCount = 2,
+        DishCount = dishCount,
+        Status = status,
+        IsMealServed = isMealServed,
+        CreatedAt = DateTimeOffset.UtcNow.AddHours(-1).ToString("O"),
+        UpdatedAt = DateTimeOffset.UtcNow.AddMinutes(-10).ToString("O")
+    };
 
     private static Dish BuildDish(string id, string state, decimal price)
         => new()

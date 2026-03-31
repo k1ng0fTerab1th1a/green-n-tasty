@@ -279,7 +279,7 @@ public class OrderService(
             return Result.Fail<Order>(reservationResult.Errors);
 
         var reservation = reservationResult.Value;
-        if (reservation.Status is not ReservationStatus.InProgress and not ReservationStatus.MealsServed)
+        if ((reservation.Status is not ReservationStatus.InProgress) && !reservationResult.Value.IsMealServed)
             return OrderErrors.ReservationStatusNotCompletable;
 
         var order = await _orderRepo.GetByReservationIdAsync(reservationId, ct);

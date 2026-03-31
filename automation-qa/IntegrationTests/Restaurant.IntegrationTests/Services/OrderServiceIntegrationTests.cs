@@ -169,7 +169,7 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
     [Fact]
     public async Task CompleteAsync_WhenValidRequest_CompletesOrder()
     {
-        var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.MealsServed, dishCount: 2);
+        var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.InProgress, dishCount: 2, isMealServed: true);
         var existingOrder = BuildOrder(reservation.Id);
         var dish = BuildDish("dish-1", state: "ON", price: 10m, popularity: 5);
 
@@ -208,7 +208,7 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
                 .ToList()
         };
 
-    private static Reservation BuildReservation(string waiterId, ReservationStatus status, int dishCount)
+    private static Reservation BuildReservation(string waiterId, ReservationStatus status, int dishCount, bool isMealServed = false)
     {
         var id = $"res-{Guid.NewGuid():N}";
         var now = DateTimeOffset.UtcNow;
@@ -228,6 +228,7 @@ public sealed class OrderServiceIntegrationTests : IClassFixture<DynamoDbFixture
             EndDateTime = now.AddMinutes(30).ToString("O"),
             GuestsCount = 2,
             Status = status,
+            IsMealServed = isMealServed,
             DishCount = dishCount,
             CreatedAt = now.AddHours(-1).ToString("O"),
             UpdatedAt = now.ToString("O")

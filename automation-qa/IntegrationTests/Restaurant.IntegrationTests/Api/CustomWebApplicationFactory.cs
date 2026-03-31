@@ -706,7 +706,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public Result SaveVisitorFeedbackResponse { get; set; } = Result.Ok();
 
 
-    public string? LastQrReservationId { get; private set; }
+        public string? LastQrReservationId { get; private set; }
 
 
         public string? LastCalculatedReservationId { get; private set; }
@@ -738,7 +738,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastVisitorSecretCode = null;
             SaveVisitorFeedbackResponse = Result.Ok();
 
-        LastQrReservationId       = null;
+            LastQrReservationId       = null;
 
             LastCalculatedReservationId   = null;
             GetCalculatedFeedbackDataResponse = Result.Ok(new WaiterLocationFeedbackDTO());
@@ -773,14 +773,6 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastVisitorSecretCode = secretCode;
 
             return Task.FromResult(SaveVisitorFeedbackResponse);
-        }
-
-        public Task<Result<byte[]>> GenerateFeedbackQr(
-            string reservationId, CancellationToken ct = default)
-        {
-            LastQrReservationId = reservationId;
-
-            return Task.FromResult(GenerateFeedbackQrResponse);
         }
 
         public Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(

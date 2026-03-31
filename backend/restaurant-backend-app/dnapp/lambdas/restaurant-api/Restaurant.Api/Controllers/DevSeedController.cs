@@ -145,7 +145,6 @@ public sealed class DevSeedController : ControllerBase
 
         return ApiResponse<Order>.Success(StatusCodes.Status201Created, item);
     }
-}
 
     [HttpPost("seed/dishes/search-index/rebuild")]
     public async Task<IActionResult> RebuildDishSearchIndex(CancellationToken ct)
