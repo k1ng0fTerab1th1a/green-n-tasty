@@ -312,8 +312,8 @@ public sealed class DishRepositoryIntegrationTests
         var prefix     = Guid.NewGuid().ToString("N")[..8];
         var uniqueType = $"TYPE_{prefix}";
  
-        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Ziti",   DishType = uniqueType, Price = 9m });
-        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Apple",  DishType = uniqueType, Price = 4m });
+        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Ziti",   DishType = uniqueType });
+        await _context.SaveAsync(new Dish { Id = DishId(), Name = $"{prefix}_Apple",  DishType = uniqueType });
  
         var result = await _repo.GetShortenedDishesAsync(type: uniqueType, sort: "unknown,asc");
  
@@ -332,18 +332,14 @@ public sealed class DishRepositoryIntegrationTests
         {
             Id = id1,
             Name = "Селедка під шубой",
-            DishType = "MAIN",
-            Price = 10m,
-            State = "ON"
+            DishType = "MAIN"
         });
 
         await _context.SaveAsync(new Dish
         {
             Id = id2,
             Name = "Селера салат",
-            DishType = "SALAD",
-            Price = 8m,
-            State = "ON"
+            DishType = "SALAD"
         });
 
         var indexed = await _repo.RebuildSearchIndexAsync(CancellationToken.None);
@@ -365,18 +361,14 @@ public sealed class DishRepositoryIntegrationTests
         {
             Id = id1,
             Name = "Селедка рол",
-            DishType = "MAIN",
-            Price = 12m,
-            State = "ON"
+            DishType = "MAIN"
         });
 
         await _context.SaveAsync(new Dish
         {
             Id = id2,
             Name = "Селедка салат",
-            DishType = "SALAD",
-            Price = 9m,
-            State = "ON"
+            DishType = "SALAD"
         });
 
         await _repo.RebuildSearchIndexAsync(CancellationToken.None);
@@ -396,9 +388,7 @@ public sealed class DishRepositoryIntegrationTests
         {
             Id = id,
             Name = "Селедка класика",
-            DishType = "MAIN",
-            Price = 12m,
-            State = "ON"
+            DishType = "MAIN"
         };
 
         await _context.SaveAsync(dish);
@@ -427,9 +417,7 @@ public sealed class DishRepositoryIntegrationTests
         {
             Id = id,
             Name = "Селедка хрустка",
-            DishType = "MAIN",
-            Price = 11m,
-            State = "ON"
+            DishType = "MAIN"
         };
 
         await _context.SaveAsync(dish);

@@ -29,14 +29,14 @@ public class DishService(IDishRepository _dishRepository) : IDishService
         return Result.Ok(await _dishRepository.GetShortenedDishesAsync(type, sort, cancellationToken));
     }
 
-    public async Task<Result<IReadOnlyList<DishBriefDTO>>> SearchDishesAsync(
+    public async Task<Result<IReadOnlyList<DishSearchResultDTO>>> SearchDishesAsync(
         string query,
         string? type,
         int limit,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(query))
-            return Result.Ok<IReadOnlyList<DishBriefDTO>>(Array.Empty<DishBriefDTO>());
+            return Result.Ok<IReadOnlyList<DishSearchResultDTO>>(Array.Empty<DishSearchResultDTO>());
 
         var safeLimit = limit <= 0 ? 20 : Math.Min(limit, 50);
 

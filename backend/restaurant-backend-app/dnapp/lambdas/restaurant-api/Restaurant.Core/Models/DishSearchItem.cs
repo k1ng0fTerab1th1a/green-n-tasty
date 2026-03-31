@@ -16,22 +16,4 @@ public sealed class DishSearchItem
 
     [DynamoDBProperty("name")]
     public string Name { get; set; } = null!;
-
-    [DynamoDBProperty("dishType")]
-    public string DishType { get; set; } = string.Empty;
-
-    [DynamoDBProperty("price")]
-    public decimal Price { get; set; }
-
-    [DynamoDBProperty("imageUrl")]
-    public string? ImageUrl { get; set; }
-
-    [DynamoDBProperty("weight")]
-    public int? Weight { get; set; }
-
-    [DynamoDBProperty("popularity")]
-    public int Popularity { get; set; }
-
-    [DynamoDBProperty("state")]
-    public string State { get; set; } = "ON";
 }

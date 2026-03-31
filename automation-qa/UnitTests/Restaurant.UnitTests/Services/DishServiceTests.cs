@@ -345,9 +345,9 @@ public sealed class DishServiceTests
     public async Task SearchDishesAsync_ShouldNormalizeLimit(int requestedLimit, int expectedLimit)
     {
         _repo.Setup(r => r.SearchAsync("селедка", "SALAD", expectedLimit, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<DishBriefDTO>
+            .ReturnsAsync(new List<DishSearchResultDTO>
             {
-                new() { Id = "dish-1", Name = "Селедка під шубою", DishType = "SALAD", Price = 12m, Popularity = 7 }
+                new() { Id = "dish-1", Name = "Селедка під шубою", DishType = "SALAD"}
             });
 
         var result = await _sut.SearchDishesAsync("селедка", "SALAD", requestedLimit, CancellationToken.None);
@@ -362,9 +362,9 @@ public sealed class DishServiceTests
     [Fact]
     public async Task SearchDishesAsync_WhenValidInput_ShouldForwardArguments()
     {
-        var searchResult = new List<DishBriefDTO>
+        var searchResult = new List<DishSearchResultDTO>
         {
-            new() { Id = "dish-1", Name = "Sushi", DishType = "MAIN", Price = 18m, Popularity = 4 }
+            new() { Id = "dish-1", Name = "Sushi", DishType = "MAIN" }
         };
 
         _repo.Setup(r => r.SearchAsync("sushi", null, 10, It.IsAny<CancellationToken>()))

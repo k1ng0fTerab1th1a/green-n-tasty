@@ -55,8 +55,8 @@ public class DishController(IDishService _dishService, S3FileService _s3FileServ
 
     [HttpGet("search")]
     [Authorize(Roles = "WAITER")]
-    [ProducesResponseType(typeof(ApiResponse<List<DishBriefDTO>>), StatusCodes.Status200OK)]
-    public async Task<ApiResponse<List<DishBriefDTO>>> SearchDishes(
+    [ProducesResponseType(typeof(ApiResponse<List<DishSearchResultDTO>>), StatusCodes.Status200OK)]
+    public async Task<ApiResponse<List<DishSearchResultDTO>>> SearchDishes(
         [FromQuery] string query,
         CancellationToken ct,
         [FromQuery] string? type = null,
@@ -64,9 +64,9 @@ public class DishController(IDishService _dishService, S3FileService _s3FileServ
     {
         var result = await _dishService.SearchDishesAsync(query, type, limit, ct);
         if (result.IsFailed)
-            return result.Errors[0].ToApiResponse<List<DishBriefDTO>>();
+            return result.Errors[0].ToApiResponse<List<DishSearchResultDTO>>();
 
-        return ApiResponse<List<DishBriefDTO>>.Success(StatusCodes.Status200OK, result.Value.ToList());
+        return ApiResponse<List<DishSearchResultDTO>>.Success(StatusCodes.Status200OK, result.Value.ToList());
     }
 
     [HttpGet("menu-file")]

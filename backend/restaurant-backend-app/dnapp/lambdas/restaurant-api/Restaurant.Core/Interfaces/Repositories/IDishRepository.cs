@@ -17,7 +17,7 @@ public interface IDishRepository
 
     Task<IReadOnlyList<DishBriefDTO>> GetShortenedDishesAsync(string? type, string sort, CancellationToken ct);
 
-    Task<IReadOnlyList<DishBriefDTO>> SearchAsync(string query, string? type, int limit, CancellationToken ct);
+    Task<IReadOnlyList<DishSearchResultDTO>> SearchAsync(string query, string? type, int limit, CancellationToken ct);
 
     Task<int> RebuildSearchIndexAsync(CancellationToken ct);
 

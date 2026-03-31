@@ -241,15 +241,11 @@ public class DishEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         _factory.DishService.Reset();
         _factory.DishService.SearchResults.AddRange(new[]
         {
-        new DishBriefDTO
+        new DishSearchResultDTO
         {
             Id = "dish-1",
             Name = "Селедка під шубою",
-            DishType = "MAIN",
-            Price = 12m,
-            ImageUrl = "img",
-            Weight = 180,
-            State = "ON"
+            DishType = "MAIN"
         }
     });
 

@@ -127,7 +127,7 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
         return ApplySort(results, sort);
     }
 
-    public async Task<IReadOnlyList<DishBriefDTO>> SearchAsync(
+    public async Task<IReadOnlyList<DishSearchResultDTO>> SearchAsync(
         string query,
         string? type,
         int limit,
@@ -135,7 +135,7 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
     {
         var tokens = TokenizeQuery(query);
         if (tokens.Count == 0)
-            return Array.Empty<DishBriefDTO>();
+            return Array.Empty<DishSearchResultDTO>();
 
         Dictionary<string, DishSearchItem>? intersection = null;
 
@@ -144,8 +144,6 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
             var tokenMatches = await QueryByTokenAsync(token, ct);
 
             var filtered = tokenMatches
-                .Where(x => string.Equals(x.State, "ON", StringComparison.OrdinalIgnoreCase))
-                .Where(x => string.IsNullOrWhiteSpace(type) || string.Equals(x.DishType, type, StringComparison.OrdinalIgnoreCase))
                 .GroupBy(x => x.DishId)
                 .ToDictionary(g => g.Key, g => g.First());
 
@@ -160,20 +158,37 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
             }
 
             if (intersection.Count == 0)
-                return Array.Empty<DishBriefDTO>();
+                return Array.Empty<DishSearchResultDTO>();
         }
 
+        var dishes = await GetByIdsAsync(intersection.Keys, ct);
         var normalizedQuery = NormalizeText(query);
+        var firstToken = tokens[0];
 
-        return intersection.Values
+        return dishes
+            .Where(d => IsDishEnabled(d.State))
+            .Where(d => string.IsNullOrWhiteSpace(type) ||
+                        string.Equals(d.DishType, type, StringComparison.OrdinalIgnoreCase))
+            .Select(d => new
+            {
+                Dish = d,
+                NameNormalized = NormalizeText(d.Name)
+            })
             .OrderByDescending(x => string.Equals(x.NameNormalized, normalizedQuery, StringComparison.Ordinal))
             .ThenByDescending(x => x.NameNormalized.StartsWith(normalizedQuery, StringComparison.Ordinal))
-            .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(x => x.Dish.Name, StringComparer.OrdinalIgnoreCase)
             .Take(limit)
-            .Select(MapSearchItemToDishBrief)
+            .Select(x => new DishSearchResultDTO
+            {
+                Id = x.Dish.Id,
+                Name = x.Dish.Name,
+                DishType = x.Dish.DishType,
+                Token = firstToken
+            })
             .ToList();
     }
-
+    private static bool IsDishEnabled(string? state)
+        => string.Equals(state, "ON", StringComparison.OrdinalIgnoreCase);
     public async Task<int> RebuildSearchIndexAsync(CancellationToken ct = default)
     {
         var dishes = await ScanAllDishesAsync(ct);
@@ -418,13 +433,7 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
                     Token = prefix,
                     DishId = dish.Id,
                     NameNormalized = nameNormalized,
-                    Name = dish.Name,
-                    DishType = dish.DishType,
-                    Price = dish.Price,
-                    ImageUrl = dish.ImageUrl,
-                    Weight = dish.Weight,
-                    Popularity = dish.Popularity,
-                    State = dish.State
+                    Name = dish.Name
                 };
             }
         }
@@ -453,31 +462,13 @@ public class DishRepository(IDynamoDBContext _context, IAmazonDynamoDB _client) 
         Token = item.TryGetValue("token", out var token) ? token.S : string.Empty,
         DishId = item.TryGetValue("dishId", out var dishId) ? dishId.S : string.Empty,
         NameNormalized = item.TryGetValue("nameNormalized", out var normalized) ? normalized.S : string.Empty,
-        Name = item.TryGetValue("name", out var name) ? name.S : string.Empty,
-        DishType = item.TryGetValue("dishType", out var type) ? type.S : string.Empty,
-        Price = item.TryGetValue("price", out var price)
-            ? decimal.Parse(price.N, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture)
-            : 0m,
-        ImageUrl = item.TryGetValue("imageUrl", out var image) ? image.S : null,
-        Weight = item.TryGetValue("weight", out var weight)
-            ? int.Parse(weight.N, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture)
-            : null,
-        Popularity = item.TryGetValue("popularity", out var popularity)
-            ? int.Parse(popularity.N, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture)
-            : 0,
-        State = item.TryGetValue("state", out var state) ? state.S : "ON"
+        Name = item.TryGetValue("name", out var name) ? name.S : string.Empty
     };
 
     private static DishBriefDTO MapSearchItemToDishBrief(DishSearchItem item) => new()
     {
         Id = item.DishId,
-        Name = item.Name,
-        DishType = item.DishType,
-        Price = item.Price,
-        ImageUrl = item.ImageUrl,
-        Weight = item.Weight,
-        Popularity = item.Popularity,
-        State = item.State
+        Name = item.Name
     };
 
     private static string NormalizeText(string value)

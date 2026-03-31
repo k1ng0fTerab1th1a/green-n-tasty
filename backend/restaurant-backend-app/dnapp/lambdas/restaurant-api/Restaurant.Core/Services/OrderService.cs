@@ -49,7 +49,7 @@ public class OrderService(
         if (notFound is not null)
             return OrderErrors.DishNotFound(notFound);
 
-        var inactiveDish = dishes.FirstOrDefault(d => d.State != "ON");
+        var inactiveDish = dishes.FirstOrDefault(d => !IsDishEnabled(d.State));
         if (inactiveDish is not null)
             return OrderErrors.DishNotAvailable(inactiveDish.Id);
 
@@ -132,10 +132,10 @@ public class OrderService(
     }
 
     public async Task<Result<Order>> AddDishAsync(
-    string actorId,
-    string reservationId,
-    AddDishToOrderDTO dto,
-    CancellationToken ct = default)
+        string actorId,
+        string reservationId,
+        AddDishToOrderDTO dto,
+        CancellationToken ct = default)
     {
         var reservationResult = await GetReservationForActorAsync(actorId, reservationId, ct);
         if (reservationResult.IsFailed)
@@ -161,7 +161,7 @@ public class OrderService(
         if (dish is null)
             return OrderErrors.DishNotFound(dto.DishId);
 
-        if (dish.State != "ON")
+        if (!IsDishEnabled(dish.State))
             return OrderErrors.DishNotAvailable(dto.DishId);
 
         var expectedVersion = order.Version;
@@ -269,10 +269,10 @@ public class OrderService(
     }
 
     public async Task<Result<Order>> CompleteAsync(
-    string actorId,
-    string reservationId,
-    CompleteOrderDTO dto,
-    CancellationToken ct = default)
+        string actorId,
+        string reservationId,
+        CompleteOrderDTO dto,
+        CancellationToken ct = default)
     {
         var reservationResult = await GetReservationForActorAsync(actorId, reservationId, ct);
         if (reservationResult.IsFailed)
@@ -319,6 +319,9 @@ public class OrderService(
 
         return order;
     }
+
+    private static bool IsDishEnabled(string? state)
+        => string.Equals(state, "ON", StringComparison.OrdinalIgnoreCase);
 
     private async Task<Result<Reservation>> GetReservationForActorAsync(
         string actorId,

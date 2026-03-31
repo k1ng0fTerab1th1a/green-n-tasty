@@ -802,7 +802,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public List<Dish> PopularDishes { get; } = new();
         public Dictionary<string, Dish> DishesById { get; } = new();
         public List<DishBriefDTO> MenuDishes { get; } = new();
-        public List<DishBriefDTO> SearchResults { get; } = new();
+        public List<DishSearchResultDTO> SearchResults { get; } = new();
 
         public int RebuildIndexedCount { get; set; } = 0;
 
@@ -868,7 +868,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Result.Ok<IReadOnlyList<DishBriefDTO>>(MenuDishes));
         }
 
-        public Task<Result<IReadOnlyList<DishBriefDTO>>> SearchDishesAsync(
+        public Task<Result<IReadOnlyList<DishSearchResultDTO>>> SearchDishesAsync(
             string query,
             string? type,
             int limit,
@@ -877,7 +877,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastSearchQuery = query;
             LastSearchType = type;
             LastSearchLimit = limit;
-            return Task.FromResult(Result.Ok<IReadOnlyList<DishBriefDTO>>(SearchResults));
+            return Task.FromResult(Result.Ok<IReadOnlyList<DishSearchResultDTO>>(SearchResults));
         }
 
         public Task<Result<int>> RebuildSearchIndexAsync(CancellationToken cancellationToken = default)
