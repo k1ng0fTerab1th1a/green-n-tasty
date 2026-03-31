@@ -74,6 +74,8 @@ public class Startup
         services.AddScoped<IReservationService, ReservationService>();
         services.AddScoped<ITableService, TableService>();
         services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<IReceiptService, ReceiptService>();
+        services.AddScoped<IReceiptPdfService, ReceiptPdfService>();
         services.AddScoped<IReportService, ReportService>();
 
         services.AddScoped<IUserRepository, UserRepository>();

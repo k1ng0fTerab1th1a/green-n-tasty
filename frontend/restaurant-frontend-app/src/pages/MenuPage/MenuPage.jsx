@@ -8,7 +8,7 @@ import {
     DishDetailsModal,
     Toast
 } from "../../components/index.js";
-import { getMenuDishes, getDishById, downloadMenuFile } from "../../services/dishes";
+import {getMenuDishes, getDishById, getMenuDownloadUrl, downloadMenuFile} from "../../services/dishes";
 import styles from "./MenuPage.module.css";
 import fallbackImage from "../../assets/images/main-hero.jpg";
 
@@ -38,6 +38,7 @@ export default function MenuPage() {
     const [selectedDish, setSelectedDish] = useState(null);
     const [isDishModalOpen, setIsDishModalOpen] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     const itemsPerPage = 8;
 
@@ -84,16 +85,32 @@ export default function MenuPage() {
         setPage(1);
     }, [activeCategory, sortBy]);
 
+    const handleViewMenu = async () => {
+        try {
+            setIsProcessing(true);
+            const result = await getMenuDownloadUrl();
+            if (result.isSuccess && result.data) {
+                window.location.assign(result.data);
+                showToast("success", "Success", "Opening menu...");
+            } else {
+                throw new Error(result.message || "Link not found");
+            }
+        } catch (err) {
+            showToast("error", "Error", "Could not load menu link");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     const handleDownloadMenu = async () => {
         try {
-            setIsDownloading(true);
+            setIsProcessing(true);
             await downloadMenuFile();
-            showToast("success", "Success", "Menu download started!");
+            showToast("success", "Success", "Download started...");
         } catch (err) {
-            console.error("Download failed", err);
-            showToast("error", "Error", "Could not load menu");
+            showToast("error", "Error", "Could not download menu file");
         } finally {
-            setIsDownloading(false);
+            setIsProcessing(false);
         }
     };
 
@@ -127,16 +144,27 @@ export default function MenuPage() {
                         <div className={styles.info}>
                             <p className={`${styles.heroSubtitle} h2`}>Green & Tasty Restaurants</p>
                             <h1 className={`${styles.title} h1`}>Menu</h1>
+                            <div className={styles.heroButtons}>
+                                <Button
+                                    variant="primary"
+                                    size="lg"
+                                    onClick={handleViewMenu}
+                                    disabled={isProcessing}
+                                    className={styles.downloadBtn}
+                                >
+                                    {isProcessing ? "Loading..." : "View Menu (PDF)"}
+                                </Button>
 
-                            <Button
-                                variant="primary"
-                                size="lg"
-                                onClick={handleDownloadMenu}
-                                disabled={isDownloading}
-                                className={styles.downloadBtn}
-                            >
-                                {isDownloading ? "Downloading..." : "Download Menu (PDF)"}
-                            </Button>
+                                <Button
+                                    variant="primary"
+                                    size="lg"
+                                    onClick={handleDownloadMenu}
+                                    disabled={isProcessing}
+                                    className={styles.downloadBtn}
+                                >
+                                    {isProcessing ? "Downloading..." : "Download Menu (PDF)"}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </section>

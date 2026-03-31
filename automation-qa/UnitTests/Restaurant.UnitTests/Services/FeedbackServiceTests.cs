@@ -1,10 +1,8 @@
-﻿using Microsoft.Extensions.Options;
-using Restaurant.Core.DTOs;
+﻿using Restaurant.Core.DTOs;
 using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Models;
 using Restaurant.Core.Services;
-using Restaurant.Core.SharedModels;
 
 namespace Restaurant.UnitTests.Services;
 
@@ -26,18 +24,12 @@ public class FeedbackServiceTests
         _resRepo = new Mock<IReservationRepository>(MockBehavior.Strict);
         _userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
         _locationRepo = new Mock<ILocationRepository>(MockBehavior.Strict);
-        
-        var options = Options.Create(new ClientSettings
-        {
-            ClientUrl = "http://test-url.com"
-        });
 
         _sut = new FeedbackService(
             _repo.Object,
             _resRepo.Object,
             _userRepo.Object,
-            _locationRepo.Object,
-            options
+            _locationRepo.Object
         );
     }
 
@@ -306,9 +298,6 @@ public async Task SaveAuthorisedFeedback_WhenServiceFeedbackAlreadyMade_ShouldRe
     _userRepo.Setup(u => u.GetUserDataForFeedbackCreationByIdAsync("user-1", It.IsAny<CancellationToken>()))
              .ReturnsAsync(("Ana K.", (string?)null));
 
-    _repo.Setup(r => r.IsFeedbackAlreadyMade("rsv-1", "waiter", It.IsAny<CancellationToken>()))
-         .ReturnsAsync(true);
-
     var dto = new CreateFeedbackDTO { ReservationId = "rsv-1", ServiceRating = 5 };
 
     var result = await _sut.SaveAuthorisedFeedback(dto, "user-1", CancellationToken.None);
@@ -334,9 +323,6 @@ public async Task SaveAuthorisedFeedback_WhenWaiterRatingDataInvalid_ShouldStill
 
     _userRepo.Setup(u => u.GetUserDataForFeedbackCreationByIdAsync("user-1", It.IsAny<CancellationToken>()))
         .ReturnsAsync(("Ana K.", (string?)null));
-
-    _repo.Setup(r => r.IsFeedbackAlreadyMade("rsv-1", "waiter", It.IsAny<CancellationToken>()))
-        .ReturnsAsync(false);
 
     _repo.Setup(r => r.SaveBatchAsync(It.IsAny<IEnumerable<Feedback>>(), It.IsAny<CancellationToken>()))
         .Returns(Task.CompletedTask);
@@ -388,7 +374,8 @@ public async Task SaveAuthorisedFeedback_WhenCuisineFeedbackAlreadyMade_ShouldRe
         CustomerId = "user-1",
         WaiterId = "waiter-1",
         LocationId = "loc-1",
-        Status = ReservationStatus.MealsServed
+        Status = ReservationStatus.InProgress,
+        IsMealServed = true
     };
 
     _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>()))
@@ -396,9 +383,6 @@ public async Task SaveAuthorisedFeedback_WhenCuisineFeedbackAlreadyMade_ShouldRe
 
     _userRepo.Setup(u => u.GetUserDataForFeedbackCreationByIdAsync("user-1", It.IsAny<CancellationToken>()))
              .ReturnsAsync(("Ana K.", (string?)null));
-
-    _repo.Setup(r => r.IsFeedbackAlreadyMade("rsv-1", "kitchen", It.IsAny<CancellationToken>()))
-         .ReturnsAsync(true);
 
     var dto = new CreateFeedbackDTO { ReservationId = "rsv-1", CuisineRating = 4 };
 
@@ -425,10 +409,6 @@ public async Task SaveAuthorisedFeedback_WithServiceRatingOnly_ShouldSaveFeedbac
 
     _userRepo.Setup(u => u.GetUserDataForFeedbackCreationByIdAsync("user-1", It.IsAny<CancellationToken>()))
              .ReturnsAsync(("Ana K.", "http://img/u1"));
-
-    _repo.Setup(r => r.IsFeedbackAlreadyMade("rsv-1", "waiter", It.IsAny<CancellationToken>()))
-         .ReturnsAsync(false);
-
 
     _repo.Setup(r => r.SaveBatchAsync(It.IsAny<IEnumerable<Feedback>>(), It.IsAny<CancellationToken>()))
          .Returns(Task.CompletedTask);
@@ -465,7 +445,8 @@ public async Task SaveAuthorisedFeedback_WithBothRatings_ShouldSaveTwoFeedbacks_
         CustomerId = "user-1",
         WaiterId = "waiter-1",
         LocationId = "loc-1",
-        Status = ReservationStatus.MealsServed
+        Status = ReservationStatus.InProgress,
+        IsMealServed = true
     };
 
     _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>()))
@@ -473,12 +454,6 @@ public async Task SaveAuthorisedFeedback_WithBothRatings_ShouldSaveTwoFeedbacks_
 
     _userRepo.Setup(u => u.GetUserDataForFeedbackCreationByIdAsync("user-1", It.IsAny<CancellationToken>()))
              .ReturnsAsync(("Ana K.", (string?)null));
-
-    _repo.Setup(r => r.IsFeedbackAlreadyMade("rsv-1", "waiter", It.IsAny<CancellationToken>()))
-         .ReturnsAsync(false);
-
-    _repo.Setup(r => r.IsFeedbackAlreadyMade("rsv-1", "kitchen", It.IsAny<CancellationToken>()))
-         .ReturnsAsync(false);
 
     _repo.Setup(r => r.SaveBatchAsync(It.IsAny<IEnumerable<Feedback>>(), It.IsAny<CancellationToken>()))
          .Returns(Task.CompletedTask);
@@ -530,9 +505,6 @@ public async Task SaveAuthorisedFeedback_WhenRatingUpdateThrows_ShouldReturnUnsu
 
     _userRepo.Setup(u => u.GetUserDataForFeedbackCreationByIdAsync("user-1", It.IsAny<CancellationToken>()))
              .ReturnsAsync(("Ana K.", (string?)null));
-
-    _repo.Setup(r => r.IsFeedbackAlreadyMade("rsv-1", "waiter", It.IsAny<CancellationToken>()))
-         .ReturnsAsync(false);
 
     _repo.Setup(r => r.SaveBatchAsync(It.IsAny<IEnumerable<Feedback>>(), It.IsAny<CancellationToken>()))
          .Returns(Task.CompletedTask);
@@ -781,7 +753,8 @@ public async Task SaveVisitorFeedback_WithBothRatings_ShouldSaveTwoFeedbacks_And
         Id = "rsv-1",
         WaiterId = "waiter-1",
         LocationId = "loc-1",
-        Status = ReservationStatus.MealsServed,
+        Status = ReservationStatus.InProgress,
+        IsMealServed = true,
         SecretCode = "BRAVO-2K"
     };
 
@@ -854,53 +827,6 @@ public async Task SaveVisitorFeedback_WhenRatingUpdateThrows_ShouldReturnUnsucce
 
     // Secret code must NOT be cleared if the rating update failed
     _resRepo.Verify(r => r.ClearSecretCode(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-}
-
-// ──────────────────────────────────────────────────────────
-//  GenerateFeedbackQr
-// ──────────────────────────────────────────────────────────
-
-[Fact]
-public async Task GenerateFeedbackQr_WhenSecretCodeFound_ShouldReturnQrBytes()
-{
-    _repo.Setup(r => r.GetSecretCodeByReservationIdAsync("rsv-1", It.IsAny<CancellationToken>()))
-         .ReturnsAsync("ALPHA-7X");
-
-    var result = await _sut.GenerateFeedbackQr("rsv-1", CancellationToken.None);
-
-    result.IsSuccess.Should().BeTrue();
-    result.Value.Should().NotBeEmpty();
-
-    _repo.Verify(r => r.GetSecretCodeByReservationIdAsync("rsv-1", It.IsAny<CancellationToken>()), Times.Once);
-    _repo.VerifyNoOtherCalls();
-}
-
-[Fact]
-public async Task GenerateFeedbackQr_WhenSecretCodeIsNull_ShouldReturnFailResult()
-{
-    _repo.Setup(r => r.GetSecretCodeByReservationIdAsync("rsv-1", It.IsAny<CancellationToken>()))
-         .ReturnsAsync((string?)null);
-
-    var result = await _sut.GenerateFeedbackQr("rsv-1", CancellationToken.None);
-
-    result.IsFailed.Should().BeTrue();
-    result.Errors[0].Message.Should().Be("Secret code for this reservation was not received");
-}
-
-[Fact]
-public async Task GenerateFeedbackQr_ShouldEmbedReservationIdAndSecretCode_InQrUrl()
-{
-    _repo.Setup(r => r.GetSecretCodeByReservationIdAsync("rsv-qr", It.IsAny<CancellationToken>()))
-         .ReturnsAsync("DELTA-4Q");
-
-    var result = await _sut.GenerateFeedbackQr("rsv-qr", CancellationToken.None);
-
-    // We can't decode the QR bytes without a reader library, but we can verify
-    // the service reached SaveBatchAsync — the key assertion is just IsSuccess
-    // and that the code was looked up.
-    result.IsSuccess.Should().BeTrue();
-
-    _repo.Verify(r => r.GetSecretCodeByReservationIdAsync("rsv-qr", It.IsAny<CancellationToken>()), Times.Once);
 }
 
 // ──────────────────────────────────────────────────────────

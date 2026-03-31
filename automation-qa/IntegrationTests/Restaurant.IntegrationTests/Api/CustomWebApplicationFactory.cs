@@ -333,16 +333,38 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             CustomerLookupResults.Add(new WaiterCustomerLookupDTO("customer-2", "John Doe", "j******e@example.com"));
         }
 
-        public Task<IReadOnlyList<Reservation>> GetMyAsync(string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
+        public Task<Result<IReadOnlyList<Reservation>>> GetByCustomer(string actorUserId, CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(actorUserId))
-                return Task.FromResult<IReadOnlyList<Reservation>>(Array.Empty<Reservation>());
+                return Task.FromResult(Result.Ok<IReadOnlyList<Reservation>>(Array.Empty<Reservation>()));
 
-            var result = actorIsWaiter
-                ? SeedReservations.Where(x => x.WaiterId == actorUserId).OrderBy(x => x.Id).ToList()
-                : SeedReservations.Where(x => x.CustomerId == actorUserId).OrderBy(x => x.Id).ToList();
+            var result = SeedReservations
+                .Where(x => x.CustomerId == actorUserId)
+                .OrderBy(x => x.Id)
+                .ToList();
 
-            return Task.FromResult<IReadOnlyList<Reservation>>(result);
+            return Task.FromResult(Result.Ok<IReadOnlyList<Reservation>>(result));
+        }
+
+        public Task<Result<IReadOnlyList<Reservation>>> GetByWaiter(string actorUserId, DateOnly? date, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(actorUserId))
+                return Task.FromResult(Result.Ok<IReadOnlyList<Reservation>>(Array.Empty<Reservation>()));
+
+            var result = SeedReservations
+                .Where(x => x.WaiterId == actorUserId);
+
+            if (date.HasValue)
+            {
+                var datePrefix = date.Value.ToString("yyyy-MM-dd");
+                result = result.Where(x => x.StartDateTime.StartsWith(datePrefix, StringComparison.Ordinal));
+            }
+
+            var reservations = result
+                .OrderBy(x => x.Id)
+                .ToList();
+
+            return Task.FromResult(Result.Ok<IReadOnlyList<Reservation>>(reservations));
         }
 
         public Task<Result<Reservation>> GetByIdAsync(string id, string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
@@ -509,7 +531,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             if (entity.WaiterId != waiterId)
                 return Task.FromResult(Result.Fail<Reservation>(ReservationErrors.Forbidden));
 
-            entity.Status = ReservationStatus.MealsServed;
+            entity.IsMealServed = true;
             entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
             return Task.FromResult(Result.Ok(entity));
         }
@@ -616,7 +638,6 @@ public sealed class FakeFeedbackService : IFeedbackService
 
 
     public string? LastQrReservationId { get; private set; }
-    public Result<byte[]> GenerateFeedbackQrResponse { get; set; } = Result.Ok(Array.Empty<byte>());
 
 
     public string? LastCalculatedReservationId { get; private set; }
@@ -649,7 +670,6 @@ public sealed class FakeFeedbackService : IFeedbackService
         SaveVisitorFeedbackResponse = Result.Ok();
 
         LastQrReservationId       = null;
-        GenerateFeedbackQrResponse = Result.Ok(Array.Empty<byte>());
 
         LastCalculatedReservationId   = null;
         GetCalculatedFeedbackDataResponse = Result.Ok(new WaiterLocationFeedbackDTO());
@@ -684,14 +704,6 @@ public sealed class FakeFeedbackService : IFeedbackService
         LastVisitorSecretCode = secretCode;
 
         return Task.FromResult(SaveVisitorFeedbackResponse);
-    }
-
-    public Task<Result<byte[]>> GenerateFeedbackQr(
-        string reservationId, CancellationToken ct = default)
-    {
-        LastQrReservationId = reservationId;
-
-        return Task.FromResult(GenerateFeedbackQrResponse);
     }
 
     public Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(

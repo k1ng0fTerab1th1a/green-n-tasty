@@ -13,9 +13,6 @@ public static class FeedbackErrors
 
     public static BusinessError NoFeedbackProvided =>
         new("No feedback was provided", ErrorType.Validation);
-    
-    public static BusinessError RatingsNotFound =>
-        new("Ratings were not found", ErrorType.NotFound);
 
     public static BusinessError DataFetchingError =>
         new("Something went wrong during data fetching", ErrorType.Validation);
@@ -25,9 +22,6 @@ public static class FeedbackErrors
 
     public static BusinessError FeedbackAlreadyMade =>
         new("You have already left your feedback for that", ErrorType.Validation);
-
-    public static BusinessError EmptyFeedbackCreationBody =>
-        new("You have provided no information for leaving the feedback", ErrorType.Validation);
 
     public static BusinessError RatingValidationDiapasonError =>
         new("Rating should be within 1 and 5 stars", ErrorType.Validation);

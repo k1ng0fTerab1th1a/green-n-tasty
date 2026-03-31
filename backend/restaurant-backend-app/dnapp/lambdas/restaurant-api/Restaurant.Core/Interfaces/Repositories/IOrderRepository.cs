@@ -12,4 +12,5 @@ public interface IOrderRepository
         int dishCount,
         string updatedAt,
         CancellationToken ct);
+    Task<Order?> GetByReservationIdAsync(string reservationId, CancellationToken ct);
 }

@@ -34,14 +34,32 @@ public sealed class ReservationService : IReservationService
         _userRepository = userRepository;
     }
 
-    public async Task<IReadOnlyList<Reservation>> GetMyAsync(string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
+    public async Task<Result<IReadOnlyList<Reservation>>> GetByCustomer(string actorUserId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(actorUserId))
-            return Array.Empty<Reservation>();
+            return Result.Ok<IReadOnlyList<Reservation>>(Array.Empty<Reservation>());
 
-        return actorIsWaiter
-            ? await _repo.QueryByWaiterAsync(actorUserId, ct)
-            : await _repo.QueryByCustomerAsync(actorUserId, ct);
+        var reservations = await _repo.QueryByCustomerAsync(actorUserId, ct);
+        return Result.Ok(reservations);
+    }
+
+    public async Task<Result<IReadOnlyList<Reservation>>> GetByWaiter(string actorUserId, DateOnly? date, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+            return Result.Ok<IReadOnlyList<Reservation>>(Array.Empty<Reservation>());
+
+        IReadOnlyList<Reservation> reservations;
+        if (date.HasValue)
+        {
+            var startPrefix = date.Value.ToString("yyyy-MM-dd");
+            reservations = await _repo.QueryByWaiterAsync(actorUserId, startPrefix, ct);
+        }
+        else
+        {
+            reservations = await _repo.QueryByWaiterAsync(actorUserId, ct);
+        }
+
+        return Result.Ok(reservations);
     }
 
     public async Task<Result<Reservation>> GetByIdAsync(string id, string actorUserId, bool actorIsWaiter, CancellationToken ct = default)
@@ -345,17 +363,13 @@ public sealed class ReservationService : IReservationService
         if (reservation.Status != ReservationStatus.InProgress)
             return ReservationErrors.NotMarkable;
 
-        reservation.Status = ReservationStatus.MealsServed;
+        if (reservation.IsMealServed)
+            return reservation;
+
+        reservation.IsMealServed = true;
         reservation.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
 
-        var success = await _repo.UpdateLifecycleAsync(
-            reservation,
-            ReservationStatus.InProgress,
-            ReservationStatus.MealsServed,
-            ct);
-
-        if (!success)
-            return ReservationErrors.MarkFailed;
+        await _repo.UpdateAsync(reservation, ct);
 
         return reservation;
     }
@@ -367,7 +381,7 @@ public sealed class ReservationService : IReservationService
 
         var reservation = getResult.Value;
 
-        if (reservation.Status != ReservationStatus.MealsServed)
+        if (reservation.Status != ReservationStatus.InProgress)
             return ReservationErrors.NotFinishable;
 
         var actualEnd = DateTimeOffset.UtcNow.ToString("O");
@@ -381,7 +395,7 @@ public sealed class ReservationService : IReservationService
 
         var success = await _repo.UpdateLifecycleAsync(
             reservation,
-            ReservationStatus.MealsServed,
+            ReservationStatus.InProgress,
             ReservationStatus.Finished,
             slots,
             ct);

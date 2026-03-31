@@ -27,13 +27,28 @@ export const getDishById = async (id) => {
     }
 };
 
+export const getMenuDownloadUrl = async () => {
+    try {
+        const response = await api.get("/dishes/menu-url");
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching menu URL:", error);
+        return { isSuccess: false, message: error.response?.data?.message || error.message };
+    }
+};
+
 export const downloadMenuFile = async () => {
     try {
         const response = await api.get("/dishes/menu-file", {
-            responseType: 'blob'
+            responseType: 'blob',
+            headers: {
+                'Accept': 'application/pdf'
+            }
         });
 
-        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', 'GreenAndTasty_Menu.pdf');
@@ -43,6 +58,8 @@ export const downloadMenuFile = async () => {
 
         link.parentNode.removeChild(link);
         window.URL.revokeObjectURL(url);
+
+        return { isSuccess: true };
     } catch (error) {
         console.error("Error downloading menu file:", error);
         throw error;

@@ -83,4 +83,14 @@ public sealed class OrderRepository : IOrderRepository
             return false;
         }
     }
+
+    public async Task<Order?> GetByReservationIdAsync(string reservationId, CancellationToken ct = default)
+    {
+        var query = _context.QueryAsync<Order>(
+            reservationId,
+            new DynamoDBOperationConfig { IndexName = "reservationId-index" });
+
+        var results = await query.GetRemainingAsync(ct);
+        return results.FirstOrDefault();
+    }
 }
