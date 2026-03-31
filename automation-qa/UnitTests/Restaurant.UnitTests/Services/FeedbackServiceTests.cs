@@ -839,7 +839,7 @@ public async Task GetCalculatedFeedbackDataAsync_WhenIdsNotFound_ShouldReturnDat
     _resRepo.Setup(r => r.GetWaiterAndLocationIdFromReservationAsync("rsv-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync((locationId: string.Empty, waiterId: string.Empty));
 
-    var result = await _sut.GetWaiterLocationFeedbackDTOAsync("rsv-1", CancellationToken.None);
+    var result = await _sut.GetWaiterLocationFeedbackDtoAsync("rsv-1", CancellationToken.None);
 
     result.IsFailed.Should().BeTrue();
     result.Errors[0].Message.Should().Be(FeedbackErrors.DataFetchingError.Message);
@@ -854,7 +854,7 @@ public async Task GetCalculatedFeedbackDataAsync_WhenOnlyLocationIdMissing_Shoul
     _resRepo.Setup(r => r.GetWaiterAndLocationIdFromReservationAsync("rsv-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync((locationId: string.Empty, waiterId: "waiter-1"));
 
-    var result = await _sut.GetWaiterLocationFeedbackDTOAsync("rsv-1", CancellationToken.None);
+    var result = await _sut.GetWaiterLocationFeedbackDtoAsync("rsv-1", CancellationToken.None);
 
     result.IsFailed.Should().BeTrue();
     result.Errors[0].Message.Should().Be(FeedbackErrors.DataFetchingError.Message);
@@ -878,7 +878,7 @@ public async Task GetCalculatedFeedbackDataAsync_WhenDataAvailable_ShouldReturnC
                  WaiterImageUrl       = "http://img/waiter-1"
              });
 
-    var result = await _sut.GetWaiterLocationFeedbackDTOAsync("rsv-1", CancellationToken.None);
+    var result = await _sut.GetWaiterLocationFeedbackDtoAsync("rsv-1", CancellationToken.None);
 
     result.IsSuccess.Should().BeTrue();
 
@@ -914,7 +914,7 @@ public async Task GetCalculatedFeedbackDataAsync_ShouldComputeAverageCorrectly_W
                  WaiterImageUrl       = string.Empty
              });
 
-    var result = await _sut.GetWaiterLocationFeedbackDTOAsync("rsv-2", CancellationToken.None);
+    var result = await _sut.GetWaiterLocationFeedbackDtoAsync("rsv-2", CancellationToken.None);
 
     result.IsSuccess.Should().BeTrue();
     result.Value.CuisineRating.Should().BeApproximately(3.71, 0.001);

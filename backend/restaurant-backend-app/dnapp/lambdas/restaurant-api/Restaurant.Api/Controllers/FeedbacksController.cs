@@ -49,7 +49,7 @@ public class FeedbacksController : ControllerBase
     public async Task<ApiResponse<WaiterLocationFeedbackDTO>> GetShortFeedbackData([FromQuery] string reservationId,
         CancellationToken ct)
     {
-        var res = await _feedbackService.GetWaiterLocationFeedbackDTOAsync(reservationId, false, ct);
+        var res = await _feedbackService.GetWaiterLocationFeedbackDtoAsync(reservationId, false, ct);
         if (res.IsSuccess)
             return ApiResponse<WaiterLocationFeedbackDTO>.Success(200, res.Value);
         return res.Errors[0].ToApiResponse<WaiterLocationFeedbackDTO>();
@@ -59,7 +59,7 @@ public class FeedbacksController : ControllerBase
     public async Task<ApiResponse<WaiterLocationFeedbackDTO>> GetUpdateFeedbackData([FromQuery] string reservationId,
         CancellationToken ct)
     {
-        var res = await _feedbackService.GetWaiterLocationFeedbackDTOAsync(reservationId, true, ct);
+        var res = await _feedbackService.GetWaiterLocationFeedbackDtoAsync(reservationId, true, ct);
         if (res.IsSuccess)
             return ApiResponse<WaiterLocationFeedbackDTO>.Success(200, res.Value);
         return res.Errors[0].ToApiResponse<WaiterLocationFeedbackDTO>();

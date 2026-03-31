@@ -1,11 +1,9 @@
 using FluentResults;
-using Microsoft.Extensions.Options;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
-using Restaurant.Core.SharedModels;
 
 namespace Restaurant.Core.Services;
 
@@ -144,7 +142,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
 
 
 
-    public async Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(string reservationId, bool isForUpdate, CancellationToken ct)
+    public async Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDtoAsync(string reservationId, bool isForUpdate, CancellationToken ct)
     {
         var reservation = await reservationRepository.GetByIdAsync(reservationId, ct);
         if (reservation == null)
