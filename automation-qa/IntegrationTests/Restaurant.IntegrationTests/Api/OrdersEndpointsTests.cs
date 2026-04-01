@@ -218,4 +218,243 @@ public sealed class OrdersEndpointsTests : IClassFixture<CustomWebApplicationFac
         _factory.OrderService.LastDto.Dishes[0].DishId.Should().Be("dish-1");
         _factory.OrderService.LastDto.Dishes[0].Quantity.Should().Be(2);
     }
+
+    [Fact]
+    public async Task CreateOrder_WhenValidPayload_ShouldReturn201()
+    {
+        _factory.OrderService.Reset();
+
+        _factory.OrderService.CreateResponse = new Order
+        {
+            Id = "r-customer-1",
+            ReservationId = "r-customer-1",
+            LocationId = "loc-1",
+            LocationAddress = "Main street 1",
+            WaiterId = "waiter-1",
+            WaiterName = "Walter One",
+            CustomerId = "customer-1",
+            CustomerName = "Anna Smith",
+            VisitorName = null,
+            TableNumber = 3,
+            GuestsCount = 2,
+            Status = OrderStatus.Open,
+            Dishes = new List<OrderDishSnapshot>
+            {
+                new()
+                {
+                    DishId = "dish-1",
+                    Name = "Pasta",
+                    Description = "Hot",
+                    PhotoUrl = "img",
+                    PriceAtOrder = 12.5m,
+                    Quantity = 2
+                }
+            },
+            TotalAmount = 25m,
+            CreatedAt = "2026-03-01T00:00:00.0000000Z",
+            CompletedAt = null,
+            Version = 1,
+            ProcessedOperationIds = []
+        };
+
+        var req = Authed(HttpMethod.Post, "/orders", userId: "waiter-1", role: "WAITER");
+        req.Content = JsonContent.Create(new
+        {
+            reservationId = "r-customer-1",
+            dishes = new[]
+            {
+                new { dishId = "dish-1", quantity = 2 }
+            }
+        });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+        var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.GetPropertyIgnoreCase("id").GetString().Should().Be("r-customer-1");
+        data.GetPropertyIgnoreCase("totalAmount").GetDecimal().Should().Be(25m);
+
+        _factory.OrderService.LastActorId.Should().Be("waiter-1");
+        _factory.OrderService.LastCreateDto.Should().NotBeNull();
+        _factory.OrderService.LastCreateDto!.ReservationId.Should().Be("r-customer-1");
+    }
+
+    [Fact]
+    public async Task GetOrder_WhenValidRequest_ShouldReturn200()
+    {
+        _factory.OrderService.Reset();
+
+        var req = Authed(HttpMethod.Get, "/orders/reservations/r-customer-1", userId: "waiter-1", role: "WAITER");
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+
+        _factory.OrderService.LastActorId.Should().Be("waiter-1");
+        _factory.OrderService.LastReservationId.Should().Be("r-customer-1");
+    }
+
+    [Fact]
+    public async Task GetOrder_AsCustomer_ShouldReturn200()
+    {
+        _factory.OrderService.Reset();
+
+        var req = Authed(
+            HttpMethod.Get,
+            "/orders/reservations/r-customer-1",
+            userId: "customer-1",
+            role: "CUSTOMER");
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+
+        _factory.OrderService.LastActorId.Should().Be("customer-1");
+        _factory.OrderService.LastReservationId.Should().Be("r-customer-1");
+    }
+
+    [Fact]
+    public async Task AddDish_WhenValidRequest_ShouldReturn200()
+    {
+        _factory.OrderService.Reset();
+
+        var req = Authed(HttpMethod.Post, "/orders/reservations/r-customer-1/dishes", userId: "waiter-1", role: "WAITER");
+        req.Content = JsonContent.Create(new
+        {
+            operationId = "op-1",
+            dishId = "dish-2",
+            quantity = 2
+        });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.OrderService.LastAddDishDto.Should().NotBeNull();
+        _factory.OrderService.LastAddDishDto!.OperationId.Should().Be("op-1");
+        _factory.OrderService.LastAddDishDto.DishId.Should().Be("dish-2");
+        _factory.OrderService.LastAddDishDto.Quantity.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task DeleteDish_WhenValidRequest_ShouldReturn200()
+    {
+        _factory.OrderService.Reset();
+
+        var req = Authed(HttpMethod.Post, "/orders/reservations/r-customer-1/dishes/remove", userId: "waiter-1", role: "WAITER");
+        req.Content = JsonContent.Create(new
+        {
+            operationId = "op-2",
+            dishId = "dish-1",
+            quantity = 1
+        });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.OrderService.LastDeleteDishDto.Should().NotBeNull();
+        _factory.OrderService.LastDeleteDishDto!.OperationId.Should().Be("op-2");
+    }
+
+    [Fact]
+    public async Task CompleteOrder_WhenValidRequest_ShouldReturn200()
+    {
+        _factory.OrderService.Reset();
+
+        var req = Authed(HttpMethod.Post, "/orders/reservations/r-customer-1/complete", userId: "waiter-1", role: "WAITER");
+        req.Content = JsonContent.Create(new
+        {
+            operationId = "op-3"
+        });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.OrderService.LastCompleteDto.Should().NotBeNull();
+        _factory.OrderService.LastCompleteDto!.OperationId.Should().Be("op-3");
+    }
+
+    
+
+    [Fact]
+    public async Task AddDish_WithoutUserHeader_ShouldReturn401()
+    {
+        var req = new HttpRequestMessage(HttpMethod.Post, "/orders/reservations/r-customer-1/dishes")
+        {
+            Content = JsonContent.Create(new
+            {
+                operationId = "op-unauth",
+                dishId = "dish-2",
+                quantity = 1
+            })
+        };
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        _factory.OrderService.LastAddDishDto.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AddDish_WhenQuantityInvalid_ShouldReturn400_AndNotCallService()
+    {
+        _factory.OrderService.Reset();
+
+        var req = Authed(HttpMethod.Post, "/orders/reservations/r-customer-1/dishes", userId: "waiter-1", role: "WAITER");
+        req.Content = JsonContent.Create(new
+        {
+            operationId = "op-invalid",
+            dishId = "dish-2",
+            quantity = 0
+        });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        _factory.OrderService.LastAddDishDto.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteDish_AsNonWaiter_ShouldReturn403()
+    {
+        _factory.OrderService.Reset();
+
+        var req = Authed(HttpMethod.Post, "/orders/reservations/r-customer-1/dishes/remove", userId: "customer-1", role: "CUSTOMER");
+        req.Content = JsonContent.Create(new
+        {
+            operationId = "op-forbidden",
+            dishId = "dish-1",
+            quantity = 1
+        });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        _factory.OrderService.LastDeleteDishDto.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CompleteOrder_WhenServiceReturnsValidation_ShouldReturn400()
+    {
+        _factory.OrderService.Reset();
+        _factory.OrderService.FailResult = OrderErrors.OrderNotOpen;
+
+        var req = Authed(HttpMethod.Post, "/orders/reservations/r-customer-1/complete", userId: "waiter-1", role: "WAITER");
+        req.Content = JsonContent.Create(new
+        {
+            operationId = "op-complete-invalid"
+        });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }

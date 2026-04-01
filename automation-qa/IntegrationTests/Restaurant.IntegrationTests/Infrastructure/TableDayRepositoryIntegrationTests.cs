@@ -6,7 +6,8 @@ using Restaurant.IntegrationTests.Infrastructure;
 
 namespace Restaurant.Infrastructure.IntegrationTests;
 
-public sealed class TableDayRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
+[Collection("DynamoDb collection")]
+public sealed class TableDayRepositoryIntegrationTests
 {
     private readonly DynamoDBContext _context;
     private readonly TableDayRepository _repo;
@@ -65,8 +66,21 @@ public sealed class TableDayRepositoryIntegrationTests : IClassFixture<DynamoDbF
         var key1 = $"loc-{Guid.NewGuid():N}#1";
         var key2 = $"loc-{Guid.NewGuid():N}#2";
 
-        await _context.SaveAsync(new TableDay { TableKey = key1, Date = date, ReservedSlots = new HashSet<string> { "11:00" }, Ttl = 9999999999L });
-        await _context.SaveAsync(new TableDay { TableKey = key2, Date = date, ReservedSlots = new HashSet<string> { "12:00" }, Ttl = 9999999999L });
+        await _context.SaveAsync(new TableDay
+        {
+            TableKey = key1,
+            Date = date,
+            ReservedSlots = new HashSet<string> { "11:00" },
+            Ttl = 9999999999L
+        });
+
+        await _context.SaveAsync(new TableDay
+        {
+            TableKey = key2,
+            Date = date,
+            ReservedSlots = new HashSet<string> { "12:00" },
+            Ttl = 9999999999L
+        });
 
         var result = await _repo.GetManyByTablesAndDateAsync(new[] { key1, key2 }, date, CancellationToken.None);
 
@@ -83,7 +97,13 @@ public sealed class TableDayRepositoryIntegrationTests : IClassFixture<DynamoDbF
         var existingKey = $"loc-{Guid.NewGuid():N}#3";
         var missingKey = $"loc-{Guid.NewGuid():N}#999";
 
-        await _context.SaveAsync(new TableDay { TableKey = existingKey, Date = date, ReservedSlots = new HashSet<string>(), Ttl = 9999999999L });
+        await _context.SaveAsync(new TableDay
+        {
+            TableKey = existingKey,
+            Date = date,
+            ReservedSlots = new HashSet<string>(),
+            Ttl = 9999999999L
+        });
 
         var result = await _repo.GetManyByTablesAndDateAsync(new[] { existingKey, missingKey }, date, CancellationToken.None);
 

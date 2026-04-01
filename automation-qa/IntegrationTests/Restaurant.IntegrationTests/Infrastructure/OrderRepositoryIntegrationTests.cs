@@ -7,7 +7,7 @@ using Restaurant.IntegrationTests.Infrastructure;
 namespace Restaurant.Infrastructure.IntegrationTests;
 
 [Collection("DynamoDb collection")]
-public sealed class OrderRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
+public sealed class OrderRepositoryIntegrationTests
 {
     private readonly DynamoDBContext _context;
     private readonly OrderRepository _repo;

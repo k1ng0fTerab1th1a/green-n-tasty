@@ -8,7 +8,7 @@ using Restaurant.IntegrationTests.Infrastructure;
 namespace Restaurant.Infrastructure.IntegrationTests;
 
 [Collection("DynamoDb collection")]
-public class UserRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
+public class UserRepositoryIntegrationTests
 {
     private readonly DynamoDBContext _context;
     private readonly IAmazonDynamoDB _client;

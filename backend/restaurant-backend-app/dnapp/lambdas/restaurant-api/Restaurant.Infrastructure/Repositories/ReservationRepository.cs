@@ -1,3 +1,4 @@
+using System.Globalization;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.DocumentModel;
@@ -445,6 +446,192 @@ public sealed class ReservationRepository : IReservationRepository
         catch (Exception)
         {
             return ReservationErrors.UpdateFailed;
+        }
+    }
+
+    public async Task<FinishReservationOutcome> FinishAndCompleteOrderIfOpenAsync(
+    Reservation reservation,
+    List<string> slotsToRelease,
+    CancellationToken ct = default)
+    {
+        var orderProjection = await GetOrderForFinishAsync(reservation.Id, ct);
+
+        if (orderProjection is not null &&
+            orderProjection.Status == OrderStatus.Open &&
+            string.Equals(orderProjection.WaiterId, reservation.WaiterId, StringComparison.Ordinal))
+        {
+            var completedWithOrder = await TryFinishReservationInternalAsync(
+                reservation,
+                slotsToRelease,
+                orderProjection,
+                ct);
+
+            if (completedWithOrder)
+            {
+                var increments = (orderProjection.Dishes ?? [])
+                    .Where(x => !string.IsNullOrWhiteSpace(x.DishId) && x.Quantity > 0)
+                    .GroupBy(x => x.DishId)
+                    .Select(x => new DishPopularityIncrement
+                    {
+                        DishId = x.Key,
+                        Quantity = x.Sum(y => y.Quantity)
+                    })
+                    .ToList();
+
+                return new FinishReservationOutcome
+                {
+                    IsSuccess = true,
+                    OrderWasCompleted = true,
+                    PopularityIncrements = increments
+                };
+            }
+        }
+
+        var finishedReservationOnly = await TryFinishReservationInternalAsync(
+            reservation,
+            slotsToRelease,
+            orderProjection: null,
+            ct);
+
+        return new FinishReservationOutcome
+        {
+            IsSuccess = finishedReservationOnly,
+            OrderWasCompleted = false,
+            PopularityIncrements = []
+        };
+    }
+
+    private async Task<Order?> GetOrderForFinishAsync(string reservationId, CancellationToken ct)
+    {
+        var response = await _dynamoDb.GetItemAsync(new GetItemRequest
+        {
+            TableName = "Orders",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                ["id"] = new() { S = reservationId }
+            },
+            ProjectionExpression = "waiterId, #status, #version, dishes",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                ["#status"] = "status",
+                ["#version"] = "version"
+            }
+        }, ct);
+
+        if (!response.IsItemSet)
+            return null;
+
+        var document = Document.FromAttributeMap(response.Item);
+        return _context.FromDocument<Order>(document);
+    }
+
+    private async Task<bool> TryFinishReservationInternalAsync(
+        Reservation reservation,
+        List<string> slotsToRelease,
+        Order? orderProjection,
+        CancellationToken ct)
+    {
+        var date = DateOnly.FromDateTime(DateTimeOffset.Parse(reservation.StartDateTime).DateTime);
+
+        var transactItems = new List<TransactWriteItem>
+        {
+            new()
+            {
+                Update = new Update
+                {
+                    TableName = "Reservations",
+                    Key = new Dictionary<string, AttributeValue>
+                    {
+                        ["id"] = new() { S = reservation.Id }
+                    },
+                    UpdateExpression = "SET #status = :newStatus, actualEndTime = :actualEndTime, updatedAt = :updatedAt",
+                    ConditionExpression = "attribute_exists(id) AND #status = :expectedStatus",
+                    ExpressionAttributeNames = new Dictionary<string, string>
+                    {
+                        ["#status"] = "status"
+                    },
+                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                    {
+                        [":expectedStatus"] = new() { S = ReservationStatus.InProgress.ToString() },
+                        [":newStatus"] = new() { S = ReservationStatus.Finished.ToString() },
+                        [":actualEndTime"] = new() { S = reservation.ActualEndTime! },
+                        [":updatedAt"] = new() { S = reservation.UpdatedAt }
+                    }
+                }
+            },
+            new()
+            {
+                Update = new Update
+                {
+                    TableName = "TableDays",
+                    Key = new Dictionary<string, AttributeValue>
+                    {
+                        ["tableKey"] = new() { S = reservation.TableKey },
+                        ["date"] = new() { S = date.ToString("yyyy-MM-dd") }
+                    },
+                    UpdateExpression = "DELETE reservedSlots :slots",
+                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                    {
+                        [":slots"] = new() { SS = slotsToRelease }
+                    }
+                }
+            }
+        };
+
+        if (orderProjection is not null &&
+            orderProjection.Status == OrderStatus.Open &&
+            string.Equals(orderProjection.WaiterId, reservation.WaiterId, StringComparison.Ordinal))
+        {
+            transactItems.Add(new TransactWriteItem
+            {
+                Update = new Update
+                {
+                    TableName = "Orders",
+                    Key = new Dictionary<string, AttributeValue>
+                    {
+                        ["id"] = new() { S = reservation.Id }
+                    },
+                    UpdateExpression =
+                        "SET #status = :completedStatus, completedAt = :completedAt " +
+                        "ADD #version :versionIncrement",
+                    ConditionExpression =
+                        "attribute_exists(id) " +
+                        "AND waiterId = :waiterId " +
+                        "AND #status = :expectedOrderStatus " +
+                        "AND (attribute_not_exists(#version) OR #version = :expectedVersion)",
+                    ExpressionAttributeNames = new Dictionary<string, string>
+                    {
+                        ["#status"] = "status",
+                        ["#version"] = "version"
+                    },
+                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                    {
+                        [":completedStatus"] = new() { S = OrderStatus.Completed.ToString() },
+                        [":completedAt"] = new() { S = reservation.ActualEndTime! },
+                        [":waiterId"] = new() { S = reservation.WaiterId },
+                        [":expectedOrderStatus"] = new() { S = OrderStatus.Open.ToString() },
+                        [":expectedVersion"] = new()
+                        {
+                            N = orderProjection.Version.ToString(CultureInfo.InvariantCulture)
+                        },
+                        [":versionIncrement"] = new() { N = "1" }
+                    }
+                }
+            });
+        }
+
+        try
+        {
+            await _dynamoDb.TransactWriteItemsAsync(new TransactWriteItemsRequest
+            {
+                TransactItems = transactItems
+            }, ct);
+
+            return true;
+        }
+        catch (TransactionCanceledException)
+        {
+            return false;
         }
     }
 
