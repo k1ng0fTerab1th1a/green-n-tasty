@@ -34,4 +34,5 @@ export { default as CreateOrderModal } from "./modals/CreateOrderModal/CreateOrd
 export { default as SearchDropdown } from "./ui/SearchDropdown/SearchDropdown";
 export { default as SelectedDishCard } from "./cards/SelectedDishCard/SelectedDishCard";
 export { default as EditOrderModal } from "./modals/EditOrderModal/EditOrderModal";
+export { default as EditReservationModal } from "./modals/EditReservationModal/EditReservationModal";
 export { default as Checkbox } from "./ui/Checkbox/Checkbox";

@@ -1,144 +1,358 @@
-import { useState } from "react";
-import { Modal, Radio, Dropdown, Button, TableSelector } from "../../index.js";
+import { useState, useEffect, useRef } from "react";
+import { useAuth } from "../../../auth/AuthContext.jsx";
+import {Modal, Radio, Dropdown, Button, SearchDropdown, Input} from "../../index.js";
+import { getAvailableTables } from "../../../services/bookings";
+import { getWaiterCustomers } from "../../../services/reservations";
 import styles from "./CreateReservationModal.module.css";
 
-// Іконки
-import locationIcon from "../../../assets/icons/pin.svg";
-import userIcon from "../../../assets/icons/person.svg";
+import calendarIcon from "../../../assets/icons/calendar.svg";
 import clockIcon from "../../../assets/icons/clock.svg";
 import guestsIcon from "../../../assets/icons/people.svg";
+import chevronDownIcon from "../../../assets/icons/chevron-down.svg";
 
 export default function CreateReservationModal({ isOpen, onClose, onConfirm }) {
-    const [location, setLocation] = useState("48 Rustaveli Avenue");
-    const [customerType, setCustomerType] = useState("visitor"); // 'visitor' | 'existing'
-    const [customerName, setCustomerName] = useState("");
-    const [guests, setGuests] = useState(10);
-    const [timeFrom, setTimeFrom] = useState("12:15 p.m.");
-    const [timeTo, setTimeTo] = useState("1:45 p.m.");
-    const [table, setTable] = useState("Table 1");
+    const { auth } = useAuth();
+    const dateInputRef = useRef(null);
 
-    const handleGuestsChange = (val) => {
-        setGuests(prev => Math.max(1, prev + val));
+    const [customerType, setCustomerType] = useState("visitor");
+    const [customerSearch, setCustomerSearch] = useState("");
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [customersList, setCustomersList] = useState([]);
+    const [isApiSearchPaused, setIsApiSearchPaused] = useState(false);
+
+    const [visitorName, setVisitorName] = useState("");
+
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [guests, setGuests] = useState(2);
+    const [timeFrom, setTimeFrom] = useState("");
+    const [timeTo, setTimeTo] = useState("");
+    const [slotStartTime, setSlotStartTime] = useState(""); // ⬅ ДОДАЛИ
+    const [slotEndTime, setSlotEndTime] = useState("");
+
+    const [table, setTable] = useState("");
+    const [availableTables, setAvailableTables] = useState([]);
+    const [isLoadingTables, setIsLoadingTables] = useState(false);
+
+    const displayDate = new Date(date).toLocaleDateString("en-US", {
+        month: "short", day: "numeric", year: "numeric",
+    });
+
+    const timeOptions = Array.from({ length: 24 * 4 }, (_, i) => {
+        const hours = Math.floor(i / 4).toString().padStart(2, '0');
+        const minutes = ((i % 4) * 15).toString().padStart(2, '0');
+        return { value: `${hours}:${minutes}`, label: `${hours}:${minutes}` };
+    });
+
+    const buildTimeRange = (start, end) => {
+        if (!start || !end) return timeOptions;
+
+        const startIdx = timeOptions.findIndex(o => o.value === start);
+        const endIdx = timeOptions.findIndex(o => o.value === end);
+
+        if (startIdx === -1 || endIdx === -1) return timeOptions;
+
+        if (startIdx <= endIdx) {
+            return timeOptions.slice(startIdx, endIdx + 1);
+        }
+
+        return [
+            ...timeOptions.slice(startIdx),
+            ...timeOptions.slice(0, endIdx + 1)
+        ];
+    };
+
+    const timeFromOptions = buildTimeRange(slotStartTime, slotEndTime);
+    const minForTo = timeFrom || slotStartTime;
+    let timeToOptions = buildTimeRange(minForTo, slotEndTime);
+    timeToOptions = timeToOptions.filter(o => o.value !== minForTo);
+
+    useEffect(() => {
+        if (!slotStartTime || !slotEndTime) return;
+
+        const rangeFrom = buildTimeRange(slotStartTime, slotEndTime);
+        const rangeTo = buildTimeRange(timeFrom || slotStartTime, slotEndTime);
+
+        if (timeFrom && !rangeFrom.some(o => o.value === timeFrom)) {
+            setTimeFrom("");
+        }
+        if (timeTo && !rangeTo.some(o => o.value === timeTo)) {
+            setTimeTo("");
+        }
+    }, [timeFrom, timeTo, slotStartTime, slotEndTime]);
+
+    const handleDateContainerClick = () => {
+        if (dateInputRef.current) {
+            if (dateInputRef.current.showPicker) {
+                dateInputRef.current.showPicker();
+            } else {
+                dateInputRef.current.focus();
+            }
+        }
+    };
+
+    useEffect(() => {
+        if (customerType !== "existing" || customerSearch.length < 2 || isApiSearchPaused) {
+            if (isApiSearchPaused) setIsApiSearchPaused(false);
+            setCustomersList([]);
+            return;
+        }
+
+        const delayDebounceFn = setTimeout(async () => {
+            const result = await getWaiterCustomers(customerSearch);
+            if (result.isSuccess && result.data) {
+                const mapped = result.data.map(c => ({
+                    id: c.customerId,
+                    name: c.username,
+                    email: c.maskedEmail
+                }));
+                setCustomersList(mapped);
+            }
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [customerSearch, customerType, isApiSearchPaused]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const fetchTables = async () => {
+            const params = {
+                locationId: "location-1",
+                date: date,
+                guests: guests,
+                time: timeFrom || undefined,
+            };
+
+            try {
+                setIsLoadingTables(true);
+                const result = await getAvailableTables(params);
+
+                if (result.isSuccess && result.data) {
+                    const mappedTables = result.data.map(t => {
+                        const slotsInfo = t.availableSlots && t.availableSlots.length > 0
+                            ? t.availableSlots.map(slot => {
+                                const startTime = slot.startOffset.includes('T')
+                                    ? slot.startOffset.split('T')[1].substring(0, 5)
+                                    : slot.startOffset;
+                                const endTime = slot.endOffset.includes('T')
+                                    ? slot.endOffset.split('T')[1].substring(0, 5)
+                                    : slot.endOffset;
+                                return `${startTime}-${endTime}`;
+                            }).join(', ')
+                            : "No slots";
+
+                        return {
+                            value: t.tableNumber.toString(),
+                            label: `Table ${t.tableNumber} (${t.capacity} pers.) (${slotsInfo})`
+                        };
+                    });
+
+                    setAvailableTables(mappedTables);
+                    if (!mappedTables.some(t => t.value === table)) {
+                        setTable(mappedTables.length > 0 ? mappedTables[0].value : "");
+                    }
+
+                    if (result.data.length > 0) {
+                        const firstWithSlots = result.data.find(
+                            t => t.availableSlots && t.availableSlots.length > 0
+                        );
+
+                        if (firstWithSlots) {
+                            const firstSlot = firstWithSlots.availableSlots[0];
+
+                            const startTime = firstSlot.startOffset.includes('T')
+                                ? firstSlot.startOffset.split('T')[1].substring(0, 5)
+                                : firstSlot.startOffset.substring(0, 5);
+
+                            const endTime = firstSlot.endOffset.includes('T')
+                                ? firstSlot.endOffset.split('T')[1].substring(0, 5)
+                                : firstSlot.endOffset.substring(0, 5);
+
+                            setSlotStartTime(startTime);
+                            setSlotEndTime(endTime);
+
+                            setTimeFrom(prev => prev || startTime);
+                            setTimeTo(prev => prev || endTime);
+                        } else {
+                            setSlotStartTime("");
+                            setSlotEndTime("");
+                            setTimeFrom("");
+                            setTimeTo("");
+                        }
+                    } else {
+                        setSlotStartTime("");
+                        setSlotEndTime("");
+                        setTimeFrom("");
+                        setTimeTo("");
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching tables:", error);
+            } finally {
+                setIsLoadingTables(false);
+            }
+        };
+
+        fetchTables();
+    }, [date, guests, isOpen]);
+
+    const handleSelectCustomer = (customer) => {
+        setSelectedCustomer(customer);
+        setIsApiSearchPaused(true);
+        setCustomerSearch(customer.name);
+        setCustomersList([]);
+    };
+
+    const handleInputChange = (value) => {
+        if (selectedCustomer && value !== selectedCustomer.name) {
+            setSelectedCustomer(null);
+        }
+        setCustomerSearch(value);
     };
 
     const handleSubmit = () => {
-        onConfirm({
-            location,
-            customerType,
-            customerName: customerType === 'existing' ? customerName : 'Visitor',
-            guests,
-            timeFrom,
-            timeTo,
-            table
-        });
+        const formData = {
+            date,
+            timeFrom: timeFrom || "12:00",
+            timeTo: timeTo || "14:00",
+            guestsCount: Number(guests),
+            tableNumber: Number(table),
+            customerType
+        };
+
+        if (customerType === 'existing') {
+            formData.customerId = selectedCustomer?.id;
+        } else {
+            formData.visitorName = visitorName;
+        }
+
+        onConfirm(formData);
         onClose();
     };
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="New Reservation">
             <div className={styles.form}>
-                {/* Location Selection */}
-                <Dropdown
-                    value={location}
-                    onChange={setLocation}
-                    options={[{ value: "48 Rustaveli Avenue", label: "48 Rustaveli Avenue" }]}
-                    leftIcon={locationIcon}
-                />
+                <div className={styles.inputSection}>
+                    <label className="h3">Date</label>
+                    <div className={styles.filterInputGroup} onClick={handleDateContainerClick}>
+                        <img src={calendarIcon} alt="" className={styles.fieldIcon} />
+                        <div className={styles.nativeInputWrap}>
+                            <input
+                                ref={dateInputRef}
+                                type="date"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                                className={styles.nativeInput}
+                            />
+                            <span className="body-bold">{displayDate}</span>
+                        </div>
+                        <img src={chevronDownIcon} alt="" className={styles.chevronIcon} />
+                    </div>
+                </div>
 
-                {/* Customer Type Selection */}
                 <div className={styles.radioGroup}>
                     <div className={`${styles.radioCard} ${customerType === 'visitor' ? styles.active : ''}`}>
                         <Radio
-                            name="customerType"
-                            value="visitor"
+                            name="customerType" value="visitor"
                             checked={customerType === 'visitor'}
-                            onChange={setCustomerType}
+                            onChange={(val) => { setCustomerType(val); setCustomerSearch(""); setSelectedCustomer(null); }}
                             label="Visitor"
                         />
                     </div>
                     <div className={`${styles.radioCard} ${customerType === 'existing' ? styles.active : ''}`}>
                         <Radio
-                            name="customerType"
-                            value="existing"
+                            name="customerType" value="existing"
                             checked={customerType === 'existing'}
-                            onChange={setCustomerType}
-                            label="Existing Customer"
+                            onChange={(val) => { setCustomerType(val); setVisitorName(""); }}
+                            label="Customer"
                         />
                     </div>
-                </div>
-
-                {/* Conditional Name Input */}
-                {customerType === 'existing' && (
-                    <div className={styles.nameInputSection}>
-                        <label className="body-bold">Customer's Name</label>
+                    {customerType === 'existing' ? (
+                        <div className={styles.dropdownContainer}>
+                            <SearchDropdown
+                                items={customersList}
+                                searchKey="name"
+                                value={customerSearch}
+                                placeholder="Enter Customer’s Name ..."
+                                label="Customer’s Name"
+                                onInputChange={handleInputChange}
+                                onSelect={handleSelectCustomer}
+                                renderItem={(item) => (
+                                    <span>{item.name} <small style={{color: '#666'}}>({item.email})</small></span>
+                                )}
+                            />
+                        </div>
+                    ) : (
                         <div className={styles.inputWrapper}>
-                            <input
+                            <label className="body-bold">Visitor's Name</label>
+                            <Input
                                 type="text"
-                                placeholder="Enter Customer's Name"
-                                value={customerName}
-                                onChange={(e) => setCustomerName(e.target.value)}
+                                placeholder="Enter visitior name ..."
+                                value={visitorName}
+                                onChange={(e) => setVisitorName(e.target.value)}
                                 className={styles.input}
                             />
-                            <span className={styles.inputHint}>e.g. Jonson Doe</span>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
 
-                {/* Guests Counter */}
                 <div className={styles.guestsRow}>
                     <div className={styles.iconLabel}>
                         <img src={guestsIcon} alt="" />
-                        <span className="body">Guests</span>
+                        <span className="ody-bold">Guests</span>
                     </div>
                     <div className={styles.counter}>
-                        <button onClick={() => handleGuestsChange(-1)} className={styles.counterBtn}>−</button>
+                        <button onClick={() => setGuests(prev => Math.max(1, prev - 1))} className={styles.counterBtn}>−</button>
                         <span className="body-bold">{guests}</span>
-                        <button onClick={() => handleGuestsChange(1)} className={styles.counterBtn}>+</button>
+                        <button onClick={() => setGuests(prev => prev + 1)} className={styles.counterBtn}>+</button>
                     </div>
                 </div>
 
-                {/* Time Selection */}
                 <div className={styles.timeSection}>
-                    <h3 className="body-bold">Time</h3>
-                    <p className={styles.timeHint}>Please choose your preferred time from the dropdowns below</p>
+                    <label className="h3">Time</label>
+                    <label className="body">Please choose your preferred time from the dropdowns below</label>
                     <div className={styles.timeGrid}>
                         <div className={styles.timeCol}>
-                            <label className="caption">From</label>
+                            <label className="body-bold">From</label>
                             <Dropdown
                                 value={timeFrom}
                                 onChange={setTimeFrom}
-                                options={[{ value: "12:15 p.m.", label: "12:15 p.m." }]}
+                                options={timeFromOptions}
                                 leftIcon={clockIcon}
+                                disabled={!slotEndTime}
+                                placeholder={!slotEndTime ? "Select time" : "Select time"}
                             />
                         </div>
                         <div className={styles.timeCol}>
-                            <label className="caption">To</label>
+                            <label className="body-bold">To</label>
                             <Dropdown
                                 value={timeTo}
                                 onChange={setTimeTo}
-                                options={[{ value: "1:45 p.m.", label: "1:45 p.m." }]}
+                                options={timeToOptions}
                                 leftIcon={clockIcon}
+                                disabled={!timeFrom || !slotEndTime}
+                                placeholder={!timeFrom ? "Select time" : "Select time"}
                             />
                         </div>
                     </div>
                 </div>
 
-                {/* Table Selection */}
-                <Dropdown
-                    value={table}
-                    onChange={setTable}
-                    options={[
-                        { value: "Table 1", label: "Table 1" },
-                        { value: "Table 2", label: "Table 2" }
-                    ]}
-                    // Передаємо кастомні класи для зміни стилю
-                    className={styles.tableDropdown}
-                    controlClassName={styles.tableDropdownControl}
-                    placeholder="Select Table"
-                />
+                <div className={styles.tableSection}>
+                    <label className="body-bold">Available tables</label>
+                    <Dropdown
+                        value={table} onChange={setTable}
+                        options={availableTables}
+                        placeholder={isLoadingTables ? "Searching..." : "Choose Table"}
+                        disabled={isLoadingTables || availableTables.length === 0}
+                    />
+                </div>
 
-                <Button variant="primary" fullWidth onClick={handleSubmit}>
-                    Make a Reservation
+                <Button
+                    variant="primary" fullWidth onClick={handleSubmit}
+                    disabled={!table || isLoadingTables || (customerType === 'existing' && !selectedCustomer) || (customerType === 'visitor' && !visitorName)}
+                >
+                    Confirm Reservation
                 </Button>
             </div>
         </Modal>
