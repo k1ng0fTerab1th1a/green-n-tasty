@@ -38,6 +38,8 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("username")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<ApiResponse<object>> UpdateUsername([FromBody] UpdateUsernameRequest request, CancellationToken
         ct)
     {
@@ -88,5 +90,13 @@ public class UserController : ControllerBase
             return result.Errors[0].ToApiResponse<UserResponse>();
 
         return ApiResponse<UserResponse>.Success(StatusCodes.Status200OK, result.Value.ToResponse(), "User retrieved successfully");
+    }
+
+    [HttpPost("make-otp")]
+    public async Task<ApiResponse<object>> CreateOtp(string email, CancellationToken ct)
+    {
+        
+        return ApiResponse<object>.Success(200, null);
+
     }
 }
