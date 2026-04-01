@@ -29,11 +29,10 @@ public class OrderController (IOrderService orderService) : ControllerBase
     }
 
     [HttpGet("reservations/{reservationId}")]
-    [Authorize(Roles = "WAITER")]
     [ProducesResponseType(typeof(ApiResponse<OrderResponse>), StatusCodes.Status200OK)]
     public async Task<ApiResponse<OrderResponse>> GetOrderByReservation(
-        [FromRoute] string reservationId,
-        CancellationToken ct)
+    [FromRoute] string reservationId,
+    CancellationToken ct)
     {
         var actorUserId = User.GetUserId();
         var result = await orderService.GetByReservationAsync(actorUserId, reservationId, ct);

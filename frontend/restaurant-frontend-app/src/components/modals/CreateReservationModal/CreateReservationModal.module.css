@@ -1,17 +1,19 @@
 .form {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 24px;
+    padding: 0;
 }
 
 .radioGroup {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .radioCard {
     padding: 16px;
+    background: #ffffff;
     border: 1px solid var(--neutral-200);
     border-radius: var(--radius-md);
     transition: border-color 0.2s;
@@ -34,15 +36,10 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-}
-
-.input {
-    width: 100%;
-    height: 48px;
-    padding: 0 16px;
-    border: 1px solid var(--neutral-200);
-    border-radius: var(--radius-sm);
-    font-family: inherit;
+    border: 1px solid var(--green-200);
+    border-radius: 8px;
+    padding: 24px 24px;
+    background: #ffffff;
 }
 
 .inputHint {
@@ -57,6 +54,7 @@
     padding: 12px 16px;
     border: 1px solid var(--neutral-200);
     border-radius: var(--radius-sm);
+    background: #ffffff;
 }
 
 .iconLabel {
@@ -105,6 +103,60 @@
 .timeCol {
     display: flex;
     flex-direction: column;
-    gap: 6px;
 }
 
+.dropdownContainer {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--green-200);
+    border-radius: 8px;
+    padding: 0 24px;
+    background: #ffffff;
+}
+
+.selectedBadge {
+    margin-top: -16px;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background: #f0fff0;
+    border: 1px solid var(--green-200);
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.filterInputGroup {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border: 1px solid var(--neutral-200);
+    border-radius: var(--radius-sm);
+    background: white;
+    position: relative;
+    cursor: pointer;
+}
+
+.nativeInputWrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.nativeInput {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.fieldIcon, .chevronIcon {
+    width: 20px;
+    height: 20px;
+    position: relative;
+    z-index: 5;
+}

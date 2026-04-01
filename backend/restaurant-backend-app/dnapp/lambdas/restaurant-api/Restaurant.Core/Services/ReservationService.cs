@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using FluentResults;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Errors;
@@ -19,7 +18,7 @@ public sealed class ReservationService : IReservationService
     private readonly ILocationRepository _locationRepository;
     private readonly ITableRepository _tableRepository;
     private readonly IUserRepository _userRepository;
-    private readonly IOrderRepository _orderRepository;
+    private readonly IDishRepository _dishRepository;
 
     public ReservationService(
         IReservationRepository repo,
@@ -27,14 +26,14 @@ public sealed class ReservationService : IReservationService
         ILocationRepository locationRepository,
         ITableRepository tableRepository,
         IUserRepository userRepository,
-        IOrderRepository orderRepository)
+        IDishRepository dishRepository)
     {
         _repo = repo;
         _waiterScheduleRepository = waiterScheduleRepository;
         _locationRepository = locationRepository;
         _tableRepository = tableRepository;
         _userRepository = userRepository;
-        _orderRepository = orderRepository;
+        _dishRepository = dishRepository;
     }
 
     public async Task<Result<IReadOnlyList<Reservation>>> GetByCustomer(string actorUserId, CancellationToken ct = default)
@@ -126,7 +125,7 @@ public sealed class ReservationService : IReservationService
 
         var reservation = new Reservation
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = GenerateReservationId(location.Address, dto.TableNumber, start),
             CustomerId = customerId,
             CustomerName = $"{customer.FirstName} {customer.LastName}",
             WaiterId = schedule.WaiterId,
@@ -209,7 +208,7 @@ public sealed class ReservationService : IReservationService
         
         var reservation = new Reservation
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = GenerateReservationId(location.Address, dto.TableNumber, start),
             CustomerId = customerId,
             CustomerName = customerName,
             WaiterId = waiterId,
@@ -381,10 +380,14 @@ public sealed class ReservationService : IReservationService
         return reservation;
     }
 
-    public async Task<Result<Reservation>> FinishReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
+    public async Task<Result<Reservation>> FinishReservationAsync(
+        string reservationId,
+        string waiterId,
+        CancellationToken ct = default)
     {
         var getResult = await GetByIdAsync(reservationId, waiterId, actorIsWaiter: true, ct);
-        if (getResult.IsFailed) return getResult;
+        if (getResult.IsFailed)
+            return getResult;
 
         var reservation = getResult.Value;
 
@@ -400,23 +403,42 @@ public sealed class ReservationService : IReservationService
             DateTimeOffset.Parse(reservation.StartDateTime),
             DateTimeOffset.Parse(reservation.EndDateTime));
 
-        var success = await _repo.UpdateLifecycleAsync(
+        var finishOutcome = await _repo.FinishAndCompleteOrderIfOpenAsync(
             reservation,
-            ReservationStatus.InProgress,
-            ReservationStatus.Finished,
             slots,
             ct);
 
-        if (!success)
+        if (!finishOutcome.IsSuccess)
             return ReservationErrors.FinishFailed;
 
-        await _orderRepository.CompleteOnReservationFinishIfOpenAsync(
-            reservation.Id,
-            waiterId,
-            actualEnd,
-            ct);
+        if (finishOutcome.OrderWasCompleted)
+        {
+            foreach (var increment in finishOutcome.PopularityIncrements)
+            {
+                if (string.IsNullOrWhiteSpace(increment.DishId) || increment.Quantity <= 0)
+                    continue;
+
+                await _dishRepository.IncrementPopularityAsync(
+                    increment.DishId,
+                    increment.Quantity,
+                    ct);
+            }
+        }
 
         return reservation;
     }
+    
+    private static string GenerateReservationId(string locationAddress, int tableNumber, DateTimeOffset start)
+    {
+        var addressCode = new string(
+            locationAddress.Where(char.IsLetterOrDigit)
+                .Take(6)
+                .Select(char.ToUpperInvariant)
+                .ToArray());
 
+        var dateCode = start.ToString("ddMMyy");
+        var timeCode = start.ToString("HHmm");
+
+        return $"{addressCode}-{tableNumber}-{dateCode}-{timeCode}";
+    }
 }

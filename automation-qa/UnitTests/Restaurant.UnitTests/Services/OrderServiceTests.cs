@@ -238,12 +238,7 @@ public sealed class OrderServiceTests
     [Fact]
     public async Task GetByReservationAsync_WhenOrderExists_ReturnsOrder()
     {
-        var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.InProgress, dishCount: 2);
         var order = BuildOrder("res-1");
-
-        _reservationRepo
-            .Setup(r => r.GetByIdAsync("res-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(reservation);
 
         _orderRepo
             .Setup(r => r.GetByReservationIdAsync("res-1", It.IsAny<CancellationToken>()))
@@ -254,21 +249,16 @@ public sealed class OrderServiceTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Id.Should().Be("res-1");
 
-        _reservationRepo.VerifyAll();
         _orderRepo.VerifyAll();
+        _reservationRepo.VerifyNoOtherCalls();
         _dishRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task AddDishAsync_WhenOperationAlreadyProcessed_ReturnsCurrentOrderWithoutMutation()
     {
-        var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.InProgress, dishCount: 2);
         var order = BuildOrder("res-1");
         order.ProcessedOperationIds.Add("op-1");
-
-        _reservationRepo
-            .Setup(r => r.GetByIdAsync("res-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(reservation);
 
         _orderRepo
             .Setup(r => r.GetByReservationIdAsync("res-1", It.IsAny<CancellationToken>()))
@@ -286,15 +276,14 @@ public sealed class OrderServiceTests
         result.IsSuccess.Should().BeTrue();
         result.Value.ProcessedOperationIds.Should().Contain("op-1");
 
-        _reservationRepo.VerifyAll();
         _orderRepo.VerifyAll();
+        _reservationRepo.VerifyNoOtherCalls();
         _dishRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task AddDishAsync_WhenValidRequest_UpdatesOrderAndReservation()
     {
-        var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.InProgress, dishCount: 2);
         var order = BuildOrder("res-1");
         var dto = new AddDishToOrderDTO
         {
@@ -302,10 +291,6 @@ public sealed class OrderServiceTests
             DishId = "dish-2",
             Quantity = 2
         };
-
-        _reservationRepo
-            .Setup(r => r.GetByIdAsync("res-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(reservation);
 
         _orderRepo
             .Setup(r => r.GetByReservationIdAsync("res-1", It.IsAny<CancellationToken>()))
@@ -318,10 +303,10 @@ public sealed class OrderServiceTests
         _orderRepo
             .Setup(r => r.UpdateWithReservationDishCountAsync(
                 It.IsAny<Order>(),
-                It.IsAny<Reservation>(),
                 1,
                 "op-2",
                 2,
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
@@ -333,20 +318,15 @@ public sealed class OrderServiceTests
         result.Value.Version.Should().Be(2);
         result.Value.ProcessedOperationIds.Should().Contain("op-2");
 
-        _reservationRepo.VerifyAll();
         _orderRepo.VerifyAll();
+        _reservationRepo.VerifyNoOtherCalls();
         _dishRepo.VerifyAll();
     }
 
     [Fact]
     public async Task DeleteDishAsync_WhenQuantityTooLarge_ReturnsValidationError()
     {
-        var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.InProgress, dishCount: 2);
         var order = BuildOrder("res-1");
-
-        _reservationRepo
-            .Setup(r => r.GetByIdAsync("res-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(reservation);
 
         _orderRepo
             .Setup(r => r.GetByReservationIdAsync("res-1", It.IsAny<CancellationToken>()))
@@ -364,24 +344,15 @@ public sealed class OrderServiceTests
         result.IsFailed.Should().BeTrue();
         result.Errors[0].Message.Should().Be(OrderErrors.InvalidDishRemovalQuantity("dish-1").Message);
 
-        _reservationRepo.VerifyAll();
         _orderRepo.VerifyAll();
+        _reservationRepo.VerifyNoOtherCalls();
         _dishRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task CompleteAsync_WhenValidRequest_CompletesOrder()
     {
-        var reservation = BuildReservation(
-            waiterId: "waiter-1",
-            status: ReservationStatus.InProgress,
-            dishCount: 2,
-            isMealServed: true);
         var order = BuildOrder("res-1");
-
-        _reservationRepo
-            .Setup(r => r.GetByIdAsync("res-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(reservation);
 
         _orderRepo
             .Setup(r => r.GetByReservationIdAsync("res-1", It.IsAny<CancellationToken>()))
@@ -413,9 +384,71 @@ public sealed class OrderServiceTests
         result.Value.Version.Should().Be(2);
         result.Value.ProcessedOperationIds.Should().Contain("op-4");
 
-        _reservationRepo.VerifyAll();
         _orderRepo.VerifyAll();
+        _reservationRepo.VerifyNoOtherCalls();
         _dishRepo.Verify(r => r.IncrementPopularityAsync("dish-1", 2, It.IsAny<CancellationToken>()), Times.Once);
+        _dishRepo.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetByReservationAsync_WhenOrderBelongsToAnotherWaiter_ReturnsForbidden()
+    {
+        var order = BuildOrder("res-1");
+        order.WaiterId = "waiter-2";
+
+        _orderRepo
+            .Setup(r => r.GetByReservationIdAsync("res-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        var result = await _sut.GetByReservationAsync("waiter-1", "res-1", CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(OrderErrors.Forbidden);
+
+        _orderRepo.VerifyAll();
+        _reservationRepo.VerifyNoOtherCalls();
+        _dishRepo.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetByReservationAsync_WhenOrderBelongsToCustomer_ReturnsOrder()
+    {
+        var order = BuildOrder("res-1");
+        order.WaiterId = "waiter-1";
+        order.CustomerId = "customer-1";
+
+        _orderRepo
+            .Setup(r => r.GetByReservationIdAsync("res-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        var result = await _sut.GetByReservationAsync("customer-1", "res-1", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Id.Should().Be("res-1");
+
+        _orderRepo.VerifyAll();
+        _reservationRepo.VerifyNoOtherCalls();
+        _dishRepo.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetByReservationAsync_WhenActorIsNeitherWaiterNorCustomer_ReturnsForbidden()
+    {
+        var order = BuildOrder("res-1");
+        order.WaiterId = "waiter-1";
+        order.CustomerId = "customer-1";
+
+        _orderRepo
+            .Setup(r => r.GetByReservationIdAsync("res-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        var result = await _sut.GetByReservationAsync("customer-2", "res-1", CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(OrderErrors.Forbidden);
+
+        _orderRepo.VerifyAll();
+        _reservationRepo.VerifyNoOtherCalls();
         _dishRepo.VerifyNoOtherCalls();
     }
 

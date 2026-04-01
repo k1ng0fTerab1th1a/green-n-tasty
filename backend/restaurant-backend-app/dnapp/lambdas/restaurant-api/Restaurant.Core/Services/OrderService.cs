@@ -119,16 +119,7 @@ public class OrderService(
         string reservationId,
         CancellationToken ct = default)
     {
-        var reservationResult = await GetReservationForActorAsync(actorId, reservationId, ct);
-        if (reservationResult.IsFailed)
-            return Result.Fail<Order>(reservationResult.Errors);
-
-        var order = await _orderRepo.GetByReservationIdAsync(reservationId, ct);
-        if (order is null)
-            return OrderErrors.OrderNotFound;
-
-        order.ProcessedOperationIds ??= [];
-        return order;
+        return await GetReadableOrderForActorAsync(actorId, reservationId, ct);
     }
 
     public async Task<Result<Order>> AddDishAsync(
@@ -137,19 +128,11 @@ public class OrderService(
         AddDishToOrderDTO dto,
         CancellationToken ct = default)
     {
-        var reservationResult = await GetReservationForActorAsync(actorId, reservationId, ct);
-        if (reservationResult.IsFailed)
-            return Result.Fail<Order>(reservationResult.Errors);
+        var orderResult = await GetOrderForActorAsync(actorId, reservationId, ct);
+        if (orderResult.IsFailed)
+            return orderResult;
 
-        var reservation = reservationResult.Value;
-        if (reservation.Status != ReservationStatus.InProgress)
-            return OrderErrors.ReservationStatusNotOrderable;
-
-        var order = await _orderRepo.GetByReservationIdAsync(reservationId, ct);
-        if (order is null)
-            return OrderErrors.OrderNotFound;
-
-        order.ProcessedOperationIds ??= [];
+        var order = orderResult.Value;
 
         if (order.ProcessedOperationIds.Contains(dto.OperationId))
             return order;
@@ -188,14 +171,14 @@ public class OrderService(
         order.Version = expectedVersion + 1;
         order.ProcessedOperationIds.Add(dto.OperationId);
 
-        reservation.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
+        var updatedAt = DateTimeOffset.UtcNow.ToString("O");
 
         var updated = await _orderRepo.UpdateWithReservationDishCountAsync(
             order,
-            reservation,
             expectedVersion,
             dto.OperationId,
             dto.Quantity,
+            updatedAt,
             ct);
 
         if (updated)
@@ -210,19 +193,11 @@ public class OrderService(
         DeleteDishFromOrderDTO dto,
         CancellationToken ct = default)
     {
-        var reservationResult = await GetReservationForActorAsync(actorId, reservationId, ct);
-        if (reservationResult.IsFailed)
-            return Result.Fail<Order>(reservationResult.Errors);
+        var orderResult = await GetOrderForActorAsync(actorId, reservationId, ct);
+        if (orderResult.IsFailed)
+            return orderResult;
 
-        var reservation = reservationResult.Value;
-        if (reservation.Status != ReservationStatus.InProgress)
-            return OrderErrors.ReservationStatusNotOrderable;
-
-        var order = await _orderRepo.GetByReservationIdAsync(reservationId, ct);
-        if (order is null)
-            return OrderErrors.OrderNotFound;
-
-        order.ProcessedOperationIds ??= [];
+        var order = orderResult.Value;
 
         if (order.ProcessedOperationIds.Contains(dto.OperationId))
             return order;
@@ -252,14 +227,14 @@ public class OrderService(
         order.Version = expectedVersion + 1;
         order.ProcessedOperationIds.Add(dto.OperationId);
 
-        reservation.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
+        var updatedAt = DateTimeOffset.UtcNow.ToString("O");
 
         var updated = await _orderRepo.UpdateWithReservationDishCountAsync(
             order,
-            reservation,
             expectedVersion,
             dto.OperationId,
             -dto.Quantity,
+            updatedAt,
             ct);
 
         if (updated)
@@ -269,24 +244,16 @@ public class OrderService(
     }
 
     public async Task<Result<Order>> CompleteAsync(
-        string actorId,
-        string reservationId,
-        CompleteOrderDTO dto,
-        CancellationToken ct = default)
+    string actorId,
+    string reservationId,
+    CompleteOrderDTO dto,
+    CancellationToken ct = default)
     {
-        var reservationResult = await GetReservationForActorAsync(actorId, reservationId, ct);
-        if (reservationResult.IsFailed)
-            return Result.Fail<Order>(reservationResult.Errors);
+        var orderResult = await GetOrderForActorAsync(actorId, reservationId, ct);
+        if (orderResult.IsFailed)
+            return orderResult;
 
-        var reservation = reservationResult.Value;
-        if ((reservation.Status is not ReservationStatus.InProgress) && !reservationResult.Value.IsMealServed)
-            return OrderErrors.ReservationStatusNotCompletable;
-
-        var order = await _orderRepo.GetByReservationIdAsync(reservationId, ct);
-        if (order is null)
-            return OrderErrors.OrderNotFound;
-
-        order.ProcessedOperationIds ??= [];
+        var order = orderResult.Value;
 
         if (order.ProcessedOperationIds.Contains(dto.OperationId))
             return order;
@@ -322,6 +289,45 @@ public class OrderService(
 
     private static bool IsDishEnabled(string? state)
         => string.Equals(state, "ON", StringComparison.OrdinalIgnoreCase);
+
+    private async Task<Result<Order>> GetReadableOrderForActorAsync(
+        string actorId,
+        string reservationId,
+        CancellationToken ct)
+    {
+        var order = await _orderRepo.GetByReservationIdAsync(reservationId, ct);
+        if (order is null)
+            return Result.Fail<Order>(OrderErrors.OrderNotFound);
+
+        var isAssignedWaiter =
+            string.Equals(order.WaiterId, actorId, StringComparison.Ordinal);
+
+        var isReservationCustomer =
+            !string.IsNullOrWhiteSpace(order.CustomerId) &&
+            string.Equals(order.CustomerId, actorId, StringComparison.Ordinal);
+
+        if (!isAssignedWaiter && !isReservationCustomer)
+            return Result.Fail<Order>(OrderErrors.Forbidden);
+
+        order.ProcessedOperationIds ??= [];
+        return order;
+    }
+
+    private async Task<Result<Order>> GetOrderForActorAsync(
+        string actorId,
+        string reservationId,
+        CancellationToken ct)
+    {
+        var order = await _orderRepo.GetByReservationIdAsync(reservationId, ct);
+        if (order is null)
+            return Result.Fail<Order>(OrderErrors.OrderNotFound);
+
+        if (!string.Equals(order.WaiterId, actorId, StringComparison.Ordinal))
+            return Result.Fail<Order>(OrderErrors.Forbidden);
+
+        order.ProcessedOperationIds ??= [];
+        return order;
+    }
 
     private async Task<Result<Reservation>> GetReservationForActorAsync(
         string actorId,

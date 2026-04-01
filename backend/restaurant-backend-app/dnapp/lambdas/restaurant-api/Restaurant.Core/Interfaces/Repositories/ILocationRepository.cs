@@ -11,4 +11,6 @@ public interface ILocationRepository
 
     Task<(int rating, int feedbacksAmount)> GetLocationFeedbacksDataAsync(string locationId,
         CancellationToken ct = default);
+
+    Task UpdateAsync(Location location, CancellationToken ct);
 }

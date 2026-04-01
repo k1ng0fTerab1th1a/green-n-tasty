@@ -1,4 +1,4 @@
-﻿using FluentResults;
+using FluentResults;
 using Restaurant.Core.DTOs;
 
 namespace Restaurant.Core.Interfaces.Services;
@@ -11,6 +11,10 @@ public interface IFeedbackService
     Task<Result> SaveAuthorisedFeedback(CreateFeedbackDTO dto, string userId, CancellationToken ct);
     Task<Result> SaveVisitorFeedback(CreateFeedbackDTO dto, string secretCode, CancellationToken ct);
 
-    Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(string reservationId,
-        CancellationToken ct = default);
+    Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDtoAsync(string reservationId, bool isForUpdate,
+        CancellationToken ct);
+
+    Task<Result> UpdateFeedback(CreateFeedbackDTO dto,
+        string userId,
+        CancellationToken ct);
 }

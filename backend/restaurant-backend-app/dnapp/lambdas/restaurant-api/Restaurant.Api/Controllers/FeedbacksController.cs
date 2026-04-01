@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Restaurant.Api.Contracts.Requests;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Api.Extensions;
 using Restaurant.Core.DTOs;
@@ -45,14 +46,36 @@ public class FeedbacksController : ControllerBase
     }
 
     [HttpGet("feedback-short-data")]
-    public async Task<ApiResponse<WaiterLocationFeedbackDTO>> GetOverallFeedbackData([FromQuery] string reservationId,
-        CancellationToken ct = default)
+    public async Task<ApiResponse<WaiterLocationFeedbackDTO>> GetShortFeedbackData([FromQuery] string reservationId,
+        CancellationToken ct)
     {
-        var res = await _feedbackService.GetWaiterLocationFeedbackDTOAsync(reservationId, ct);
+        var res = await _feedbackService.GetWaiterLocationFeedbackDtoAsync(reservationId, false, ct);
         if (res.IsSuccess)
             return ApiResponse<WaiterLocationFeedbackDTO>.Success(200, res.Value);
         return res.Errors[0].ToApiResponse<WaiterLocationFeedbackDTO>();
     }
 
+    [HttpGet("feedback-short-update-data")]
+    public async Task<ApiResponse<WaiterLocationFeedbackDTO>> GetUpdateFeedbackData([FromQuery] string reservationId,
+        CancellationToken ct)
+    {
+        var res = await _feedbackService.GetWaiterLocationFeedbackDtoAsync(reservationId, true, ct);
+        if (res.IsSuccess)
+            return ApiResponse<WaiterLocationFeedbackDTO>.Success(200, res.Value);
+        return res.Errors[0].ToApiResponse<WaiterLocationFeedbackDTO>();
+    }
 
+    [HttpPut("update-feedback")]
+    public async Task<ApiResponse<object>> UpdateFeedback([FromBody]CreateFeedbackDTO dto,
+        CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (string.IsNullOrEmpty(userId))
+            return ApiResponse<object>.Fail(401, "You need to be logged in to have access to this functionality");
+        var res = await _feedbackService.UpdateFeedback(dto, userId, ct);
+        
+        if (res.IsSuccess)
+            return ApiResponse<object>.Success(200, null);
+        return res.Errors[0].ToApiResponse<object>();
+    }
 }

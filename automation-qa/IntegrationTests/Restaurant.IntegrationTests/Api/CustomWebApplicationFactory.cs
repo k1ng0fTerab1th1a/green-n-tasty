@@ -26,7 +26,13 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public FakeOrderService OrderService { get; } = new();
     public FakeAuthService AuthService { get; } = new();
     public FakeCognitoService CognitoService { get; } = new();
+    public FakeUserService UserService { get; }
     public FakeTableService TableService { get; } = new();
+
+    public CustomWebApplicationFactory()
+    {
+        UserService = new FakeUserService(CognitoService);
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -72,9 +78,105 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<ICognitoService>();
             services.AddSingleton<ICognitoService>(CognitoService);
 
+            services.RemoveAll<IUserService>();
+            services.AddSingleton<IUserService>(UserService);
+
             services.RemoveAll<ITableService>();
             services.AddSingleton<ITableService>(TableService);
         });
+    }
+
+    public sealed class FakeUserService : IUserService
+    {
+        private readonly FakeCognitoService _cognitoService;
+
+        public FakeUserService(FakeCognitoService cognitoService)
+        {
+            _cognitoService = cognitoService;
+            Reset();
+        }
+
+        public BusinessError? UpdateUserNameFailResult { get; set; }
+        public BusinessError? UpdateAvatarFailResult { get; set; }
+        public BusinessError? GetMeFailResult { get; set; }
+        public string AvatarUrlResponse { get; set; } = "https://cdn.test/avatar.jpg";
+        public User MeResponse { get; set; } = BuildDefaultUser();
+
+        public string? LastUpdateUserNameUserId { get; private set; }
+        public string? LastUpdateFirstName { get; private set; }
+        public string? LastUpdateLastName { get; private set; }
+        public string? LastUpdateAvatarUserId { get; private set; }
+        public string? LastAvatarContentType { get; private set; }
+        public long LastAvatarSize { get; private set; }
+        public string? LastGetMeUserId { get; private set; }
+
+        public void Reset()
+        {
+            UpdateUserNameFailResult = null;
+            UpdateAvatarFailResult = null;
+            GetMeFailResult = null;
+            AvatarUrlResponse = "https://cdn.test/avatar.jpg";
+            MeResponse = BuildDefaultUser();
+
+            LastUpdateUserNameUserId = null;
+            LastUpdateFirstName = null;
+            LastUpdateLastName = null;
+            LastUpdateAvatarUserId = null;
+            LastAvatarContentType = null;
+            LastAvatarSize = 0;
+            LastGetMeUserId = null;
+        }
+
+        public async Task<Result> UpdateEmailAsync(string userId, string newEmail, CancellationToken ct)
+            => await _cognitoService.UpdateUserEmailAsync(userId, newEmail, ct);
+
+        public Task<Result> UpdateUserNameAsync(string userId, string firstName, string lastName, CancellationToken ct)
+        {
+            LastUpdateUserNameUserId = userId;
+            LastUpdateFirstName = firstName;
+            LastUpdateLastName = lastName;
+
+            if (UpdateUserNameFailResult is not null)
+                return Task.FromResult(Result.Fail(UpdateUserNameFailResult));
+
+            return Task.FromResult(Result.Ok());
+        }
+
+        public Task<Result<string>> UpdateAvatarAsync(string userId, FileUploadDto file, CancellationToken ct)
+        {
+            LastUpdateAvatarUserId = userId;
+            LastAvatarContentType = file.ContentType;
+            LastAvatarSize = file.Size;
+
+            if (UpdateAvatarFailResult is not null)
+                return Task.FromResult(Result.Fail<string>(UpdateAvatarFailResult));
+
+            return Task.FromResult(Result.Ok(AvatarUrlResponse));
+        }
+
+        public Task<Result<User>> GetMeAsync(string userId, CancellationToken ct)
+        {
+            LastGetMeUserId = userId;
+
+            if (GetMeFailResult is not null)
+                return Task.FromResult(Result.Fail<User>(GetMeFailResult));
+
+            return Task.FromResult(Result.Ok(MeResponse));
+        }
+
+        private static User BuildDefaultUser()
+            => new()
+            {
+                UserId = "user-1",
+                FirstName = "John",
+                LastName = "Doe",
+                Email = "john.doe@test.com",
+                Role = "CUSTOMER",
+                WaiterFlag = null,
+                ImageUrl = "https://cdn.test/avatar.jpg",
+                TotalRating = 7,
+                FeedbacksCount = 2
+            };
     }
 
     public sealed class FakeAuthService : IAuthService
@@ -688,7 +790,6 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
     public sealed class FakeFeedbackService : IFeedbackService
     {
-
         public string? LastLocationId { get; private set; }
         public int LastSize { get; private set; }
         public string? LastType { get; private set; }
@@ -696,34 +797,32 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public string? LastPageToken { get; private set; }
         public FeedbackPaginatedDto GetFeedbacksResponse { get; set; } = new();
 
-
         public CreateFeedbackDTO? LastAuthorisedDto { get; private set; }
         public string? LastAuthorisedUserId { get; private set; }
         public Result SaveAuthorisedFeedbackResponse { get; set; } = Result.Ok();
-
 
         public CreateFeedbackDTO? LastVisitorDto { get; private set; }
         public string? LastVisitorSecretCode { get; private set; }
         public Result SaveVisitorFeedbackResponse { get; set; } = Result.Ok();
 
-
-        public string? LastQrReservationId { get; private set; }
-
-
         public string? LastCalculatedReservationId { get; private set; }
+        public bool LastIsForUpdate { get; private set; }
         public Result<WaiterLocationFeedbackDTO> GetCalculatedFeedbackDataResponse { get; set; } =
             Result.Ok(new WaiterLocationFeedbackDTO());
 
+        public CreateFeedbackDTO? LastUpdateDto { get; private set; }
+        public string? LastUpdateUserId { get; private set; }
+        public Result UpdateFeedbackResponse { get; set; } = Result.Ok();
 
         public FakeFeedbackService() => Reset();
 
         public void Reset()
         {
-            LastLocationId  = null;
-            LastSize        = 0;
-            LastType        = null;
-            LastSort        = new List<string>();
-            LastPageToken   = null;
+            LastLocationId = null;
+            LastSize       = 0;
+            LastType       = null;
+            LastSort       = new List<string>();
+            LastPageToken  = null;
             GetFeedbacksResponse = new FeedbackPaginatedDto
             {
                 Size          = 20,
@@ -731,18 +830,21 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 NextPageToken = null
             };
 
-            LastAuthorisedDto    = null;
-            LastAuthorisedUserId = null;
+            LastAuthorisedDto              = null;
+            LastAuthorisedUserId           = null;
             SaveAuthorisedFeedbackResponse = Result.Ok();
 
-            LastVisitorDto        = null;
-            LastVisitorSecretCode = null;
+            LastVisitorDto              = null;
+            LastVisitorSecretCode       = null;
             SaveVisitorFeedbackResponse = Result.Ok();
 
-            LastQrReservationId       = null;
-
-            LastCalculatedReservationId   = null;
+            LastCalculatedReservationId       = null;
+            LastIsForUpdate                   = false;
             GetCalculatedFeedbackDataResponse = Result.Ok(new WaiterLocationFeedbackDTO());
+
+            LastUpdateDto          = null;
+            LastUpdateUserId       = null;
+            UpdateFeedbackResponse = Result.Ok();
         }
 
         public Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(
@@ -776,12 +878,21 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(SaveVisitorFeedbackResponse);
         }
 
-        public Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(
-            string reservationId, CancellationToken ct = default)
+        public Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDtoAsync(
+            string reservationId, bool isForUpdate, CancellationToken ct)
         {
             LastCalculatedReservationId = reservationId;
+            LastIsForUpdate             = isForUpdate;
 
             return Task.FromResult(GetCalculatedFeedbackDataResponse);
+        }
+
+        public Task<Result> UpdateFeedback(CreateFeedbackDTO dto, string userId, CancellationToken ct)
+        {
+            LastUpdateDto    = dto;
+            LastUpdateUserId = userId;
+
+            return Task.FromResult(UpdateFeedbackResponse);
         }
     }
 
@@ -938,16 +1049,13 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         }
 
         public Task<Result<IList<TableWithAvailableSlots>>> GetAvailableTablesAsync(
-            DateOnly date,
-            TimeOnly? time,
-            string? locationId,
-            int? capacity,
+            GetAvailableTablesQuery query,
             CancellationToken ct)
         {
-            LastDate = date;
-            LastTime = time;
-            LastLocationId = locationId;
-            LastCapacity = capacity;
+            LastDate = query.Date;
+            LastTime = query.Time;
+            LastLocationId = query.LocationId;
+            LastCapacity = query.Capacity;
 
             if (FailResult is not null)
                 return Task.FromResult(Result.Fail<IList<TableWithAvailableSlots>>(FailResult));

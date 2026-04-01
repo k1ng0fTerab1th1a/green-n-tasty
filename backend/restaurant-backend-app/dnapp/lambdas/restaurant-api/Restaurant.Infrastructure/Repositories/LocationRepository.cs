@@ -88,4 +88,9 @@ public sealed class LocationRepository : ILocationRepository
             feedbacksAmount: int.Parse(response.Item["feedbacksAmount"].N)
         );
     }
+
+    public async Task UpdateAsync(Location location, CancellationToken ct)
+    {
+        await _context.SaveAsync(location, ct);
+    }
 }

@@ -301,6 +301,28 @@ public sealed class OrdersEndpointsTests : IClassFixture<CustomWebApplicationFac
     }
 
     [Fact]
+    public async Task GetOrder_AsCustomer_ShouldReturn200()
+    {
+        _factory.OrderService.Reset();
+
+        var req = Authed(
+            HttpMethod.Get,
+            "/orders/reservations/r-customer-1",
+            userId: "customer-1",
+            role: "CUSTOMER");
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+
+        _factory.OrderService.LastActorId.Should().Be("customer-1");
+        _factory.OrderService.LastReservationId.Should().Be("r-customer-1");
+    }
+
+    [Fact]
     public async Task AddDish_WhenValidRequest_ShouldReturn200()
     {
         _factory.OrderService.Reset();

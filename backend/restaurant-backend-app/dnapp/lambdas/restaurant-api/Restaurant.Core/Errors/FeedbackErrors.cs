@@ -29,4 +29,13 @@ public static class FeedbackErrors
     public static BusinessError FeedbackCommentSizeOutOfBounds =>
         new("Comment should not consist of more than 300 characters", ErrorType.Validation);
     
+    public static BusinessError FeedbackNotFound =>
+        new("Feedback not found", ErrorType.NotFound);
+    
+    public static BusinessError FeedbackUpdateUnsuccessful =>
+        new("Feedback update unsuccessful", ErrorType.Validation);
+
+    public static BusinessError NoFeedbackUpdated =>
+        new("No feedback was updated since you entered no data", ErrorType.Validation);
+    
 }
