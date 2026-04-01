@@ -19,4 +19,8 @@ public static class AuthErrors
 
     public static BusinessError WaiterLocationNotConfigured =>
         new("Waiter location is not configured.", ErrorType.Validation);
+
+    public static BusinessError EmailNotVerified =>
+        new("Account email is not verified. Please check your inbox for a verification link.", ErrorType.Forbidden);
+
 }

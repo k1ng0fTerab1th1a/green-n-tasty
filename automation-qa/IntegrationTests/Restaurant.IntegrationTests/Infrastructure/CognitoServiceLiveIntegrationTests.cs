@@ -24,6 +24,8 @@ public sealed class CognitoServiceLiveIntegrationTests
             signUpResult.IsSuccess.Should().BeTrue();
             signUpResult.Value.Should().NotBeNullOrWhiteSpace();
 
+            await AdminConfirmSignUpForTestAsync(settings, user.Email);
+
             var signInResult = await sut.SignInAsync(user.Email, user.Password);
             signInResult.IsSuccess.Should().BeTrue();
             signInResult.Value.IdToken.Should().NotBeNullOrWhiteSpace();
@@ -56,6 +58,7 @@ public sealed class CognitoServiceLiveIntegrationTests
         var user = CreateTestUser(settings);
 
         await sut.SignUpAsync(user.Email, user.Password, "Live", "Duplicate", role: "CUSTOMER");
+        await AdminConfirmSignUpForTestAsync(settings, user.Email);
 
         try
         {
@@ -78,6 +81,7 @@ public sealed class CognitoServiceLiveIntegrationTests
         var user = CreateTestUser(settings);
 
         await sut.SignUpAsync(user.Email, user.Password, "Live", "WrongPassword", role: "CUSTOMER");
+        await AdminConfirmSignUpForTestAsync(settings, user.Email);
 
         try
         {
@@ -157,6 +161,7 @@ public sealed class CognitoServiceLiveIntegrationTests
         var newEmail = $"cognito-live-updated-{Guid.NewGuid():N}@{settings.EmailDomain}";
 
         await sut.SignUpAsync(user.Email, user.Password, "Live", "UpdateEmail", role: "CUSTOMER");
+        await AdminConfirmSignUpForTestAsync(settings, user.Email);
 
         try
         {
@@ -220,6 +225,28 @@ public sealed class CognitoServiceLiveIntegrationTests
         }
     }
 
+    [LiveCognitoFact]
+    [Trait("Category", "LiveCognito")]
+    public async Task SignIn_ShouldFail_WhenUserNotConfirmed()
+    {
+        var settings = GetRequiredSettings();
+        var sut = CreateSut(settings);
+        var user = CreateTestUser(settings);
+
+        await sut.SignUpAsync(user.Email, user.Password, "Live", "Unconfirmed", role: "CUSTOMER");
+
+        try
+        {
+            var result = await sut.SignInAsync(user.Email, user.Password);
+            result.IsFailed.Should().BeTrue();
+            result.Errors[0].Should().Be(AuthErrors.EmailNotVerified);
+        }
+        finally
+        {
+            await SafeDeleteAsync(sut, user.Email);
+        }
+    }
+
     private static LiveCognitoSettings GetRequiredSettings()
     {
         var region = Environment.GetEnvironmentVariable("SYSTEM_AWS_REGION");
@@ -256,6 +283,18 @@ public sealed class CognitoServiceLiveIntegrationTests
     {
         var email = $"cognito-live-{Guid.NewGuid():N}@{settings.EmailDomain}";
         return new TestUser(email, settings.Password);
+    }
+
+    private static async Task AdminConfirmSignUpForTestAsync(LiveCognitoSettings settings, string email)
+    {
+        using var client = new AmazonCognitoIdentityProviderClient(
+            Amazon.RegionEndpoint.GetBySystemName(settings.Region));
+        await client.AdminConfirmSignUpAsync(
+            new Amazon.CognitoIdentityProvider.Model.AdminConfirmSignUpRequest
+            {
+                UserPoolId = settings.UserPoolId,
+                Username = email
+            });
     }
 
     private static async Task SafeDeleteAsync(CognitoService sut, string email)

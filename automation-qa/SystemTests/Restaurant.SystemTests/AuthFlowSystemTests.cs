@@ -37,6 +37,8 @@ public sealed class AuthFlowSystemTests : IClassFixture<SystemTestFixture>
 
         signUp.StatusCode.Should().Be(HttpStatusCode.Created);
 
+        await AdminConfirmUserAsync(user.Email);
+
         var signIn = await client.PostAsJsonAsync("auth/sign-in", new
         {
             email = user.Email,
@@ -90,6 +92,8 @@ public sealed class AuthFlowSystemTests : IClassFixture<SystemTestFixture>
         });
         signUp.StatusCode.Should().Be(HttpStatusCode.Created);
 
+        await AdminConfirmUserAsync(user.Email);
+
         var response = await client.PostAsJsonAsync("auth/sign-in", new
         {
             email = user.Email,
@@ -115,6 +119,8 @@ public sealed class AuthFlowSystemTests : IClassFixture<SystemTestFixture>
         });
         first.StatusCode.Should().Be(HttpStatusCode.Created);
 
+        await AdminConfirmUserAsync(user.Email);
+
         var second = await client.PostAsJsonAsync("auth/sign-up", new
         {
             email = user.Email,
@@ -124,6 +130,44 @@ public sealed class AuthFlowSystemTests : IClassFixture<SystemTestFixture>
         });
 
         second.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [SystemTestFact]
+    public async Task SignIn_ShouldReturn403_WhenUserNotConfirmed()
+    {
+        await using var user = new TestUser(_fixture);
+        var client = _fixture.Client;
+
+        var signUp = await client.PostAsJsonAsync("auth/sign-up", new
+        {
+            email = user.Email,
+            password = _fixture.Password,
+            firstName = "System",
+            lastName = "Test"
+        });
+        signUp.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        // Do NOT confirm — user remains UNCONFIRMED
+        var signIn = await client.PostAsJsonAsync("auth/sign-in", new
+        {
+            email = user.Email,
+            password = _fixture.Password
+        });
+
+        signIn.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    private async Task AdminConfirmUserAsync(string email)
+    {
+        using var cognito = new AmazonCognitoIdentityProviderClient(new AmazonCognitoIdentityProviderConfig
+        {
+            RegionEndpoint = _fixture.Region
+        });
+        await cognito.AdminConfirmSignUpAsync(new AdminConfirmSignUpRequest
+        {
+            UserPoolId = _fixture.UserPoolId,
+            Username = email
+        });
     }
 
     private async Task AssertUserExistsInCognito(string email)
