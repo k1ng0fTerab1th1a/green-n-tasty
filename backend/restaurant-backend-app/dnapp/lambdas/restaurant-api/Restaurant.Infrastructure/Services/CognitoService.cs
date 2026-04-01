@@ -30,30 +30,21 @@ public class CognitoService : ICognitoService
     {
         try
         {
-            var createResponse = await _client.AdminCreateUserAsync(new AdminCreateUserRequest
+            var response = await _client.SignUpAsync(new SignUpRequest
             {
-                UserPoolId = _userPoolId,
-                Username = email,
-                MessageAction = MessageActionType.SUPPRESS,
-                UserAttributes = new List<AttributeType>
-            {
-                new() { Name = "email", Value = email },
-                new() { Name = "given_name", Value = firstName },
-                new() { Name = "family_name", Value = lastName },
-                new() { Name = "custom:role", Value = role },
-                new() { Name = "email_verified", Value = "true" }
-            }
-            }, ct);
-
-            await _client.AdminSetUserPasswordAsync(new AdminSetUserPasswordRequest
-            {
-                UserPoolId = _userPoolId,
+                ClientId = _clientId,
                 Username = email,
                 Password = password,
-                Permanent = true
+                UserAttributes = new List<AttributeType>
+                {
+                    new() { Name = "email", Value = email },
+                    new() { Name = "given_name", Value = firstName },
+                    new() { Name = "family_name", Value = lastName },
+                    new() { Name = "custom:role", Value = role }
+                }
             }, ct);
 
-            return createResponse.User.Username;
+            return response.UserSub;
         }
         catch (UsernameExistsException)
         {
@@ -79,6 +70,10 @@ public class CognitoService : ICognitoService
             var response = await _client.InitiateAuthAsync(request, ct);
 
             return (response.AuthenticationResult.IdToken, response.AuthenticationResult.RefreshToken);
+        }
+        catch (UserNotConfirmedException)
+        {
+            return AuthErrors.EmailNotVerified;
         }
         catch (NotAuthorizedException)
         {
