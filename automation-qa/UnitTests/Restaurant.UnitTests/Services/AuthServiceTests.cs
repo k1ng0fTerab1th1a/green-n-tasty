@@ -214,13 +214,14 @@ public class AuthServiceTests
     {
         // Arrange
         _waiterListRepo.Setup(r => r.GetByEmailAsync("user@test.com", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((WaiterListEntry?)null);
+            .ThrowsAsync(new Exception("Waiter list unavailable"));
 
         // Act
         var act = () => _sut.SignUpAsync("user@test.com", "Pass123!", "John", "Doe");
 
         // Assert
-        await act.Should().ThrowAsync<Exception>();
+        await act.Should().ThrowAsync<Exception>()
+            .WithMessage("Waiter list unavailable");
 
         _cognito.Verify(c => c.SignUpAsync(
             It.IsAny<string>(),
@@ -228,6 +229,10 @@ public class AuthServiceTests
             It.IsAny<string>(),
             It.IsAny<string>(),
             It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+
+        _userRepo.Verify(r => r.CreateAsync(
+            It.IsAny<User>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 

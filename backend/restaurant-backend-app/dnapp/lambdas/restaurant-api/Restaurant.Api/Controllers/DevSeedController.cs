@@ -187,6 +187,107 @@ public sealed class DevSeedController : ControllerBase
 
         return ApiResponse<object>.Success(StatusCodes.Status200OK, new { dishId });
     }
+
+    [HttpPost("seed/users/waiters-location/backfill")]
+    public async Task<IActionResult> BackfillWaiterLocations([FromQuery] bool dryRun = true, CancellationToken ct = default)
+    {
+        if (!IsAllowed())
+            return ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, "Seed endpoint is disabled.");
+
+        var waiterEntries = await _db.ScanAsync<WaiterListEntry>(Array.Empty<ScanCondition>()).GetRemainingAsync(ct);
+        var users = await _db.ScanAsync<User>(Array.Empty<ScanCondition>()).GetRemainingAsync(ct);
+
+        var waiterLocationByEmail = waiterEntries
+            .Where(x => !string.IsNullOrWhiteSpace(x.Email))
+            .GroupBy(x => x.Email.Trim().ToLowerInvariant())
+            .ToDictionary(
+                g => g.Key,
+                g => g
+                    .Select(x => x.LocationId?.Trim())
+                    .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))
+            );
+
+        var waiterUsers = users
+            .Where(IsWaiterUser)
+            .ToList();
+
+        var skippedAlreadyHasLocation = 0;
+        var skippedNoEmail = 0;
+        var skippedNoWaiterListMatch = 0;
+        var skippedWaiterListLocationMissing = 0;
+        var matchedUsers = 0;
+        var updatedUsers = 0;
+
+        var preview = new List<object>();
+
+        foreach (var user in waiterUsers)
+        {
+            if (!string.IsNullOrWhiteSpace(user.LocationId))
+            {
+                skippedAlreadyHasLocation++;
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(user.Email))
+            {
+                skippedNoEmail++;
+                continue;
+            }
+
+            var normalizedEmail = user.Email.Trim().ToLowerInvariant();
+
+            if (!waiterLocationByEmail.TryGetValue(normalizedEmail, out var locationId))
+            {
+                skippedNoWaiterListMatch++;
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(locationId))
+            {
+                skippedWaiterListLocationMissing++;
+                continue;
+            }
+
+            matchedUsers++;
+
+            preview.Add(new
+            {
+                userId = user.UserId,
+                email = user.Email,
+                locationId
+            });
+
+            if (dryRun)
+                continue;
+
+            user.LocationId = locationId;
+            user.UpdatedAt = DateTime.UtcNow.ToString("o");
+
+            await _db.SaveAsync(user, ct);
+            updatedUsers++;
+        }
+
+        return ApiResponse<object>.Success(StatusCodes.Status200OK, new
+        {
+            dryRun,
+            totalUsersScanned = users.Count,
+            waiterUsersFound = waiterUsers.Count,
+            waiterListEntriesScanned = waiterEntries.Count,
+            matchedUsers,
+            updatedUsers,
+            skippedAlreadyHasLocation,
+            skippedNoEmail,
+            skippedNoWaiterListMatch,
+            skippedWaiterListLocationMissing,
+            preview = preview.Take(50).ToList()
+        });
+    }
+
+    private static bool IsWaiterUser(User user)
+    {
+        return string.Equals(user.Role, "WAITER", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(user.WaiterFlag, "1", StringComparison.Ordinal);
+    }
 }
 
 public sealed class DevSeedReservationRequest
