@@ -165,6 +165,26 @@ public sealed class AuthEndpointsTests : IClassFixture<CustomWebApplicationFacto
         _factory.CognitoService.LastSignOutRefreshToken.Should().Be("refresh-end");
     }
 
+    [Fact]
+    public async Task SignIn_WhenEmailNotVerified_ShouldReturn403()
+    {
+        _factory.AuthService.Reset();
+        _factory.AuthService.SignInFailResult = AuthErrors.EmailNotVerified;
+
+        var res = await _client.PostAsync("/auth/sign-in", Json(new
+        {
+            email = "user@test.com",
+            password = "Pass123!"
+        }));
+
+        res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should()
+            .Be(AuthErrors.EmailNotVerified.Message);
+    }
+
     private static StringContent Json(object payload)
     {
         return new StringContent(
