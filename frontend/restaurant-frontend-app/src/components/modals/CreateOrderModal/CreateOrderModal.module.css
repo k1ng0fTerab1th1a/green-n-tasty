@@ -6,8 +6,7 @@
 .infoBlock {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin-bottom: 24px;
+    margin-bottom: 15px;
 }
 
 .infoBlock strong {
@@ -29,6 +28,11 @@
     color: #666666;
 }
 
+.selectedList {
+    margin-top: 16px;
+    margin-bottom: 8px;
+}
+
 .submitBtn {
     background-color: #00b000 !important;
     color: #ffffff !important;
@@ -44,4 +48,60 @@
 
 .submitBtn:hover {
     opacity: 0.9;
+}
+
+.searchFieldWrapper {
+    position: relative;
+    margin-top: 24px;
+    margin-bottom: 14px;
+}
+
+.suggestionsWrapper {
+    margin-top: 4px;
+}
+
+.suggestionsList {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: -18px;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    max-height: 240px;
+    overflow-y: auto;
+    background: #ffffff;
+    padding: 0;
+    z-index: 1000;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.suggestionsList :global(.body-bold) {
+    font-size: 14px;
+}
+
+.suggestionItem {
+    width: 100%;
+    text-align: left;
+    padding: 12px 16px;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    background-color: #ffffff;
+    cursor: pointer;
+}
+
+.suggestionItem:last-child {
+    border-bottom: none;
+}
+
+.suggestionItem:first-child {
+    background-color: #f0fff0;
+}
+
+.suggestionItem:hover {
+    background-color: #f5f5f5;
+}
+
+.suggestionItem:first-child:hover {
+    background-color: #e6f7e6;
 }

@@ -20,7 +20,6 @@ export const deleteReservation = async (id) => {
     return response.data; // Повертає результат видалення
 };
 
-// ❗ Приводимо до такого ж формату isSuccess, як інші waiter‑методи
 export const updateReservation = async (reservationData) => {
     try {
         const response = await api.put("/reservations", reservationData);
@@ -123,21 +122,20 @@ export const finishReservation = async (id) => {
     }
 };
 
-// export const getReservationReceipt = async (reservationId) => {
-//     try {
-//         const response = await api.get(`/reservations/${reservationId}/receipt`, {
-//             responseType: "text",       // бекенд віддає text/plain
-//         });
-//         // очікуємо просто рядок з текстом чеку
-//         return {
-//             isSuccess: true,
-//             data: response.data,
-//         };
-//     } catch (error) {
-//         console.error("Error fetching reservation receipt:", error);
-//         return {
-//             isSuccess: false,
-//             message: error.response?.data?.message || error.message,
-//         };
-//     }
-// };
+export const getReservationReceipt = async (reservationId) => {
+    try {
+        const response = await api.get(`/reservations/${reservationId}/receipt`, {
+            responseType: "text",
+        });
+        return {
+            isSuccess: true,
+            data: response.data,
+        };
+    } catch (error) {
+        console.error("Error fetching reservation receipt:", error);
+        return {
+            isSuccess: false,
+            message: error.response?.data?.message || error.message,
+        };
+    }
+};
