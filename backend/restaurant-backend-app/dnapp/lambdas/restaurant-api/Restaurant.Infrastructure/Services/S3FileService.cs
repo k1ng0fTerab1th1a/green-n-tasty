@@ -38,7 +38,7 @@ public class S3FileService(IAmazonS3 _s3) : IFileService
         }
         catch (AmazonS3Exception ex)
         {
-            return FileErrors.FileUploadFail;
+            throw new Exception("Failed to upload to file system");
         }
     }
 
