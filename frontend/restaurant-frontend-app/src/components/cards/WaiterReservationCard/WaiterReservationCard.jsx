@@ -23,20 +23,31 @@ export default function WaiterReservationCard({
     const {
         locationAddress,
         startDateTime,
+        endDateTime,
         guestsCount,
         status,
         visitorName,
-        waiterName,
+        customerName,
         dishCount,
         tableNumber,
-        isCreatedByWaiter
     } = booking;
 
     const [selectedTable, setSelectedTable] = useState(tableNumber?.toString() || "");
-
+    const displayName = customerName || visitorName || "Guest";
     const dateObj = startDateTime ? new Date(startDateTime) : null;
     const displayDate = dateObj ? dateObj.toLocaleDateString() : "No date";
-    const displayTime = dateObj ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "No time";
+
+    const formatTime = (isoString) => {
+        if (!isoString) return "--:--";
+        return new Date(isoString).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: "Asia/Tbilisi",
+            hour12: false
+        });
+    };
+
+    const displayTimeRange = `${formatTime(startDateTime)} - ${formatTime(endDateTime)}`;
 
     const tableOptions = [
         { value: "1", label: "Table 1" },
@@ -60,7 +71,6 @@ export default function WaiterReservationCard({
                         </div>
                     </>
                 );
-
             case "inprogress":
                 return (
                     <>
@@ -75,7 +85,6 @@ export default function WaiterReservationCard({
                         )}
                     </>
                 );
-
             case "finished":
                 return (
                     <>
@@ -83,7 +92,6 @@ export default function WaiterReservationCard({
                         <Button variant="secondary" onClick={onReceipt}>RECEIPT</Button>
                     </>
                 );
-
             default:
                 return (
                     <>
@@ -108,20 +116,22 @@ export default function WaiterReservationCard({
                         <img src={calendarIcon} alt="" className={styles.icon} />
                         <span className="body-bold">{displayDate}</span>
                     </div>
+                    {/* Відображення інтервалу часу */}
                     <div className={styles.infoRow}>
                         <img src={clockIcon} alt="" className={styles.icon} />
-                        <span className="body-bold">{displayTime}</span>
+                        <span className="body-bold">{displayTimeRange}</span>
                     </div>
-                    <div className={styles.infoRow}>
-                        <img src={dishIcon} alt="" className={styles.icon} />
-                        <span className="body-bold">Pre-order: {dishCount} dishes</span>
-                    </div>
+                    {dishCount > 0 && (
+                        <div className={styles.infoRow}>
+                            <img src={dishIcon} alt="" className={styles.icon} />
+                            <span className="body-bold">Order: {dishCount} dishes</span>
+                        </div>
+                    )}
                     <div className={styles.infoRow}>
                         <img src={userIcon} alt="" className={styles.icon} />
-                        <span className="body-bold">
-                            {isCreatedByWaiter ? `Waiter: ${waiterName}` : `Guest: ${visitorName}`}
-                        </span>
+                        <span className="body-bold">Customer: {displayName}</span>
                     </div>
+
                     <div className={styles.infoRow}>
                         <img src={guestsIcon} alt="" className={styles.icon} />
                         <span className="body-bold">{guestsCount} Guests</span>
@@ -139,10 +149,7 @@ export default function WaiterReservationCard({
                     </div>
                 </div>
             </div>
-
-            <div className={styles.actions}>
-                {renderActions()}
-            </div>
+            <div className={styles.actions}>{renderActions()}</div>
         </div>
     );
 }
