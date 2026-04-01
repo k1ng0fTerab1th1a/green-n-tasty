@@ -20,7 +20,6 @@ public static class BusinessErrorExtensions
             ErrorType.Conflict     => StatusCodes.Status409Conflict,
             ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
             ErrorType.Forbidden    => StatusCodes.Status403Forbidden,
-            ErrorType.Infrastructure => StatusCodes.Status500InternalServerError,
             
             _ => throw new InvalidDataException("ErrorType must be NotFound, Validation, Conflict, Unauthorized, Forbidden or Infrastructure.")
         };
