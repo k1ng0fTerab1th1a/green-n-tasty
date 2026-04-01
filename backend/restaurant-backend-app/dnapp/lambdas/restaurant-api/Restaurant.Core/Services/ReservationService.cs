@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using FluentResults;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Errors;
@@ -123,7 +122,7 @@ public sealed class ReservationService : IReservationService
 
         var reservation = new Reservation
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = GenerateReservationId(location.Address, dto.TableNumber, start),
             CustomerId = customerId,
             CustomerName = $"{customer.FirstName} {customer.LastName}",
             WaiterId = schedule.WaiterId,
@@ -202,7 +201,7 @@ public sealed class ReservationService : IReservationService
         
         var reservation = new Reservation
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = GenerateReservationId(location.Address, dto.TableNumber, start),
             CustomerId = customerId,
             CustomerName = customerName,
             WaiterId = waiterId,
@@ -406,4 +405,17 @@ public sealed class ReservationService : IReservationService
         return reservation;
     }
     
+    private static string GenerateReservationId(string locationAddress, int tableNumber, DateTimeOffset start)
+    {
+        var addressCode = new string(
+            locationAddress.Where(char.IsLetterOrDigit)
+                .Take(6)
+                .Select(char.ToUpperInvariant)
+                .ToArray());
+
+        var dateCode = start.ToString("ddMMyy");
+        var timeCode = start.ToString("HHmm");
+
+        return $"{addressCode}-{tableNumber}-{dateCode}-{timeCode}";
+    }
 }

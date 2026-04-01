@@ -1,6 +1,7 @@
 using FluentResults;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Errors;
+using Restaurant.Core.Helpers;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
@@ -10,19 +11,19 @@ namespace Restaurant.Core.Services;
 public class TableService(
     ITableRepository _tableRepository,
     ITableDayRepository _tableDayRepository,
-    ILocationRepository _locationRepository) : ITableService
+    ILocationRepository _locationRepository,
+    IReservationRepository _reservationRepository) : ITableService
 {
     private const int SLOT_DURATION_MINUTES = 15;
     private const int IGNORE_SLOT_IF_LESS_THAN_MINUTES = 60;
     private const int FORBID_IF_IN_FUTURE_MORE_THAN_DAYS = 14;
 
     public async Task<Result<IList<TableWithAvailableSlots>>> GetAvailableTablesAsync(
-        DateOnly date,
-        TimeOnly? time,
-        string? locationId,
-        int? capacity,
+        GetAvailableTablesQuery query,
         CancellationToken ct)
     {
+        var (date, time, locationId, capacity, excludeReservationId) = query;
+
         int daysInFuture = date.DayNumber - DateOnly.FromDateTime(DateTime.UtcNow).DayNumber;
         if (daysInFuture < 0)
         {
@@ -45,6 +46,20 @@ public class TableService(
         if (!tables.Any())
             return new List<TableWithAvailableSlots>();
 
+        string? excludedTableKey = null;
+        HashSet<string>? excludedSlots = null;
+        if (!string.IsNullOrWhiteSpace(excludeReservationId))
+        {
+            Reservation? excludedReservation = await _reservationRepository.GetByIdAsync(excludeReservationId, ct);
+            if (excludedReservation != null)
+            {
+                excludedTableKey = excludedReservation.TableKey;
+                var start = DateTimeOffset.Parse(excludedReservation.StartDateTime);
+                var end = DateTimeOffset.Parse(excludedReservation.EndDateTime);
+                excludedSlots = ReservationTimeHelper.GenerateSlots(start, end).ToHashSet();
+            }
+        }
+
         List<TableWithAvailableSlots> result = new();
 
         foreach (var locationTables in tables.GroupBy(t => t.LocationId))
@@ -65,6 +80,8 @@ public class TableService(
                 TimeOnly.Parse(location.CloseTime),
                 time,
                 TimeZoneInfo.FindSystemTimeZoneById(location.TimeZone),
+                excludedTableKey,
+                excludedSlots,
                 ct
             ));
         }
@@ -79,6 +96,8 @@ public class TableService(
         TimeOnly closeTime,
         TimeOnly? requestedTime,
         TimeZoneInfo tz,
+        string? excludedTableKey,
+        HashSet<string>? excludedSlots,
         CancellationToken ct)
     {
         DateTime shiftStartLocal = date.ToDateTime(openTime);
@@ -123,6 +142,12 @@ public class TableService(
             string tableKey = $"{table.LocationId}#{table.TableNumber}";
             TableDay? tableDay = locationTableDays.GetValueOrDefault(tableKey);
             HashSet<string> reserved = tableDay?.ReservedSlots ?? new HashSet<string>();
+
+            if (excludedSlots != null && tableKey == excludedTableKey)
+            {
+                reserved = new HashSet<string>(reserved);
+                reserved.ExceptWith(excludedSlots);
+            }
 
             if (reqTimeOffset.HasValue && reserved.Contains(reqTimeOffset.Value.ToString("yyyy-MM-ddTHH:mmzzz")))
                 continue;
