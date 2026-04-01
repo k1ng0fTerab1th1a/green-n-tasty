@@ -2,6 +2,7 @@ using FluentAssertions;
 using Restaurant.Api.Tests;
 using Restaurant.Core.Errors;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
@@ -104,5 +105,154 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
 
         using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
         doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetMe_WithoutUserHeader_ShouldReturn401()
+    {
+        _factory.UserService.Reset();
+
+        var res = await _client.GetAsync("/user/me");
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        _factory.UserService.LastGetMeUserId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetMe_ShouldReturn200_AndReturnMappedUser()
+    {
+        _factory.UserService.Reset();
+
+        var req = Authed(HttpMethod.Get, "/user/me", userId: "user-42");
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.UserService.LastGetMeUserId.Should().Be("user-42");
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+
+        root.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+        var data = root.GetPropertyIgnoreCase("data");
+        data.GetPropertyIgnoreCase("userId").GetString().Should().Be("user-1");
+        data.GetPropertyIgnoreCase("email").GetString().Should().Be("john.doe@test.com");
+        data.GetPropertyIgnoreCase("imageUrl").GetString().Should().Be("https://cdn.test/avatar.jpg");
+        data.GetPropertyIgnoreCase("feedbacksCount").GetInt32().Should().Be(2);
+        data.GetPropertyIgnoreCase("rating").GetDouble().Should().Be(3.5d);
+    }
+
+    [Fact]
+    public async Task GetMe_WhenUserNotFound_ShouldReturn404()
+    {
+        _factory.UserService.Reset();
+        _factory.UserService.GetMeFailResult = UserErrors.UserNotFound;
+
+        var req = Authed(HttpMethod.Get, "/user/me", userId: "ghost-user");
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task UpdateAvatar_WithoutUserHeader_ShouldReturn401()
+    {
+        _factory.UserService.Reset();
+
+        using var content = CreateAvatarMultipartContent("image/png", [0x89, 0x50, 0x4E, 0x47]);
+        var res = await _client.PostAsync("/user/avatar", content);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        _factory.UserService.LastUpdateAvatarUserId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateAvatar_ShouldReturn200_AndCallServiceWithFileMetadata()
+    {
+        _factory.UserService.Reset();
+
+        var req = Authed(HttpMethod.Post, "/user/avatar", userId: "user-77");
+        req.Content = CreateAvatarMultipartContent("image/png", [0x89, 0x50, 0x4E, 0x47, 0x0D]);
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.UserService.LastUpdateAvatarUserId.Should().Be("user-77");
+        _factory.UserService.LastAvatarContentType.Should().Be("image/png");
+        _factory.UserService.LastAvatarSize.Should().Be(5);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        root.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+        root.GetPropertyIgnoreCase("data").GetString().Should().Be("https://cdn.test/avatar.jpg");
+    }
+
+    [Fact]
+    public async Task UpdateAvatar_WhenInvalidType_ShouldReturn400()
+    {
+        _factory.UserService.Reset();
+        _factory.UserService.UpdateAvatarFailResult = FileErrors.InvalidFileType;
+
+        var req = Authed(HttpMethod.Post, "/user/avatar", userId: "user-77");
+        req.Content = CreateAvatarMultipartContent("application/pdf", [0x25, 0x50, 0x44, 0x46]);
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task UpdateAvatar_WhenFileTooBig_ShouldReturn400()
+    {
+        _factory.UserService.Reset();
+        _factory.UserService.UpdateAvatarFailResult = FileErrors.FileTooBig;
+
+        var req = Authed(HttpMethod.Post, "/user/avatar", userId: "user-77");
+        req.Content = CreateAvatarMultipartContent("image/png", [0x89, 0x50, 0x4E, 0x47]);
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task UpdateAvatar_WhenUserNotFound_ShouldReturn404()
+    {
+        _factory.UserService.Reset();
+        _factory.UserService.UpdateAvatarFailResult = UserErrors.UserNotFound;
+
+        var req = Authed(HttpMethod.Post, "/user/avatar", userId: "ghost-user");
+        req.Content = CreateAvatarMultipartContent("image/png", [0x89, 0x50, 0x4E, 0x47]);
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task UpdateAvatar_WhenStorageFails_ShouldReturn500()
+    {
+        _factory.UserService.Reset();
+        _factory.UserService.UpdateAvatarFailResult = FileErrors.FileUploadFail;
+
+        var req = Authed(HttpMethod.Post, "/user/avatar", userId: "user-77");
+        req.Content = CreateAvatarMultipartContent("image/png", [0x89, 0x50, 0x4E, 0x47]);
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+    }
+
+    private static MultipartFormDataContent CreateAvatarMultipartContent(string contentType, byte[] payload)
+    {
+        var multipart = new MultipartFormDataContent();
+        var file = new ByteArrayContent(payload);
+        file.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+        multipart.Add(file, "file", "avatar.bin");
+        return multipart;
     }
 }

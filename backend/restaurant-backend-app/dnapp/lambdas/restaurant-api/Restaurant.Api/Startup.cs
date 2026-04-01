@@ -102,7 +102,7 @@ public class Startup
             return new AmazonS3Client(bucketRegion);
         });
 
-        services.AddScoped<S3FileService>();
+        services.AddScoped<IFileService, S3FileService>();
         
         services.AddAuthorization();
         services.AddCors(options =>

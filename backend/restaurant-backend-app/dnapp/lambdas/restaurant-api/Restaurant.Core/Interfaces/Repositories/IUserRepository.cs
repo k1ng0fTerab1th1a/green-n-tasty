@@ -12,6 +12,7 @@ public interface IUserRepository
     Task UpdateUserNameAsync(string userId, string firstName, string lastName, CancellationToken ct);
     Task<(string username, string? iamgeUrl)> GetUserDataForFeedbackCreationByIdAsync(string userId,
         CancellationToken ct = default);
-    Task UpdateUserRatingAsync(string userId, int newFeedbackRating, CancellationToken ct = default);
-    Task<WaiterFeedbackData> GetWaiterFeedbackDataAsync(string waiterId, CancellationToken ct = default);
+    Task UpdateUserRatingAsync(string userId, int newFeedbackRating, CancellationToken ct);
+    Task<WaiterFeedbackData> GetWaiterFeedbackDataAsync(string waiterId, CancellationToken ct);
+    Task UpdateAvatarUrlAsync(string userId, string url, CancellationToken ct);
 }
