@@ -114,7 +114,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         var feedback = BuildFeedback(dto.ServiceRating.Value, dto.ServiceComment, "waiter", reservation, author);
         feedback.ReservationId = reservation.Id;
 
-        await feedbackRepository.SaveBatchAsync([feedback], ct);
+        await feedbackRepository.SaveFeedbackAsync(feedback, ct);
 
         var res = await reservationRepository.SetFeedbackIdInReservation(reservation.Id, feedback.Id, "serviceFeedbackId", ct);
         if (res.IsFailed)
@@ -140,7 +140,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         var feedback = BuildFeedback(dto.CuisineRating.Value, dto.CuisineComment, "kitchen", reservation, author);
         feedback.ReservationId = reservation.Id;
 
-        await feedbackRepository.SaveBatchAsync([feedback], ct);
+        await feedbackRepository.SaveFeedbackAsync(feedback, ct);
 
         var res = await reservationRepository.SetFeedbackIdInReservation(reservation.Id, feedback.Id, "kitchenFeedbackId", ct);
         if (res.IsFailed)
@@ -221,6 +221,9 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         var reservation = await reservationRepository.GetByIdAsync(dto.ReservationId, ct);
         if (reservation == null)
             return ReservationErrors.ReservationNotFound;
+        
+        if (reservation.CustomerId != userId)
+            return FeedbackErrors.ReservationUnauthorizedAccess;
 
         FeedbackAuthor? author = null;
 
