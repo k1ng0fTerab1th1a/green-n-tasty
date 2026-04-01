@@ -20,10 +20,21 @@ export const getMenuDishes = async (type = "", sort = "price,asc") => {
 export const getDishById = async (id) => {
     try {
         const response = await api.get(`/dishes/${id}`);
-        return response.data;
+
+        return {
+            isSuccess: response.data?.isSuccess ?? true,
+            data: response.data?.data ?? response.data,
+            message: response.data?.message,
+        };
     } catch (error) {
         console.error("Error fetching dish details:", error);
-        throw error;
+        return {
+            isSuccess: false,
+            message:
+                error?.response?.data?.message ||
+                error?.message ||
+                "Failed to load dish details",
+        };
     }
 };
 
@@ -65,3 +76,29 @@ export const downloadMenuFile = async () => {
         throw error;
     }
 };
+
+export async function searchDishes(query, type = "", limit = 20) {
+    try {
+        const response = await api.get("/dishes/search", {
+            params: {
+                query,
+                type: type || undefined,
+                limit,
+            },
+        });
+
+        return {
+            isSuccess: response.data?.isSuccess ?? true,
+            data: response.data?.data ?? response.data,
+            message: response.data?.message,
+        };
+    } catch (error) {
+        return {
+            isSuccess: false,
+            message:
+                error?.response?.data?.message ||
+                error?.message ||
+                "Failed to search dishes",
+        };
+    }
+}
