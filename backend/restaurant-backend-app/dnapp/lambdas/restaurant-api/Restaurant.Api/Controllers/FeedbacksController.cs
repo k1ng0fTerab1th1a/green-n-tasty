@@ -66,10 +66,13 @@ public class FeedbacksController : ControllerBase
     }
 
     [HttpPut("update-feedback")]
-    public async Task<ApiResponse<object>> UpdateFeedback([FromBody] UpdateFeedbackDto dto,
+    public async Task<ApiResponse<object>> UpdateFeedback([FromBody]CreateFeedbackDTO dto,
         CancellationToken ct)
     {
-        var res = await _feedbackService.UpdateFeedback(TODO, ct);
+        var userId = User.GetUserId();
+        if (string.IsNullOrEmpty(userId))
+            return ApiResponse<object>.Fail(401, "You need to be logged in to have access to this functionality");
+        var res = await _feedbackService.UpdateFeedback(dto, userId, ct);
         
         if (res.IsSuccess)
             return ApiResponse<object>.Success(200, null);

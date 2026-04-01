@@ -14,6 +14,7 @@ public interface IFeedbackService
     Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDtoAsync(string reservationId, bool isForUpdate,
         CancellationToken ct);
 
-    Task<Result> UpdateFeedback(UpdateFeedbackDto dto,
+    Task<Result> UpdateFeedback(CreateFeedbackDTO dto,
+        string userId,
         CancellationToken ct);
 }

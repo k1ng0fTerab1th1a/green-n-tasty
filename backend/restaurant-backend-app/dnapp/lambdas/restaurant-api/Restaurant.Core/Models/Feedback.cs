@@ -22,7 +22,7 @@ public class Feedback
     public int Rate { get; set; }
 
     [DynamoDBProperty("comment")]
-    public string Comment { get; set; } = string.Empty;
+    public string? Comment { get; set; }
 
     [DynamoDBProperty("userId")] 
     public string UserId { get; set; } = string.Empty;

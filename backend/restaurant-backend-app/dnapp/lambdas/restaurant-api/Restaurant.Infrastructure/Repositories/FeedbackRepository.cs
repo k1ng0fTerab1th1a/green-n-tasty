@@ -68,7 +68,17 @@ public class FeedbackRepository(IDynamoDBContext context,
             NextPageToken = nextToken
         };
     }
-    
+
+    public async Task<Feedback?> GetByIdAsync(string feedbackId, CancellationToken ct)
+    {
+        return await context.LoadAsync<Feedback?>(feedbackId, ct);
+    }
+
+    public async Task UpdateFeedback(Feedback feedback, CancellationToken ct)
+    {
+        await context.SaveAsync(feedback, ct);
+    }
+
     public async Task SaveBatchAsync(IEnumerable<Feedback> feedbacks, CancellationToken ct = default)
     {
         var batch = context.CreateBatchWrite<Feedback>();
