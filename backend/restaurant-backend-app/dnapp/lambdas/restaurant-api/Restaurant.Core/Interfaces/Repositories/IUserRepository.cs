@@ -1,4 +1,5 @@
-﻿using Restaurant.Core.DTOs;
+﻿using FluentResults;
+using Restaurant.Core.DTOs;
 using Restaurant.Core.Models;
 
 namespace Restaurant.Core.Interfaces.Repositories;
@@ -15,4 +16,7 @@ public interface IUserRepository
     Task UpdateUserRatingAsync(string userId, int newFeedbackRating, CancellationToken ct);
     Task<WaiterFeedbackData> GetWaiterFeedbackDataAsync(string waiterId, CancellationToken ct);
     Task UpdateAvatarUrlAsync(string userId, string url, CancellationToken ct);
+    Task<bool> IfUserExistsByEmail(string email, CancellationToken ct);
+    Task CreateOtp(UserOtp otp, CancellationToken ct);
+    Task<UserOtp?> GetOtpByEmailAsync(string email, CancellationToken ct);
 }

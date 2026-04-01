@@ -2,6 +2,7 @@
 using Amazon.SimpleEmail;
 using Amazon.SimpleEmail.Model;
 using Restaurant.Core.Interfaces.Services;
+using Restaurant.Core.SharedModels;
 
 namespace Restaurant.Core.Services;
 
@@ -10,10 +11,10 @@ public class EmailService : IEmailService
     private readonly IAmazonSimpleEmailService _ses;
     private readonly string _fromEmail;
 
-    public EmailService(IAmazonSimpleEmailService ses, string fromEmail)
+    public EmailService(IAmazonSimpleEmailService ses, EmailServiceSettings settings)
     {
         _ses = ses;
-        _fromEmail = fromEmail;
+        _fromEmail = settings.FromEmail;
     }
     
     public async Task SendEmail(string message, string subject, string email, CancellationToken ct)

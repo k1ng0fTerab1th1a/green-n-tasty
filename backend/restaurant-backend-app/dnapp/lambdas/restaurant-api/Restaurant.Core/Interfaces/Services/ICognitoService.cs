@@ -11,4 +11,6 @@ public interface ICognitoService
     Task<Result<string>> RefreshTokenAsync(string refreshToken, CancellationToken ct);
     Task<Result> SignOutAsync(string refreshToken, CancellationToken ct);
     Task<Result> UpdateUserEmailAsync(string userId, string newEmail, CancellationToken ct);
+    Task<Result> UpdatePasswordAsync(string email, string newPassword, CancellationToken ct = default);
+
 }

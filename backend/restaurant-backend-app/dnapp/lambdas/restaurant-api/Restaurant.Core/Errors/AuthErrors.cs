@@ -17,6 +17,9 @@ public static class AuthErrors
     public static BusinessError RefreshTokenFailed =>
         new("Failed to refresh token.", ErrorType.Validation);
 
+    public static BusinessError InvalidPassword =>
+        new("This password does not match the requirements", ErrorType.Validation);
+
     public static BusinessError EmailNotVerified =>
         new("Account email is not verified. Please check your inbox for a verification link.", ErrorType.Forbidden);
 }

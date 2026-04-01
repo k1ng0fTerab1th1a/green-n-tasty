@@ -91,9 +91,14 @@ public class Startup
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IReportsRepository, ReportsRepository>();
 
+        services.AddScoped<IEmailService, EmailService>();
+
 
         services.Configure<ClientSettings>(
             _configuration.GetSection("ClientSettings"));
+
+        services.Configure<EmailServiceSettings>(
+            _configuration.GetSection("EmailServiceSettings"));
 
         services.AddSingleton<IAmazonS3>(sp =>
         {

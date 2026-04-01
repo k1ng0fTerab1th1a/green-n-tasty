@@ -95,8 +95,25 @@ public class UserController : ControllerBase
     [HttpPost("make-otp")]
     public async Task<ApiResponse<object>> CreateOtp(string email, CancellationToken ct)
     {
-        
-        return ApiResponse<object>.Success(200, null);
+        var res = await _userService.CreateOtpAsync(email, ct);
+        return res.IsFailed ? res.Errors[0].ToApiResponse<object>() 
+            : ApiResponse<object>.Success(200, null);
+    }
 
+    [HttpPost("verify-otp")]
+    public async Task<ApiResponse<object>> VerifyOtp(string email, string otp, CancellationToken ct)
+    {
+        var res = await _userService.VerifyOtp(email, otp, ct);
+        return res.IsFailed ? res.Errors[0].ToApiResponse<object>() 
+            : ApiResponse<object>.Success(200, null);
+    }
+
+    [HttpPost("new-password")]
+    public async Task<ApiResponse<object>> SetNewPassword(string email, string otp, string password,
+        CancellationToken ct)
+    {
+        var res = await _userService.RecoverPassword(email, otp, password, ct);
+        return res.IsFailed ? res.Errors[0].ToApiResponse<object>() 
+            : ApiResponse<object>.Success(200, null);
     }
 }
