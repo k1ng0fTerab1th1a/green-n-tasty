@@ -135,6 +135,14 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public CreateOrderDTO? LastDto { get; private set; }
         public BusinessError? CreateFailResult { get; set; }
         public Order CreateResponse { get; set; } = BuildDefaultOrder();
+        public string? LastReservationId { get; private set; }
+        public CreateOrderDTO? LastCreateDto { get; private set; }
+        public AddDishToOrderDTO? LastAddDishDto { get; private set; }
+        public DeleteDishFromOrderDTO? LastDeleteDishDto { get; private set; }
+        public CompleteOrderDTO? LastCompleteDto { get; private set; }
+
+        public BusinessError? FailResult { get; set; }
+        public Order Response { get; set; } = BuildDefaultOrder();
 
         public void Reset()
         {
@@ -142,23 +150,82 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastDto = null;
             CreateFailResult = null;
             CreateResponse = BuildDefaultOrder();
+            LastReservationId = null;
+            LastCreateDto = null;
+            LastAddDishDto = null;
+            LastDeleteDishDto = null;
+            LastCompleteDto = null;
+            FailResult = null;
+            Response = BuildDefaultOrder();
         }
 
         public Task<Result<Order>> CreateAsyncForReservation(string actorId, CreateOrderDTO dto, CancellationToken ct = default)
         {
             LastActorId = actorId;
             LastDto = dto;
+            LastReservationId = dto.ReservationId;
+            LastCreateDto = dto;
 
             if (CreateFailResult is not null)
                 return Task.FromResult(Result.Fail<Order>(CreateFailResult));
 
+            if (FailResult is not null)
+                return Task.FromResult(Result.Fail<Order>(FailResult));
+
             return Task.FromResult(Result.Ok(CreateResponse));
+        }
+
+        public Task<Result<Order>> GetByReservationAsync(string actorId, string reservationId, CancellationToken ct)
+        {
+            LastActorId = actorId;
+            LastReservationId = reservationId;
+
+            if (FailResult is not null)
+                return Task.FromResult(Result.Fail<Order>(FailResult));
+
+            return Task.FromResult(Result.Ok(Response));
+        }
+
+        public Task<Result<Order>> AddDishAsync(string actorId, string reservationId, AddDishToOrderDTO dto, CancellationToken ct)
+        {
+            LastActorId = actorId;
+            LastReservationId = reservationId;
+            LastAddDishDto = dto;
+
+            if (FailResult is not null)
+                return Task.FromResult(Result.Fail<Order>(FailResult));
+
+            return Task.FromResult(Result.Ok(Response));
+        }
+
+        public Task<Result<Order>> DeleteDishAsync(string actorId, string reservationId, DeleteDishFromOrderDTO dto, CancellationToken ct)
+        {
+            LastActorId = actorId;
+            LastReservationId = reservationId;
+            LastDeleteDishDto = dto;
+
+            if (FailResult is not null)
+                return Task.FromResult(Result.Fail<Order>(FailResult));
+
+            return Task.FromResult(Result.Ok(Response));
+        }
+
+        public Task<Result<Order>> CompleteAsync(string actorId, string reservationId, CompleteOrderDTO dto, CancellationToken ct)
+        {
+            LastActorId = actorId;
+            LastReservationId = reservationId;
+            LastCompleteDto = dto;
+
+            if (FailResult is not null)
+                return Task.FromResult(Result.Fail<Order>(FailResult));
+
+            return Task.FromResult(Result.Ok(Response));
         }
 
         private static Order BuildDefaultOrder()
             => new()
             {
-                Id = "o-1",
+                Id = "r-customer-1",
                 ReservationId = "r-customer-1",
                 LocationId = "loc-1",
                 LocationAddress = "Main street 1",
@@ -171,9 +238,11 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 GuestsCount = 2,
                 Status = OrderStatus.Open,
                 Dishes = new List<OrderDishSnapshot>(),
-                TotalAmount = 0,
+                TotalAmount = 0m,
                 CreatedAt = "2026-03-01T00:00:00.0000000Z",
-                CompletedAt = null
+                CompletedAt = null,
+                Version = 1,
+                ProcessedOperationIds = []
             };
     }
 
@@ -730,10 +799,21 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public string? LastDishId { get; private set; }
         public string? LastMenuType { get; private set; }
         public string? LastMenuSort { get; private set; }
+
+        public string? LastSearchQuery { get; private set; }
+        public string? LastSearchType { get; private set; }
+        public int? LastSearchLimit { get; private set; }
+
+        public string? LastUpsertDishId { get; private set; }
+        public string? LastRemoveDishId { get; private set; }
+
         public Dictionary<string, IReadOnlyList<Dish>> DishesByLocation { get; } = new();
         public List<Dish> PopularDishes { get; } = new();
         public Dictionary<string, Dish> DishesById { get; } = new();
         public List<DishBriefDTO> MenuDishes { get; } = new();
+        public List<DishSearchResultDTO> SearchResults { get; } = new();
+
+        public int RebuildIndexedCount { get; set; } = 0;
 
         public FakeDishService()
         {
@@ -746,6 +826,11 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastDishId = null;
             LastMenuType = null;
             LastMenuSort = null;
+            LastSearchQuery = null;
+            LastSearchType = null;
+            LastSearchLimit = null;
+            LastUpsertDishId = null;
+            LastRemoveDishId = null;
 
             DishesByLocation.Clear();
             DishesByLocation["loc-1"] = Array.Empty<Dish>();
@@ -753,6 +838,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             PopularDishes.Clear();
             DishesById.Clear();
             MenuDishes.Clear();
+            SearchResults.Clear();
+            RebuildIndexedCount = 0;
         }
 
         public Task<Result<IReadOnlyList<Dish>>> GetSpecialityDishesByLocationIdAsync(
@@ -766,8 +853,6 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             return Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(Array.Empty<Dish>()));
         }
-
-
 
         public Task<Result<IReadOnlyList<Dish>>> GetPopularDishesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(Result.Ok<IReadOnlyList<Dish>>(PopularDishes));
@@ -783,11 +868,42 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         }
 
         public Task<Result<IReadOnlyList<DishBriefDTO>>> GetMenuBriefDishesAsync(
-            string? type, string sort, CancellationToken cancellationToken = default)
+            string? type,
+            string sort,
+            CancellationToken cancellationToken = default)
         {
             LastMenuType = type;
             LastMenuSort = sort;
             return Task.FromResult(Result.Ok<IReadOnlyList<DishBriefDTO>>(MenuDishes));
+        }
+
+        public Task<Result<IReadOnlyList<DishSearchResultDTO>>> SearchDishesAsync(
+            string query,
+            string? type,
+            int limit,
+            CancellationToken cancellationToken = default)
+        {
+            LastSearchQuery = query;
+            LastSearchType = type;
+            LastSearchLimit = limit;
+            return Task.FromResult(Result.Ok<IReadOnlyList<DishSearchResultDTO>>(SearchResults));
+        }
+
+        public Task<Result<int>> RebuildSearchIndexAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(Result.Ok(RebuildIndexedCount));
+        }
+
+        public Task<Result> UpsertDishSearchIndexAsync(string dishId, CancellationToken cancellationToken = default)
+        {
+            LastUpsertDishId = dishId;
+            return Task.FromResult(Result.Ok());
+        }
+
+        public Task<Result> RemoveDishSearchIndexAsync(string dishId, CancellationToken cancellationToken = default)
+        {
+            LastRemoveDishId = dishId;
+            return Task.FromResult(Result.Ok());
         }
     }
 

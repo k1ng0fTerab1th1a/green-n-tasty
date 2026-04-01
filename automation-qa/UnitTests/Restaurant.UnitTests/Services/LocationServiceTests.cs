@@ -58,7 +58,7 @@ public sealed class LocationServiceTests
                 TotalCapacity = 120,
                 AverageOccupancy = 0.35,
                 ImageUrl = "http://img",
-                TotalRating = 460,
+                TotalRating = 464,
                 FeedbacksAmount = 100 
             }
         };

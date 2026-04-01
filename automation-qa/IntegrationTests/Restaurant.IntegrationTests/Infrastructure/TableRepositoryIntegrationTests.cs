@@ -5,7 +5,8 @@ using Restaurant.Infrastructure.Repositories;
 
 namespace Restaurant.IntegrationTests.Infrastructure;
 
-public sealed class TableRepositoryIntegrationTests : IClassFixture<DynamoDbFixture>
+[Collection("DynamoDb collection")]
+public sealed class TableRepositoryIntegrationTests
 {
     private readonly DynamoDBContext _context;
     private readonly TableRepository _repo;

@@ -134,7 +134,7 @@ public class DishEndpointsTests : IClassFixture<CustomWebApplicationFactory>
             Id       = "dish-m1",
             Name     = "Caesar Salad",
             DishType = "SALAD",
-            Price    = 9.5f,
+            Price    = 9.5m,
             ImageUrl = "http://img/dish-m1",
             Weight   = 200
         });
@@ -195,8 +195,8 @@ public class DishEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         _factory.DishService.Reset();
         _factory.DishService.MenuDishes.AddRange(new[]
         {
-            new DishBriefDTO { Id = "dish-a", Name = "Zucchini", DishType = "MAIN", Price = 12.0f },
-            new DishBriefDTO { Id = "dish-b", Name = "Avocado Toast", DishType = "MAIN", Price = 8.5f }
+            new DishBriefDTO { Id = "dish-a", Name = "Zucchini", DishType = "MAIN", Price = 12.0m },
+            new DishBriefDTO { Id = "dish-b", Name = "Avocado Toast", DishType = "MAIN", Price = 8.5m }
         });
  
         var res = await _client.GetAsync("/dishes/menu?type=MAIN&sort=price,desc");
@@ -222,5 +222,85 @@ public class DishEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
         doc.RootElement.GetPropertyIgnoreCase("data")
             .GetArrayLength().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task SearchDishes_WithoutUserHeader_ShouldReturn401()
+    {
+        _factory.DishService.Reset();
+
+        var res = await _client.GetAsync("/dishes/search?query=селед");
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        _factory.DishService.LastSearchQuery.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SearchDishes_AsWaiter_ShouldReturn200_AndPassParameters()
+    {
+        _factory.DishService.Reset();
+        _factory.DishService.SearchResults.AddRange(new[]
+        {
+        new DishSearchResultDTO
+        {
+            Id = "dish-1",
+            Name = "Селедка під шубою",
+            DishType = "MAIN"
+        }
+    });
+
+        var req = new HttpRequestMessage(HttpMethod.Get, "/dishes/search?query=селед&type=MAIN&limit=15");
+        req.Headers.Add("X-User-Id", "waiter-1");
+        req.Headers.Add("X-Role", "WAITER");
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.DishService.LastSearchQuery.Should().Be("селед");
+        _factory.DishService.LastSearchType.Should().Be("MAIN");
+        _factory.DishService.LastSearchLimit.Should().Be(15);
+    }
+
+    [Fact]
+    public async Task SearchDishes_AsNonWaiter_ShouldReturn403()
+    {
+        _factory.DishService.Reset();
+
+        var req = new HttpRequestMessage(HttpMethod.Get, "/dishes/search?query=селед");
+        req.Headers.Add("X-User-Id", "customer-1");
+        req.Headers.Add("X-Role", "CUSTOMER");
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        _factory.DishService.LastSearchQuery.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetMenuDishes_WithPopularitySort_ShouldPassSortToService()
+    {
+        _factory.DishService.Reset();
+
+        var res = await _client.GetAsync("/dishes/menu?sort=popularity,desc");
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.DishService.LastMenuSort.Should().Be("popularity,desc");
+    }
+
+    [Fact]
+    public async Task SearchDishes_WhenLimitOmitted_ShouldUseDefaultLimit()
+    {
+        _factory.DishService.Reset();
+
+        var req = new HttpRequestMessage(HttpMethod.Get, "/dishes/search?query=селед");
+        req.Headers.Add("X-User-Id", "waiter-1");
+        req.Headers.Add("X-Role", "WAITER");
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.DishService.LastSearchQuery.Should().Be("селед");
+        _factory.DishService.LastSearchLimit.Should().Be(20);
+        _factory.DishService.LastSearchType.Should().BeNull();
     }
 }

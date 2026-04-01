@@ -235,6 +235,7 @@ public sealed partial class ReservationServiceTests
         result.IsFailed.Should().BeTrue();
         _repo.Verify(r => r.GetByIdAsync("missing", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
+        _dishRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -294,13 +295,15 @@ public sealed partial class ReservationServiceTests
 
         _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
-        _repo.Setup(r => r.UpdateLifecycleAsync(
+        _repo.Setup(r => r.FinishAndCompleteOrderIfOpenAsync(
                 reservation,
-                ReservationStatus.InProgress,
-                ReservationStatus.Finished,
                 It.Is<List<string>>(slots => slots.SequenceEqual(expectedSlots)),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+            .ReturnsAsync(new FinishReservationOutcome
+            {
+                IsSuccess = true,
+                OrderWasCompleted = false
+            });
 
         var result = await _sut.FinishReservationAsync("r1", "waiter-1", default);
 
@@ -309,11 +312,67 @@ public sealed partial class ReservationServiceTests
         result.Value.ActualStartTime.Should().NotBeNullOrWhiteSpace();
         result.Value.ActualEndTime.Should().NotBeNullOrWhiteSpace();
 
-        _repo.Verify(r => r.UpdateLifecycleAsync(
+        _repo.Verify(r => r.FinishAndCompleteOrderIfOpenAsync(
             reservation,
-            ReservationStatus.InProgress,
-            ReservationStatus.Finished,
             It.Is<List<string>>(slots => slots.SequenceEqual(expectedSlots)),
             It.IsAny<CancellationToken>()), Times.Once);
+
+        _dishRepo.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task FinishReservationAsync_WhenOrderWasAutoCompleted_ShouldIncrementDishPopularity()
+    {
+        var reservation = new Reservation
+        {
+            Id = "r1",
+            CustomerId = "customer-1",
+            WaiterId = "waiter-1",
+            LocationId = "loc-1",
+            LocationAddress = "Main street 1",
+            TableNumber = 3,
+            TableKey = "loc-1#3",
+            StartDateTime = DateTimeOffset.UtcNow.AddMinutes(-30).ToString("O"),
+            EndDateTime = DateTimeOffset.UtcNow.AddMinutes(30).ToString("O"),
+            ActualStartTime = DateTimeOffset.UtcNow.AddMinutes(-20).ToString("O"),
+            GuestsCount = 2,
+            Status = ReservationStatus.InProgress,
+            IsMealServed = true,
+            CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
+            UpdatedAt = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(reservation);
+
+        _repo.Setup(r => r.FinishAndCompleteOrderIfOpenAsync(
+                reservation,
+                It.IsAny<List<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FinishReservationOutcome
+            {
+                IsSuccess = true,
+                OrderWasCompleted = true,
+                PopularityIncrements = new List<DishPopularityIncrement>
+                {
+                new() { DishId = "dish-1", Quantity = 2 },
+                new() { DishId = "dish-2", Quantity = 1 }
+                }
+            });
+
+        _dishRepo.Setup(r => r.IncrementPopularityAsync("dish-1", 2, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _dishRepo.Setup(r => r.IncrementPopularityAsync("dish-2", 1, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await _sut.FinishReservationAsync("r1", "waiter-1", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Status.Should().Be(ReservationStatus.Finished);
+        result.Value.ActualEndTime.Should().NotBeNullOrWhiteSpace();
+
+        _dishRepo.Verify(r => r.IncrementPopularityAsync("dish-1", 2, It.IsAny<CancellationToken>()), Times.Once);
+        _dishRepo.Verify(r => r.IncrementPopularityAsync("dish-2", 1, It.IsAny<CancellationToken>()), Times.Once);
     }
 }

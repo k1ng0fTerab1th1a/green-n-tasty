@@ -32,7 +32,7 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
             TotalCapacity = 120,
             AverageOccupancy = 0.354,
             ImageUrl = "http://img/loc-42",
-            TotalRating = 460,
+            TotalRating = 464,
             FeedbacksAmount = 100 
         });
 
@@ -89,7 +89,7 @@ public sealed class LocationsEndpointsTests : IClassFixture<CustomWebApplication
             TotalCapacity = 120,
             AverageOccupancy = 0.354,
             ImageUrl = "http://img/loc-42",
-            TotalRating = 460,
+            TotalRating = 464,
             FeedbacksAmount = 100 
         });
 

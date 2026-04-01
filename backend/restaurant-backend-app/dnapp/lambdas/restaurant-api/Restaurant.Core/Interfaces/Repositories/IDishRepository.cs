@@ -12,6 +12,16 @@ public interface IDishRepository
     Task<List<Dish>> GetByIdsAsync(IEnumerable<string> ids, CancellationToken ct);
 
     Task<Dish?> GetDishByIdAsync(string dishId, CancellationToken ct);
-    
+
+    Task IncrementPopularityAsync(string dishId, int quantity, CancellationToken ct);
+
     Task<IReadOnlyList<DishBriefDTO>> GetShortenedDishesAsync(string? type, string sort, CancellationToken ct);
+
+    Task<IReadOnlyList<DishSearchResultDTO>> SearchAsync(string query, string? type, int limit, CancellationToken ct);
+
+    Task<int> RebuildSearchIndexAsync(CancellationToken ct);
+
+    Task UpsertDishSearchIndexAsync(Dish dish, CancellationToken ct);
+
+    Task RemoveDishSearchIndexAsync(string dishId, CancellationToken ct);
 }

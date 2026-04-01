@@ -14,23 +14,26 @@ public sealed class ReservationService : IReservationService
     private const string CustomerRole = "CUSTOMER";
 
     private readonly IReservationRepository _repo;
-    private readonly IWaiterScheduleRepository _waiterScheduleRepo;
-    private readonly ILocationRepository _locationRepo;
+    private readonly IWaiterScheduleRepository _waiterScheduleRepository;
+    private readonly ILocationRepository _locationRepository;
     private readonly ITableRepository _tableRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IDishRepository _dishRepository;
 
     public ReservationService(
         IReservationRepository repo,
-        IWaiterScheduleRepository waiterScheduleRepo,
-        ILocationRepository locationRepo,
+        IWaiterScheduleRepository waiterScheduleRepository,
+        ILocationRepository locationRepository,
         ITableRepository tableRepository,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        IDishRepository dishRepository)
     {
         _repo = repo;
-        _waiterScheduleRepo = waiterScheduleRepo;
-        _locationRepo = locationRepo;
+        _waiterScheduleRepository = waiterScheduleRepository;
+        _locationRepository = locationRepository;
         _tableRepository = tableRepository;
         _userRepository = userRepository;
+        _dishRepository = dishRepository;
     }
 
     public async Task<Result<IReadOnlyList<Reservation>>> GetByCustomer(string actorUserId, CancellationToken ct = default)
@@ -99,7 +102,7 @@ public sealed class ReservationService : IReservationService
 
     public async Task<Result<Reservation>> CreateForClientAsync(string customerId, CreateReservationDTO dto, CancellationToken ct = default)
     {
-        var location = await _locationRepo.GetByIdAsync(dto.LocationId, ct);
+        var location = await _locationRepository.GetByIdAsync(dto.LocationId, ct);
         if (location is null) return ReservationErrors.LocationNotFound;
 
         var (startDate, endDate) = ReservationTimeHelper.ResolveReservationDates(dto.Date, dto.TimeFrom, dto.TimeTo, location);
@@ -111,7 +114,7 @@ public sealed class ReservationService : IReservationService
 
         var slots = ReservationTimeHelper.GenerateSlots(start, end);
 
-        var schedule = await _waiterScheduleRepo.GetAsync($"{dto.LocationId}#{dto.TableNumber}", dto.Date.ToString("yyyy-MM-dd"), ct);
+        var schedule = await _waiterScheduleRepository.GetAsync($"{dto.LocationId}#{dto.TableNumber}", dto.Date.ToString("yyyy-MM-dd"), ct);
         if (schedule is null) return ReservationErrors.NoWaiterAssigned;
 
         var waiter = await _userRepository.GetByIdAsync(schedule.WaiterId, ct);
@@ -179,7 +182,7 @@ public sealed class ReservationService : IReservationService
             customerName = $"{customer.FirstName} {customer.LastName}";
         }
 
-        var location = await _locationRepo.GetByIdAsync(dto.LocationId, ct);
+        var location = await _locationRepository.GetByIdAsync(dto.LocationId, ct);
         if (location is null) return ReservationErrors.LocationNotFound;
 
         var (startDate, endDate) = ReservationTimeHelper.ResolveReservationDates(dto.Date, dto.TimeFrom, dto.TimeTo, location);
@@ -191,7 +194,7 @@ public sealed class ReservationService : IReservationService
 
         var slots = ReservationTimeHelper.GenerateSlots(start, end);
 
-        var schedule = await _waiterScheduleRepo.GetAsync($"{dto.LocationId}#{dto.TableNumber}", dto.Date.ToString("yyyy-MM-dd"), ct);
+        var schedule = await _waiterScheduleRepository.GetAsync($"{dto.LocationId}#{dto.TableNumber}", dto.Date.ToString("yyyy-MM-dd"), ct);
         if (schedule is null) return ReservationErrors.NoWaiterAssigned;
 
         if (!string.Equals(schedule.WaiterId, waiterId, StringComparison.Ordinal))
@@ -270,7 +273,7 @@ public sealed class ReservationService : IReservationService
         if (reservation.Status != ReservationStatus.Reserved)
             return ReservationErrors.NotUpdatable;
 
-        var location = await _locationRepo.GetByIdAsync(reservation.LocationId, ct);
+        var location = await _locationRepository.GetByIdAsync(reservation.LocationId, ct);
         if (location is null) return ReservationErrors.LocationNotFound;
 
         var oldStart = DateTimeOffset.Parse(reservation.StartDateTime);
@@ -304,7 +307,7 @@ public sealed class ReservationService : IReservationService
 
         if (isActorWaiter && (reservationDateChanged || reservationTimeChanged || reservationTableChanged))
         {
-            var schedule = await _waiterScheduleRepo.GetAsync(
+            var schedule = await _waiterScheduleRepository.GetAsync(
                 $"{reservation.LocationId}#{dto.TableNumber}",
                 dto.Date.ToString("yyyy-MM-dd"),
                 ct);
@@ -373,10 +376,14 @@ public sealed class ReservationService : IReservationService
         return reservation;
     }
 
-    public async Task<Result<Reservation>> FinishReservationAsync(string reservationId, string waiterId, CancellationToken ct = default)
+    public async Task<Result<Reservation>> FinishReservationAsync(
+        string reservationId,
+        string waiterId,
+        CancellationToken ct = default)
     {
         var getResult = await GetByIdAsync(reservationId, waiterId, actorIsWaiter: true, ct);
-        if (getResult.IsFailed) return getResult;
+        if (getResult.IsFailed)
+            return getResult;
 
         var reservation = getResult.Value;
 
@@ -392,15 +399,27 @@ public sealed class ReservationService : IReservationService
             DateTimeOffset.Parse(reservation.StartDateTime),
             DateTimeOffset.Parse(reservation.EndDateTime));
 
-        var success = await _repo.UpdateLifecycleAsync(
+        var finishOutcome = await _repo.FinishAndCompleteOrderIfOpenAsync(
             reservation,
-            ReservationStatus.InProgress,
-            ReservationStatus.Finished,
             slots,
             ct);
 
-        if (!success)
+        if (!finishOutcome.IsSuccess)
             return ReservationErrors.FinishFailed;
+
+        if (finishOutcome.OrderWasCompleted)
+        {
+            foreach (var increment in finishOutcome.PopularityIncrements)
+            {
+                if (string.IsNullOrWhiteSpace(increment.DishId) || increment.Quantity <= 0)
+                    continue;
+
+                await _dishRepository.IncrementPopularityAsync(
+                    increment.DishId,
+                    increment.Quantity,
+                    ct);
+            }
+        }
 
         return reservation;
     }
