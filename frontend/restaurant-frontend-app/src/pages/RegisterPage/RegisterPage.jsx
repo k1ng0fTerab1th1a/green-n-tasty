@@ -103,7 +103,7 @@ export default function RegisterPage() {
                         type: "success",
                         title: "Success",
                         message:
-                            "Your account has been created successfully. Please sign in with your details.",
+                            "Account created! Please check your inbox to verify your email before signing in.",
                     },
                 },
             });

@@ -140,8 +140,13 @@ export default function LoginPage() {
                 return;
             }
             if (httpStatus === 403) {
-                setStatus("locked");
-                setBanner(serverMsg || "Access denied. Please contact support.");
+                if (serverMsg?.includes("not verified")) {
+                    setStatus("server_error");
+                    setBanner(serverMsg);
+                } else {
+                    setStatus("locked");
+                    setBanner(serverMsg || "Access denied. Please contact support.");
+                }
                 return;
             }
 
