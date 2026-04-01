@@ -53,14 +53,15 @@ public sealed partial class ReservationServiceTests
             FeedbacksAmount = 100
         };
 
-    private static User BuildWaiter(string userId)
+    private static User BuildWaiter(string userId, string? locationId = null)
         => new()
         {
             UserId = userId,
             FirstName = "Waiter",
             LastName = "User",
             Email = "waiter@example.com",
-            Role = "WAITER"
+            Role = "WAITER",
+            LocationId = locationId
         };
 
     private static User BuildCustomer(string userId)

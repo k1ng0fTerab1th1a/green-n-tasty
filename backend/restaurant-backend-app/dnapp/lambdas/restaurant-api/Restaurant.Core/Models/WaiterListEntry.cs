@@ -7,4 +7,7 @@ public class WaiterListEntry
 {
     [DynamoDBHashKey("email")]
     public required string Email { get; set; }
+
+    [DynamoDBProperty("locationId")]
+    public string? LocationId { get; set; }
 }
