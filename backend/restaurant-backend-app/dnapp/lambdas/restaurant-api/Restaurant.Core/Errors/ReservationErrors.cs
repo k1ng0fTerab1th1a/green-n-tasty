@@ -22,6 +22,7 @@ public static class ReservationErrors
     public static BusinessError CustomerNotFound => new("Customer not found.", ErrorType.NotFound);
     public static BusinessError WaiterNotAssignedForCreation => new("Waiter can create reservations only for assigned tables.", ErrorType.Validation);
     public static BusinessError WaiterNotAssignedForUpdate => new("Waiter can update reservations only for assigned tables.", ErrorType.Validation);
+    public static BusinessError WaiterLocationNotConfigured => new("Waiter location is not configured.", ErrorType.Validation);
 
     public static BusinessError TableNotFound => new("Table not found.", ErrorType.NotFound);
     public static BusinessError TableCapacityExceeded => new("Amount of guests exceeds the table capacity.", ErrorType.Validation);

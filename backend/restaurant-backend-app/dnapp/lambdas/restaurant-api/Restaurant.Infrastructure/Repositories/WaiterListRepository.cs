@@ -17,4 +17,9 @@ public class WaiterListRepository : IWaiterListRepository
     {
         return await _context.LoadAsync<WaiterListEntry?>(email, ct) != null;
     }
+
+    public async Task<WaiterListEntry?> GetByEmailAsync(string email, CancellationToken ct = default)
+    {
+        return await _context.LoadAsync<WaiterListEntry?>(email, ct);
+    }
 }

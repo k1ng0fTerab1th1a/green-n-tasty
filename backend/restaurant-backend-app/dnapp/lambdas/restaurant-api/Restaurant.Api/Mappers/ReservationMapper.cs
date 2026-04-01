@@ -36,7 +36,6 @@ public static class ReservationMapper
     );
 
     public static CreateReservationForWaiterDTO ToCreateForWaiterDTO(this CreateReservationForWaiterRequest x) => new(
-            x.LocationId,
             x.TableNumber,
             DateOnly.Parse(x.Date),
             TimeOnly.Parse(x.TimeFrom),

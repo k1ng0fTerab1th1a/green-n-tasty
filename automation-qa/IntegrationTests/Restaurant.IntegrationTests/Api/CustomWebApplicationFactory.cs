@@ -517,6 +517,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             var start = new DateTimeOffset(dto.Date.ToDateTime(dto.TimeFrom), TimeSpan.Zero);
             var endDate = dto.TimeTo < dto.TimeFrom ? dto.Date.AddDays(1) : dto.Date;
             var end = new DateTimeOffset(endDate.ToDateTime(dto.TimeTo), TimeSpan.Zero);
+            const string waiterLocationId = "loc-1";
 
             var reservation = new Reservation
             {
@@ -525,10 +526,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 CustomerName = dto.CustomerId is null ? null : $"Customer {dto.CustomerId}",
                 WaiterId = waiterId,
                 WaiterName = $"Waiter {waiterId}",
-                LocationId = dto.LocationId,
+                LocationId = waiterLocationId,
                 LocationAddress = "Main street 1",
                 TableNumber = dto.TableNumber,
-                TableKey = $"{dto.LocationId}#{dto.TableNumber}",
+                TableKey = $"{waiterLocationId}#{dto.TableNumber}",
                 StartDateTime = start.ToString("O"),
                 EndDateTime = end.ToString("O"),
                 ActualStartTime = null,

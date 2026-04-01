@@ -16,4 +16,7 @@ public static class AuthErrors
 
     public static BusinessError RefreshTokenFailed =>
         new("Failed to refresh token.", ErrorType.Validation);
+
+    public static BusinessError WaiterLocationNotConfigured =>
+        new("Waiter location is not configured.", ErrorType.Validation);
 }
