@@ -18,10 +18,10 @@ public interface IOrderRepository
 
     Task<bool> UpdateWithReservationDishCountAsync(
         Order order,
-        Reservation reservation,
         int expectedOrderVersion,
         string operationId,
         int dishCountDelta,
+        string updatedAt,
         CancellationToken ct);
 
     Task<bool> CompleteAsync(
@@ -29,11 +29,5 @@ public interface IOrderRepository
         string waiterId,
         int expectedOrderVersion,
         string operationId,
-        CancellationToken ct);
-
-    Task<bool> CompleteOnReservationFinishIfOpenAsync(
-        string reservationId,
-        string waiterId,
-        string completedAt,
         CancellationToken ct);
 }

@@ -230,18 +230,12 @@ public sealed partial class ReservationServiceTests
         _repo.Setup(r => r.GetByIdAsync("missing", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Reservation?)null);
 
-        _orderRepo.Setup(r => r.CompleteOnReservationFinishIfOpenAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
         var result = await _sut.FinishReservationAsync("missing", "waiter-1", default);
 
         result.IsFailed.Should().BeTrue();
         _repo.Verify(r => r.GetByIdAsync("missing", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
+        _dishRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -267,13 +261,6 @@ public sealed partial class ReservationServiceTests
 
         _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
-
-        _orderRepo.Setup(r => r.CompleteOnReservationFinishIfOpenAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
 
         var result = await _sut.FinishReservationAsync("r1", "waiter-1", default);
 
@@ -308,20 +295,15 @@ public sealed partial class ReservationServiceTests
 
         _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
-        _repo.Setup(r => r.UpdateLifecycleAsync(
+        _repo.Setup(r => r.FinishAndCompleteOrderIfOpenAsync(
                 reservation,
-                ReservationStatus.InProgress,
-                ReservationStatus.Finished,
                 It.Is<List<string>>(slots => slots.SequenceEqual(expectedSlots)),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        _orderRepo.Setup(r => r.CompleteOnReservationFinishIfOpenAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+            .ReturnsAsync(new FinishReservationOutcome
+            {
+                IsSuccess = true,
+                OrderWasCompleted = false
+            });
 
         var result = await _sut.FinishReservationAsync("r1", "waiter-1", default);
 
@@ -330,16 +312,16 @@ public sealed partial class ReservationServiceTests
         result.Value.ActualStartTime.Should().NotBeNullOrWhiteSpace();
         result.Value.ActualEndTime.Should().NotBeNullOrWhiteSpace();
 
-        _repo.Verify(r => r.UpdateLifecycleAsync(
+        _repo.Verify(r => r.FinishAndCompleteOrderIfOpenAsync(
             reservation,
-            ReservationStatus.InProgress,
-            ReservationStatus.Finished,
             It.Is<List<string>>(slots => slots.SequenceEqual(expectedSlots)),
             It.IsAny<CancellationToken>()), Times.Once);
+
+        _dishRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task FinishReservationAsync_WhenValid_ShouldCompleteOpenOrder()
+    public async Task FinishReservationAsync_WhenOrderWasAutoCompleted_ShouldIncrementDishPopularity()
     {
         var reservation = new Reservation
         {
@@ -363,20 +345,26 @@ public sealed partial class ReservationServiceTests
         _repo.Setup(r => r.GetByIdAsync("r1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(reservation);
 
-        _repo.Setup(r => r.UpdateLifecycleAsync(
+        _repo.Setup(r => r.FinishAndCompleteOrderIfOpenAsync(
                 reservation,
-                ReservationStatus.InProgress,
-                ReservationStatus.Finished,
                 It.IsAny<List<string>>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+            .ReturnsAsync(new FinishReservationOutcome
+            {
+                IsSuccess = true,
+                OrderWasCompleted = true,
+                PopularityIncrements = new List<DishPopularityIncrement>
+                {
+                new() { DishId = "dish-1", Quantity = 2 },
+                new() { DishId = "dish-2", Quantity = 1 }
+                }
+            });
 
-        _orderRepo.Setup(r => r.CompleteOnReservationFinishIfOpenAsync(
-                "r1",
-                "waiter-1",
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        _dishRepo.Setup(r => r.IncrementPopularityAsync("dish-1", 2, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _dishRepo.Setup(r => r.IncrementPopularityAsync("dish-2", 1, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var result = await _sut.FinishReservationAsync("r1", "waiter-1", CancellationToken.None);
 
@@ -384,10 +372,7 @@ public sealed partial class ReservationServiceTests
         result.Value.Status.Should().Be(ReservationStatus.Finished);
         result.Value.ActualEndTime.Should().NotBeNullOrWhiteSpace();
 
-        _orderRepo.Verify(r => r.CompleteOnReservationFinishIfOpenAsync(
-            "r1",
-            "waiter-1",
-            It.IsAny<string>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+        _dishRepo.Verify(r => r.IncrementPopularityAsync("dish-1", 2, It.IsAny<CancellationToken>()), Times.Once);
+        _dishRepo.Verify(r => r.IncrementPopularityAsync("dish-2", 1, It.IsAny<CancellationToken>()), Times.Once);
     }
 }

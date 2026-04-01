@@ -96,10 +96,10 @@ public sealed class OrderRepository : IOrderRepository
 
     public async Task<bool> UpdateWithReservationDishCountAsync(
         Order order,
-        Reservation reservation,
         int expectedOrderVersion,
         string operationId,
         int dishCountDelta,
+        string updatedAt,
         CancellationToken ct = default)
     {
         var orderItem = _context.ToDocument(order).ToAttributeMap();
@@ -130,7 +130,7 @@ public sealed class OrderRepository : IOrderRepository
             {
                 [":dishes"] = orderItem["dishes"],
                 [":totalAmount"] = orderItem["totalAmount"],
-                [":waiterId"] = new() { S = reservation.WaiterId },
+                [":waiterId"] = new() { S = order.WaiterId },
                 [":expectedOrderStatus"] = new() { S = OrderStatus.Open.ToString() },
                 [":expectedVersion"] = new() { N = expectedOrderVersion.ToString(CultureInfo.InvariantCulture) },
                 [":versionIncrement"] = new() { N = "1" },
@@ -142,8 +142,8 @@ public sealed class OrderRepository : IOrderRepository
         var reservationValues = new Dictionary<string, AttributeValue>
         {
             [":dishCountDelta"] = new() { N = dishCountDelta.ToString(CultureInfo.InvariantCulture) },
-            [":updatedAt"] = new() { S = reservation.UpdatedAt },
-            [":waiterId"] = new() { S = reservation.WaiterId },
+            [":updatedAt"] = new() { S = updatedAt },
+            [":waiterId"] = new() { S = order.WaiterId },
             [":expectedReservationStatus"] = new() { S = ReservationStatus.InProgress.ToString() }
         };
 
@@ -163,7 +163,7 @@ public sealed class OrderRepository : IOrderRepository
             TableName = "Reservations",
             Key = new Dictionary<string, AttributeValue>
             {
-                ["id"] = new() { S = reservation.Id }
+                ["id"] = new() { S = order.ReservationId }
             },
             UpdateExpression = "ADD dishCount :dishCountDelta SET updatedAt = :updatedAt",
             ConditionExpression = reservationCondition,
@@ -177,10 +177,10 @@ public sealed class OrderRepository : IOrderRepository
         var request = new TransactWriteItemsRequest
         {
             TransactItems = new List<TransactWriteItem>
-            {
-                new() { Update = orderUpdate },
-                new() { Update = reservationUpdate }
-            }
+        {
+            new() { Update = orderUpdate },
+            new() { Update = reservationUpdate }
+        }
         };
 
         try

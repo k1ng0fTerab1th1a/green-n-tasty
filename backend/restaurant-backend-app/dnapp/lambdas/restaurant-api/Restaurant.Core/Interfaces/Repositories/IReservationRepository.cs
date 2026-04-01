@@ -31,8 +31,7 @@ public interface IReservationRepository
         string startToIso,
         CancellationToken ct);
 
-    Task<bool> CancelReservationAsync(Reservation reservation, List<string> slots,
-        CancellationToken ct);
+    Task<bool> CancelReservationAsync(Reservation reservation, List<string> slots, CancellationToken ct);
 
     Task<Result<Reservation>> UpdateReservationAsync(
         Reservation reservation,
@@ -55,11 +54,17 @@ public interface IReservationRepository
         List<string>? slotsToRelease = null,
         CancellationToken ct = default);
 
+    Task<FinishReservationOutcome> FinishAndCompleteOrderIfOpenAsync(
+        Reservation reservation,
+        List<string> slotsToRelease,
+        CancellationToken ct = default);
+
     Task ClearSecretCode(string reservationId, CancellationToken ct = default);
 
-    Task<Result<(string waiterId, string locationId)>> GetWaiterAndLocationIdFromReservationAsync(string reservationId,
+    Task<Result<(string waiterId, string locationId)>> GetWaiterAndLocationIdFromReservationAsync(
+        string reservationId,
         CancellationToken ct = default);
-    
+
     Task<Result> SetFeedbackIdInReservation(string reservationId, string feedbackId, string fieldName,
         CancellationToken ct);
 }
