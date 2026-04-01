@@ -209,5 +209,26 @@ public class UserRepository : IUserRepository
         user.UpdatedAt = DateTime.UtcNow.ToString("o");
 
         await _context.SaveAsync(user, ct);
-    } 
+    }
+
+    public async Task UpdateAvatarUrlAsync(string userId, string url, CancellationToken ct)
+    {
+        var request = new UpdateItemRequest
+        {
+            TableName = "Users",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "userId", new AttributeValue { S = userId } }
+            },
+            UpdateExpression = "SET imageUrl = :url, UpdatedAt = :updatedAt",
+            ConditionExpression = "attribute_exists(userId)",
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            {
+                { ":url", new AttributeValue { S = url } },
+                { ":updatedAt", new AttributeValue { S = DateTime.UtcNow.ToString("o") } }
+            }
+        };
+
+        await _client.UpdateItemAsync(request, ct);
+    }
 }
