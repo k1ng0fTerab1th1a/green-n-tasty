@@ -5,7 +5,7 @@ namespace Restaurant.Core.Interfaces.Repositories;
 
 public interface IFeedbackRepository
 {
-    Task SaveBatchAsync(IEnumerable<Feedback> feedbacks, CancellationToken ct);
+    Task SaveFeedbackAsync(Feedback feedback, CancellationToken ct);
     Task<FeedbackPaginatedDBResponseDto> GetByLocationAsync(string locationId,
         int size, string type, List<string>? sort, string? pageToken, CancellationToken ct);
 

@@ -40,28 +40,28 @@ public class FeedbackServiceTests
 
     private void SetupSaveServiceFeedback(Reservation reservation, int rating)
     {
-        _repo.Setup(r => r.SaveBatchAsync(It.IsAny<IEnumerable<Feedback>>(), It.IsAny<CancellationToken>()))
-             .Returns(Task.CompletedTask);
+        _repo.Setup(r => r.SaveFeedbackAsync(It.IsAny<Feedback>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _resRepo.Setup(r => r.SetFeedbackIdInReservation(
                 reservation.Id, It.IsAny<string>(), "serviceFeedbackId", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Ok());
 
         _userRepo.Setup(u => u.UpdateUserRatingAsync(reservation.WaiterId, rating, It.IsAny<CancellationToken>()))
-                 .Returns(Task.CompletedTask);
+            .Returns(Task.CompletedTask);
     }
 
     private void SetupSaveCuisineFeedback(Reservation reservation, int rating)
     {
-        _repo.Setup(r => r.SaveBatchAsync(It.IsAny<IEnumerable<Feedback>>(), It.IsAny<CancellationToken>()))
-             .Returns(Task.CompletedTask);
+        _repo.Setup(r => r.SaveFeedbackAsync(It.IsAny<Feedback>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _resRepo.Setup(r => r.SetFeedbackIdInReservation(
                 reservation.Id, It.IsAny<string>(), "kitchenFeedbackId", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Ok());
 
         _locationRepo.Setup(l => l.UpdateKitchenRatingAsync(reservation.LocationId, rating, It.IsAny<CancellationToken>()))
-                     .Returns(Task.CompletedTask);
+            .Returns(Task.CompletedTask);
     }
 
     // ──────────────────────────────────────────────────────────
@@ -290,7 +290,7 @@ public class FeedbackServiceTests
 
         _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>())).ReturnsAsync(reservation);
         _userRepo.Setup(u => u.GetUserDataForFeedbackCreationByIdAsync("user-1", It.IsAny<CancellationToken>()))
-                 .ReturnsAsync(("Ana K.", "http://img/u1"));
+            .ReturnsAsync(("Ana K.", "http://img/u1"));
         SetupSaveServiceFeedback(reservation, 5);
 
         var result = await _sut.SaveAuthorisedFeedback(
@@ -298,14 +298,13 @@ public class FeedbackServiceTests
 
         result.IsSuccess.Should().BeTrue();
 
-        _repo.Verify(r => r.SaveBatchAsync(
-            It.Is<IEnumerable<Feedback>>(list =>
-                list.Count() == 1 &&
-                list.First().Type == "waiter" &&
-                list.First().Rate == 5 &&
-                list.First().Comment == "Excellent" &&
-                list.First().UserId == "user-1" &&
-                list.First().LocationId == "loc-1"),
+        _repo.Verify(r => r.SaveFeedbackAsync(
+            It.Is<Feedback>(f =>
+                f.Type == "waiter" &&
+                f.Rate == 5 &&
+                f.Comment == "Excellent" &&
+                f.UserId == "user-1" &&
+                f.LocationId == "loc-1"),
             It.IsAny<CancellationToken>()), Times.Once);
 
         _userRepo.Verify(u => u.UpdateUserRatingAsync("waiter-1", 5, It.IsAny<CancellationToken>()), Times.Once);
@@ -319,7 +318,7 @@ public class FeedbackServiceTests
 
         _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>())).ReturnsAsync(reservation);
         _userRepo.Setup(u => u.GetUserDataForFeedbackCreationByIdAsync("user-1", It.IsAny<CancellationToken>()))
-                 .ReturnsAsync(("Ana K.", (string?)null));
+            .ReturnsAsync(("Ana K.", (string?)null));
         SetupSaveServiceFeedback(reservation, 5);
         SetupSaveCuisineFeedback(reservation, 4);
 
@@ -328,13 +327,12 @@ public class FeedbackServiceTests
 
         result.IsSuccess.Should().BeTrue();
 
-        // Each process method calls SaveBatchAsync separately with 1 item
-        _repo.Verify(r => r.SaveBatchAsync(
-            It.Is<IEnumerable<Feedback>>(list => list.Count() == 1 && list.First().Type == "waiter"),
+        _repo.Verify(r => r.SaveFeedbackAsync(
+            It.Is<Feedback>(f => f.Type == "waiter" && f.Rate == 5),
             It.IsAny<CancellationToken>()), Times.Once);
 
-        _repo.Verify(r => r.SaveBatchAsync(
-            It.Is<IEnumerable<Feedback>>(list => list.Count() == 1 && list.First().Type == "kitchen"),
+        _repo.Verify(r => r.SaveFeedbackAsync(
+            It.Is<Feedback>(f => f.Type == "kitchen" && f.Rate == 4),
             It.IsAny<CancellationToken>()), Times.Once);
 
         _userRepo.Verify(u => u.UpdateUserRatingAsync("waiter-1", 5, It.IsAny<CancellationToken>()), Times.Once);
@@ -348,13 +346,13 @@ public class FeedbackServiceTests
 
         _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>())).ReturnsAsync(reservation);
         _userRepo.Setup(u => u.GetUserDataForFeedbackCreationByIdAsync("user-1", It.IsAny<CancellationToken>()))
-                 .ReturnsAsync(("Ana K.", (string?)null));
+            .ReturnsAsync(("Ana K.", (string?)null));
 
-        _repo.Setup(r => r.SaveBatchAsync(It.IsAny<IEnumerable<Feedback>>(), It.IsAny<CancellationToken>()))
-             .Returns(Task.CompletedTask);
+        _repo.Setup(r => r.SaveFeedbackAsync(It.IsAny<Feedback>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _resRepo.Setup(r => r.SetFeedbackIdInReservation("rsv-1", It.IsAny<string>(), "serviceFeedbackId", It.IsAny<CancellationToken>()))
-                .ReturnsAsync(Result.Fail("Condition failed"));
+            .ReturnsAsync(Result.Fail("Condition failed"));
 
         var result = await _sut.SaveAuthorisedFeedback(
             new CreateFeedbackDTO { ReservationId = "rsv-1", ServiceRating = 5 }, "user-1", CancellationToken.None);
@@ -431,12 +429,11 @@ public class FeedbackServiceTests
 
         result.IsSuccess.Should().BeTrue();
 
-        _repo.Verify(r => r.SaveBatchAsync(
-            It.Is<IEnumerable<Feedback>>(list =>
-                list.Count() == 1 &&
-                list.First().Type == "waiter" &&
-                list.First().UserName == "Visitor" &&
-                list.First().UserId == string.Empty),
+        _repo.Verify(r => r.SaveFeedbackAsync(
+            It.Is<Feedback>(f =>
+                f.Type == "waiter" &&
+                f.UserName == "Visitor" &&
+                f.UserId == string.Empty),
             It.IsAny<CancellationToken>()), Times.Once);
 
         _resRepo.Verify(r => r.ClearSecretCode("rsv-1", It.IsAny<CancellationToken>()), Times.Once);
@@ -615,7 +612,8 @@ public class FeedbackServiceTests
     [Fact]
     public async Task UpdateFeedback_WhenExistingServiceFeedback_ShouldRecalculateRating_AndUpdateBoth()
     {
-        var reservation = new Reservation { Id = "rsv-1", WaiterId = "waiter-1", LocationId = "loc-1", ServiceFeedbackId = "sf-1" };
+        var reservation = new Reservation { Id = "rsv-1", WaiterId = "waiter-1", LocationId = "loc-1", 
+            ServiceFeedbackId = "sf-1", CustomerId = "user-1"};
 
         _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>())).ReturnsAsync(reservation);
 
@@ -647,8 +645,14 @@ public class FeedbackServiceTests
     [Fact]
     public async Task UpdateFeedback_WhenExistingKitchenFeedback_ShouldRecalculateRating_AndUpdateBoth()
     {
-        var reservation = new Reservation { Id = "rsv-1", WaiterId = "waiter-1", LocationId = "loc-1", KitchenFeedbackId = "kf-1" };
-
+        var reservation = new Reservation 
+        { 
+            Id = "rsv-1", 
+            WaiterId = "waiter-1", 
+            LocationId = "loc-1", 
+            KitchenFeedbackId = "kf-1",
+            CustomerId = "user-1"
+        };
         _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>())).ReturnsAsync(reservation);
 
         _repo.Setup(r => r.GetByIdAsync("kf-1", It.IsAny<CancellationToken>()))
@@ -677,26 +681,41 @@ public class FeedbackServiceTests
     }
 
     [Fact]
+    public async Task UpdateFeedback_WhenCustomerIdMismatch_ShouldReturnUnauthorizedError()
+    {
+        _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Reservation { Id = "rsv-1", CustomerId = "other-user", WaiterId = "w-1", LocationId = "loc-1" });
+
+        var result = await _sut.UpdateFeedback(
+            new CreateFeedbackDTO { ReservationId = "rsv-1", ServiceRating = 4 }, "user-1", CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Message.Should().Be(FeedbackErrors.ReservationUnauthorizedAccess.Message);
+        _repo.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task UpdateFeedback_WhenNoExistingServiceFeedback_ShouldCreateNewOne()
     {
-        var reservation = new Reservation { Id = "rsv-1", WaiterId = "waiter-1", LocationId = "loc-1", Status = ReservationStatus.InProgress, ServiceFeedbackId = null };
+        var reservation = new Reservation { Id = "rsv-1", CustomerId = "user-1", WaiterId = "waiter-1", LocationId = "loc-1", Status = ReservationStatus.InProgress, ServiceFeedbackId = null };
 
         _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>())).ReturnsAsync(reservation);
         _userRepo.Setup(u => u.GetUserDataForFeedbackCreationByIdAsync("user-1", It.IsAny<CancellationToken>()))
-                 .ReturnsAsync(("Ana K.", (string?)null));
+            .ReturnsAsync(("Ana K.", (string?)null));
         SetupSaveServiceFeedback(reservation, 4);
 
         var result = await _sut.UpdateFeedback(
             new CreateFeedbackDTO { ReservationId = "rsv-1", ServiceRating = 4 }, "user-1", CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        _repo.Verify(r => r.SaveBatchAsync(It.IsAny<IEnumerable<Feedback>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _repo.Verify(r => r.SaveFeedbackAsync(It.IsAny<Feedback>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task UpdateFeedback_WhenServiceFeedbackNotFound_ShouldReturnFeedbackNotFoundError()
     {
-        var reservation = new Reservation { Id = "rsv-1", WaiterId = "waiter-1", LocationId = "loc-1", ServiceFeedbackId = "sf-missing" };
+        var reservation = new Reservation { Id = "rsv-1", WaiterId = "waiter-1", LocationId = "loc-1", 
+            ServiceFeedbackId = "sf-missing", CustomerId = "user-1"};
 
         _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>())).ReturnsAsync(reservation);
         _repo.Setup(r => r.GetByIdAsync("sf-missing", It.IsAny<CancellationToken>()))
@@ -712,7 +731,8 @@ public class FeedbackServiceTests
     [Fact]
     public async Task UpdateFeedback_WhenWaiterNotFound_ShouldReturnWaiterNotFoundError()
     {
-        var reservation = new Reservation { Id = "rsv-1", WaiterId = "waiter-missing", LocationId = "loc-1", ServiceFeedbackId = "sf-1" };
+        var reservation = new Reservation { Id = "rsv-1", WaiterId = "waiter-missing", LocationId = "loc-1", 
+            ServiceFeedbackId = "sf-1", CustomerId = "user-1"};
 
         _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>())).ReturnsAsync(reservation);
         _repo.Setup(r => r.GetByIdAsync("sf-1", It.IsAny<CancellationToken>()))
@@ -730,7 +750,8 @@ public class FeedbackServiceTests
     [Fact]
     public async Task UpdateFeedback_WhenUpdateThrows_ShouldReturnFeedbackUpdateUnsuccessfulError()
     {
-        var reservation = new Reservation { Id = "rsv-1", WaiterId = "waiter-1", LocationId = "loc-1", ServiceFeedbackId = "sf-1" };
+        var reservation = new Reservation { Id = "rsv-1", WaiterId = "waiter-1", LocationId = "loc-1", 
+            ServiceFeedbackId = "sf-1", CustomerId = "user-1"};
 
         _resRepo.Setup(r => r.GetByIdAsync("rsv-1", It.IsAny<CancellationToken>())).ReturnsAsync(reservation);
         _repo.Setup(r => r.GetByIdAsync("sf-1", It.IsAny<CancellationToken>()))

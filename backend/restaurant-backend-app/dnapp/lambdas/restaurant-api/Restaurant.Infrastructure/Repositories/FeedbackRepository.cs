@@ -79,17 +79,10 @@ public class FeedbackRepository(IDynamoDBContext context,
         await context.SaveAsync(feedback, ct);
     }
 
-    public async Task SaveBatchAsync(IEnumerable<Feedback> feedbacks, CancellationToken ct = default)
+    public async Task SaveFeedbackAsync(Feedback feedback, CancellationToken ct)
     {
-        var batch = context.CreateBatchWrite<Feedback>();
-
-        foreach (var feedback in feedbacks)
-        {
             feedback.LocationIdAndType = $"{feedback.LocationId}#{feedback.Type}";
-            batch.AddPutItem(feedback);
-        }
-
-        await batch.ExecuteAsync(ct);
+            await context.SaveAsync(feedback, ct);
     }
 
     public async Task<string?> GetSecretCodeByReservationIdAsync(string reservationId, CancellationToken ct = default)

@@ -58,10 +58,15 @@ public sealed class FeedbackRepositoryIntegrationTests
             }
         };
 
-        await _repo.SaveBatchAsync(feedbacks);
+        CancellationToken ct = CancellationToken.None;
 
-        var waiter  = await _context.LoadAsync<Feedback>(feedbacks[0].Id);
-        var kitchen = await _context.LoadAsync<Feedback>(feedbacks[1].Id);
+        foreach (var feedback in feedbacks)
+        {
+            await _repo.SaveFeedbackAsync(feedback, ct);
+        }
+
+        var waiter  = await _context.LoadAsync<Feedback>(feedbacks[0].Id, ct);
+        var kitchen = await _context.LoadAsync<Feedback>(feedbacks[1].Id, ct);
 
         waiter.Should().NotBeNull();
         waiter!.Rate.Should().Be(5);
@@ -91,8 +96,10 @@ public sealed class FeedbackRepositoryIntegrationTests
             Type              = "waiter",
             LocationIdAndType = "stale-value-should-be-overwritten"
         };
+        
+        CancellationToken ct = CancellationToken.None;
 
-        await _repo.SaveBatchAsync(new[] { feedback });
+        await _repo.SaveFeedbackAsync(feedback, ct);
 
         var loaded = await _context.LoadAsync<Feedback>(feedback.Id);
         loaded!.LocationIdAndType.Should().Be($"{locationId}#waiter");
@@ -223,8 +230,7 @@ public sealed class FeedbackRepositoryIntegrationTests
                 Type          = "waiter"
             }
         };
-
-        await _repo.SaveBatchAsync(feedbacks);
+        await SaveManyAsync(feedbacks);
 
         var result = await _repo.GetByLocationAsync(locationId, size: 10, type: "waiter");
 
@@ -263,7 +269,7 @@ public sealed class FeedbackRepositoryIntegrationTests
             Type          = "waiter"
         }).ToList();
 
-        await _repo.SaveBatchAsync(feedbacks);
+        await SaveManyAsync(feedbacks);
 
         var firstPage = await _repo.GetByLocationAsync(locationId, size: 3, type: "waiter");
 
@@ -271,7 +277,10 @@ public sealed class FeedbackRepositoryIntegrationTests
         firstPage.NextPageToken.Should().NotBeNullOrEmpty();
 
         var secondPage = await _repo.GetByLocationAsync(
-            locationId, size: 3, type: "waiter", pageToken: firstPage.NextPageToken);
+            locationId,
+            size: 3,
+            type: "waiter",
+            pageToken: firstPage.NextPageToken);
 
         secondPage.Feedbacks.Should().HaveCountGreaterThan(0);
         secondPage.Feedbacks.Should().NotIntersectWith(
@@ -315,15 +324,20 @@ public sealed class FeedbackRepositoryIntegrationTests
             }
         };
 
-        await _repo.SaveBatchAsync(feedbacks);
+        CancellationToken ct = CancellationToken.None;
+        await SaveManyAsync(feedbacks, ct);
 
-        // desc means ScanIndexForward = false → highest rate first
         var result = await _repo.GetByLocationAsync(
-            locationId, size: 10, type: "kitchen", sort: new List<string> { "rate,desc" });
+            locationId,
+            size: 10,
+            type: "kitchen",
+            sort: new List<string> { "rate,desc" },
+            ct: ct);
 
         result.Feedbacks.Should().NotBeEmpty();
         result.Feedbacks[0].Rate.Should().BeGreaterThanOrEqualTo(result.Feedbacks[^1].Rate);
     }
+
     
     [Fact]
     public async Task GetByIdAsync_WhenFeedbackExists_ShouldReturnIt()
@@ -342,7 +356,8 @@ public sealed class FeedbackRepositoryIntegrationTests
             Type          = "waiter"
         };
 
-        await _repo.SaveBatchAsync([feedback]);
+        CancellationToken ct = CancellationToken.None;
+        await _repo.SaveFeedbackAsync(feedback, ct);
 
         var result = await _repo.GetByIdAsync(feedback.Id, CancellationToken.None);
 
@@ -378,7 +393,9 @@ public sealed class FeedbackRepositoryIntegrationTests
             Type          = "kitchen"
         };
 
-        await _repo.SaveBatchAsync([feedback]);
+        CancellationToken ct = CancellationToken.None;
+
+        await _repo.SaveFeedbackAsync(feedback, ct);
 
         feedback.Rate    = 5;
         feedback.Comment = "Updated comment";
@@ -409,8 +426,10 @@ public sealed class FeedbackRepositoryIntegrationTests
             LocationId    = locationId,
             Type          = "waiter"
         };
+        
+        CancellationToken ct = CancellationToken.None;
 
-        await _repo.SaveBatchAsync([feedback]);
+        await _repo.SaveFeedbackAsync(feedback, ct);
 
         feedback.Rate    = 4;
         feedback.Comment = "Changed";
@@ -424,5 +443,13 @@ public sealed class FeedbackRepositoryIntegrationTests
         updated.UserAvatarUrl.Should().Be("http://example.com/avatar.jpg");
         updated.LocationId.Should().Be(locationId);
         updated.Type.Should().Be("waiter");
+    }
+    
+    private async Task SaveManyAsync(IEnumerable<Feedback> feedbacks, CancellationToken ct = default)
+    {
+        foreach (var f in feedbacks)
+        {
+            await _repo.SaveFeedbackAsync(f, ct);
+        }
     }
 }
