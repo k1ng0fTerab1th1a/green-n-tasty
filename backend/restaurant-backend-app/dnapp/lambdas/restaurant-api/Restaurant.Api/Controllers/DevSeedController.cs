@@ -188,6 +188,157 @@ public sealed class DevSeedController : ControllerBase
         return ApiResponse<object>.Success(StatusCodes.Status200OK, new { dishId });
     }
 
+    [HttpPost("seed/waiters-list/backfill-from-schedule")]
+    public async Task<IActionResult> BackfillWaitersListFromSchedule([FromQuery] bool dryRun = true, CancellationToken ct = default)
+    {
+        if (!IsAllowed())
+            return ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, "Seed endpoint is disabled.");
+
+        var schedules = await _db.ScanAsync<WaiterSchedule>(Array.Empty<ScanCondition>()).GetRemainingAsync(ct);
+        var users = await _db.ScanAsync<User>(Array.Empty<ScanCondition>()).GetRemainingAsync(ct);
+        var waiterListEntries = await _db.ScanAsync<WaiterListEntry>(Array.Empty<ScanCondition>()).GetRemainingAsync(ct);
+
+        var usersById = users
+            .Where(x => !string.IsNullOrWhiteSpace(x.UserId))
+            .ToDictionary(x => x.UserId, x => x);
+
+        var existingWaiterListByEmail = waiterListEntries
+            .Where(x => !string.IsNullOrWhiteSpace(x.Email))
+            .ToDictionary(x => x.Email.Trim().ToLowerInvariant(), x => x);
+
+        var normalizedCandidates = new Dictionary<string, (string Email, string LocationId, string WaiterId)>();
+
+        var skippedMissingWaiterId = 0;
+        var skippedBadTableKey = 0;
+        var skippedUserNotFound = 0;
+        var skippedUserEmailMissing = 0;
+        var skippedUserNotWaiter = 0;
+        var skippedMultipleLocationsForSameEmail = 0;
+
+        foreach (var schedule in schedules)
+        {
+            if (string.IsNullOrWhiteSpace(schedule.WaiterId))
+            {
+                skippedMissingWaiterId++;
+                continue;
+            }
+
+            var locationId = ExtractLocationId(schedule.TableKey);
+            if (string.IsNullOrWhiteSpace(locationId))
+            {
+                skippedBadTableKey++;
+                continue;
+            }
+
+            if (!usersById.TryGetValue(schedule.WaiterId, out var user))
+            {
+                skippedUserNotFound++;
+                continue;
+            }
+
+            if (!IsWaiterCandidate(user))
+            {
+                skippedUserNotWaiter++;
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(user.Email))
+            {
+                skippedUserEmailMissing++;
+                continue;
+            }
+
+            var normalizedEmail = user.Email.Trim().ToLowerInvariant();
+
+            if (normalizedCandidates.TryGetValue(normalizedEmail, out var existing))
+            {
+                if (!string.Equals(existing.LocationId, locationId, StringComparison.Ordinal))
+                {
+                    skippedMultipleLocationsForSameEmail++;
+                    normalizedCandidates.Remove(normalizedEmail);
+                }
+
+                continue;
+            }
+
+            normalizedCandidates[normalizedEmail] = (user.Email.Trim(), locationId, schedule.WaiterId);
+        }
+
+        var created = 0;
+        var updated = 0;
+        var unchanged = 0;
+
+        var preview = new List<object>();
+
+        foreach (var item in normalizedCandidates.Values.OrderBy(x => x.Email))
+        {
+            if (existingWaiterListByEmail.TryGetValue(item.Email.Trim().ToLowerInvariant(), out var existingEntry))
+            {
+                if (string.Equals(existingEntry.LocationId?.Trim(), item.LocationId, StringComparison.Ordinal))
+                {
+                    unchanged++;
+                    continue;
+                }
+
+                preview.Add(new
+                {
+                    action = "update",
+                    email = item.Email,
+                    oldLocationId = existingEntry.LocationId,
+                    newLocationId = item.LocationId,
+                    waiterId = item.WaiterId
+                });
+
+                if (!dryRun)
+                {
+                    existingEntry.LocationId = item.LocationId;
+                    await _db.SaveAsync(existingEntry, ct);
+                    updated++;
+                }
+
+                continue;
+            }
+
+            preview.Add(new
+            {
+                action = "create",
+                email = item.Email,
+                locationId = item.LocationId,
+                waiterId = item.WaiterId
+            });
+
+            if (!dryRun)
+            {
+                await _db.SaveAsync(new WaiterListEntry
+                {
+                    Email = item.Email,
+                    LocationId = item.LocationId
+                }, ct);
+
+                created++;
+            }
+        }
+
+        return ApiResponse<object>.Success(StatusCodes.Status200OK, new
+        {
+            dryRun,
+            totalSchedulesScanned = schedules.Count,
+            totalUsersScanned = users.Count,
+            totalWaiterListEntriesScanned = waiterListEntries.Count,
+            candidateEmails = normalizedCandidates.Count,
+            created,
+            updated,
+            unchanged,
+            skippedMissingWaiterId,
+            skippedBadTableKey,
+            skippedUserNotFound,
+            skippedUserEmailMissing,
+            skippedUserNotWaiter,
+            skippedMultipleLocationsForSameEmail,
+            preview = preview.Take(50).ToList()
+        });
+    }
+
     [HttpPost("seed/users/waiters-location/backfill")]
     public async Task<IActionResult> BackfillWaiterLocations([FromQuery] bool dryRun = true, CancellationToken ct = default)
     {
@@ -284,6 +435,25 @@ public sealed class DevSeedController : ControllerBase
     }
 
     private static bool IsWaiterUser(User user)
+    {
+        return string.Equals(user.Role, "WAITER", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(user.WaiterFlag, "1", StringComparison.Ordinal);
+    }
+
+    private static string? ExtractLocationId(string? tableKey)
+    {
+        if (string.IsNullOrWhiteSpace(tableKey))
+            return null;
+
+        var index = tableKey.IndexOf('#');
+        if (index <= 0)
+            return null;
+
+        var locationId = tableKey[..index].Trim();
+        return string.IsNullOrWhiteSpace(locationId) ? null : locationId;
+    }
+
+    private static bool IsWaiterCandidate(User user)
     {
         return string.Equals(user.Role, "WAITER", StringComparison.OrdinalIgnoreCase)
             || string.Equals(user.WaiterFlag, "1", StringComparison.Ordinal);
