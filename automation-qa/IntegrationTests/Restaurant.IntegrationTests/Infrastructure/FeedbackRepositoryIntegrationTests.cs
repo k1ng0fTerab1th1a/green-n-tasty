@@ -324,4 +324,105 @@ public sealed class FeedbackRepositoryIntegrationTests
         result.Feedbacks.Should().NotBeEmpty();
         result.Feedbacks[0].Rate.Should().BeGreaterThanOrEqualTo(result.Feedbacks[^1].Rate);
     }
+    
+    [Fact]
+    public async Task GetByIdAsync_WhenFeedbackExists_ShouldReturnIt()
+    {
+        var feedback = new Feedback
+        {
+            Id            = Guid.NewGuid().ToString("N"),
+            ReservationId = Guid.NewGuid().ToString("N"),
+            Rate          = 4,
+            Comment       = "Nice experience",
+            UserId        = "user-get-1",
+            UserName      = "Nino G.",
+            UserAvatarUrl = string.Empty,
+            Date          = DateTimeOffset.UtcNow.ToString("o"),
+            LocationId    = $"loc-{Guid.NewGuid():N}",
+            Type          = "waiter"
+        };
+
+        await _repo.SaveBatchAsync([feedback]);
+
+        var result = await _repo.GetByIdAsync(feedback.Id, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(feedback.Id);
+        result.Rate.Should().Be(4);
+        result.Comment.Should().Be("Nice experience");
+        result.UserId.Should().Be("user-get-1");
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_WhenFeedbackDoesNotExist_ShouldReturnNull()
+    {
+        var result = await _repo.GetByIdAsync(Guid.NewGuid().ToString("N"), CancellationToken.None);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateFeedback_ShouldPersistCommentAndRateChanges()
+    {
+        var feedback = new Feedback
+        {
+            Id            = Guid.NewGuid().ToString("N"),
+            ReservationId = Guid.NewGuid().ToString("N"),
+            Rate          = 3,
+            Comment       = "Original comment",
+            UserId        = "user-upd-1",
+            UserName      = "Mariam T.",
+            UserAvatarUrl = string.Empty,
+            Date          = DateTimeOffset.UtcNow.ToString("o"),
+            LocationId    = $"loc-{Guid.NewGuid():N}",
+            Type          = "kitchen"
+        };
+
+        await _repo.SaveBatchAsync([feedback]);
+
+        feedback.Rate    = 5;
+        feedback.Comment = "Updated comment";
+
+        await _repo.UpdateFeedback(feedback, CancellationToken.None);
+
+        var updated = await _repo.GetByIdAsync(feedback.Id, CancellationToken.None);
+
+        updated.Should().NotBeNull();
+        updated!.Rate.Should().Be(5);
+        updated.Comment.Should().Be("Updated comment");
+    }
+
+    [Fact]
+    public async Task UpdateFeedback_ShouldNotAffectOtherFields()
+    {
+        var locationId = $"loc-{Guid.NewGuid():N}";
+        var feedback = new Feedback
+        {
+            Id            = Guid.NewGuid().ToString("N"),
+            ReservationId = Guid.NewGuid().ToString("N"),
+            Rate          = 2,
+            Comment       = "Original",
+            UserId        = "user-upd-2",
+            UserName      = "Davit L.",
+            UserAvatarUrl = "http://example.com/avatar.jpg",
+            Date          = DateTimeOffset.UtcNow.ToString("o"),
+            LocationId    = locationId,
+            Type          = "waiter"
+        };
+
+        await _repo.SaveBatchAsync([feedback]);
+
+        feedback.Rate    = 4;
+        feedback.Comment = "Changed";
+
+        await _repo.UpdateFeedback(feedback, CancellationToken.None);
+
+        var updated = await _repo.GetByIdAsync(feedback.Id, CancellationToken.None);
+
+        updated!.UserId.Should().Be("user-upd-2");
+        updated.UserName.Should().Be("Davit L.");
+        updated.UserAvatarUrl.Should().Be("http://example.com/avatar.jpg");
+        updated.LocationId.Should().Be(locationId);
+        updated.Type.Should().Be("waiter");
+    }
 }
