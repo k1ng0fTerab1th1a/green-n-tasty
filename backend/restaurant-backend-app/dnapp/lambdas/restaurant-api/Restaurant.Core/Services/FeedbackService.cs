@@ -112,6 +112,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             return FeedbackErrors.TooEarlyServiceFeedback;
 
         var feedback = BuildFeedback(dto.ServiceRating.Value, dto.ServiceComment, "waiter", reservation, author);
+        feedback.ReservationId = reservation.Id;
 
         await feedbackRepository.SaveBatchAsync([feedback], ct);
 
@@ -137,6 +138,7 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             return FeedbackErrors.MealNotYetServedForFeedback;
 
         var feedback = BuildFeedback(dto.CuisineRating.Value, dto.CuisineComment, "kitchen", reservation, author);
+        feedback.ReservationId = reservation.Id;
 
         await feedbackRepository.SaveBatchAsync([feedback], ct);
 

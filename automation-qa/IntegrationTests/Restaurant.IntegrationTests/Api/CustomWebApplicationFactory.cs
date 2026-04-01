@@ -706,6 +706,16 @@ public sealed class FakeFeedbackService : IFeedbackService
         return Task.FromResult(SaveVisitorFeedbackResponse);
     }
 
+    public Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDtoAsync(string reservationId, bool isForUpdate, CancellationToken ct)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<Result> UpdateFeedback(CreateFeedbackDTO dto, string userId, CancellationToken ct)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(
         string reservationId, CancellationToken ct = default)
     {

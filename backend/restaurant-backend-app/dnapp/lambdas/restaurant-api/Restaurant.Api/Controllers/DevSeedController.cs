@@ -2,6 +2,7 @@ using Amazon.DynamoDBv2.DataModel;
 using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Core.Models;
+using Restaurant.Infrastructure;
 
 namespace Restaurant.Api.Controllers;
 

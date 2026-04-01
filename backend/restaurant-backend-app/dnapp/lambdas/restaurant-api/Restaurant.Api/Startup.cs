@@ -9,6 +9,7 @@ using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Services;
 using Restaurant.Core.SharedModels;
+using Restaurant.Infrastructure;
 using Restaurant.Infrastructure.Repositories;
 using Restaurant.Infrastructure.Services;
 using Restaurant.Reports.Application;
@@ -89,6 +90,7 @@ public class Startup
         services.AddScoped<IWaiterScheduleRepository, WaiterScheduleRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IReportsRepository, ReportsRepository>();
+
 
         services.Configure<ClientSettings>(
             _configuration.GetSection("ClientSettings"));

@@ -205,7 +205,6 @@ public sealed class ReservationRepository : IReservationRepository
                 }
             },
 
-            // Remove slots from TableDays
             new()
             {
                 Update = new Update
