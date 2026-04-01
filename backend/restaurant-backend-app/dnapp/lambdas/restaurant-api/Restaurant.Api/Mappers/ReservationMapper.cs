@@ -23,7 +23,8 @@ public static class ReservationMapper
         Status = x.Status.ToString(),
         IsCreatedByWaiter = x.IsCreatedByWaiter,
         VisitorName = x.VisitorName,
-        DishCount = x.DishCount
+        DishCount = x.DishCount,
+        IsMealServed = x.IsMealServed
     };
 
     public static CreateReservationDTO ToCreateDTO(this CreateReservationRequest x) => new(
