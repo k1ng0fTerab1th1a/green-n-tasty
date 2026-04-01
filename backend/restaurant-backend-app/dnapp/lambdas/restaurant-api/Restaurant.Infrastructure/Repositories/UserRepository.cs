@@ -24,9 +24,12 @@ public class UserRepository : IUserRepository
         _client = client;
     }
 
-    public async Task CreateAsync(User user, CancellationToken ct = default)
+    public async Task CreateAsync(User user, CancellationToken ct, bool isOnlyUpdate = false)
     {
-        ApplySearchFields(user);
+        if (!isOnlyUpdate)
+        {
+            ApplySearchFields(user);
+        }
         await _context.SaveAsync(user, ct);
     }
 

@@ -687,7 +687,6 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
     public sealed class FakeFeedbackService : IFeedbackService
     {
-
         public string? LastLocationId { get; private set; }
         public int LastSize { get; private set; }
         public string? LastType { get; private set; }
@@ -695,34 +694,32 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public string? LastPageToken { get; private set; }
         public FeedbackPaginatedDto GetFeedbacksResponse { get; set; } = new();
 
-
         public CreateFeedbackDTO? LastAuthorisedDto { get; private set; }
         public string? LastAuthorisedUserId { get; private set; }
         public Result SaveAuthorisedFeedbackResponse { get; set; } = Result.Ok();
-
 
         public CreateFeedbackDTO? LastVisitorDto { get; private set; }
         public string? LastVisitorSecretCode { get; private set; }
         public Result SaveVisitorFeedbackResponse { get; set; } = Result.Ok();
 
-
-        public string? LastQrReservationId { get; private set; }
-
-
         public string? LastCalculatedReservationId { get; private set; }
+        public bool LastIsForUpdate { get; private set; }
         public Result<WaiterLocationFeedbackDTO> GetCalculatedFeedbackDataResponse { get; set; } =
             Result.Ok(new WaiterLocationFeedbackDTO());
 
+        public CreateFeedbackDTO? LastUpdateDto { get; private set; }
+        public string? LastUpdateUserId { get; private set; }
+        public Result UpdateFeedbackResponse { get; set; } = Result.Ok();
 
         public FakeFeedbackService() => Reset();
 
         public void Reset()
         {
-            LastLocationId  = null;
-            LastSize        = 0;
-            LastType        = null;
-            LastSort        = new List<string>();
-            LastPageToken   = null;
+            LastLocationId = null;
+            LastSize       = 0;
+            LastType       = null;
+            LastSort       = new List<string>();
+            LastPageToken  = null;
             GetFeedbacksResponse = new FeedbackPaginatedDto
             {
                 Size          = 20,
@@ -730,18 +727,21 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 NextPageToken = null
             };
 
-            LastAuthorisedDto    = null;
-            LastAuthorisedUserId = null;
+            LastAuthorisedDto              = null;
+            LastAuthorisedUserId           = null;
             SaveAuthorisedFeedbackResponse = Result.Ok();
 
-            LastVisitorDto        = null;
-            LastVisitorSecretCode = null;
+            LastVisitorDto              = null;
+            LastVisitorSecretCode       = null;
             SaveVisitorFeedbackResponse = Result.Ok();
 
-            LastQrReservationId       = null;
-
-            LastCalculatedReservationId   = null;
+            LastCalculatedReservationId       = null;
+            LastIsForUpdate                   = false;
             GetCalculatedFeedbackDataResponse = Result.Ok(new WaiterLocationFeedbackDTO());
+
+            LastUpdateDto          = null;
+            LastUpdateUserId       = null;
+            UpdateFeedbackResponse = Result.Ok();
         }
 
         public Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(
@@ -775,12 +775,21 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(SaveVisitorFeedbackResponse);
         }
 
-        public Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDTOAsync(
-            string reservationId, CancellationToken ct = default)
+        public Task<Result<WaiterLocationFeedbackDTO>> GetWaiterLocationFeedbackDtoAsync(
+            string reservationId, bool isForUpdate, CancellationToken ct)
         {
             LastCalculatedReservationId = reservationId;
+            LastIsForUpdate             = isForUpdate;
 
             return Task.FromResult(GetCalculatedFeedbackDataResponse);
+        }
+
+        public Task<Result> UpdateFeedback(CreateFeedbackDTO dto, string userId, CancellationToken ct)
+        {
+            LastUpdateDto    = dto;
+            LastUpdateUserId = userId;
+
+            return Task.FromResult(UpdateFeedbackResponse);
         }
     }
 

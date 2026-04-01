@@ -68,18 +68,21 @@ public class FeedbackRepository(IDynamoDBContext context,
             NextPageToken = nextToken
         };
     }
-    
-    public async Task SaveBatchAsync(IEnumerable<Feedback> feedbacks, CancellationToken ct = default)
+
+    public async Task<Feedback?> GetByIdAsync(string feedbackId, CancellationToken ct)
     {
-        var batch = context.CreateBatchWrite<Feedback>();
+        return await context.LoadAsync<Feedback?>(feedbackId, ct);
+    }
 
-        foreach (var feedback in feedbacks)
-        {
+    public async Task UpdateFeedback(Feedback feedback, CancellationToken ct)
+    {
+        await context.SaveAsync(feedback, ct);
+    }
+
+    public async Task SaveFeedbackAsync(Feedback feedback, CancellationToken ct)
+    {
             feedback.LocationIdAndType = $"{feedback.LocationId}#{feedback.Type}";
-            batch.AddPutItem(feedback);
-        }
-
-        await batch.ExecuteAsync(ct);
+            await context.SaveAsync(feedback, ct);
     }
 
     public async Task<string?> GetSecretCodeByReservationIdAsync(string reservationId, CancellationToken ct = default)
@@ -99,4 +102,6 @@ public class FeedbackRepository(IDynamoDBContext context,
             ? attr.S
             : null;
     }
+    
+    
 }

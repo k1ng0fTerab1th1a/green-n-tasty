@@ -34,7 +34,12 @@ public class AuthServiceTests
         _waiterListRepo.Setup(r => r.ContainsAsync("user@test.com", It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _cognito.Setup(c => c.SignUpAsync("user@test.com", "Pass123!", "John", "Doe", "CUSTOMER", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Ok("user-id-123"));
-        _userRepo.Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _userRepo
+            .Setup(r => r.CreateAsync(
+                It.IsAny<User>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _sut.SignUpAsync("user@test.com", "Pass123!", "John", "Doe");
@@ -58,7 +63,12 @@ public class AuthServiceTests
         _waiterListRepo.Setup(r => r.ContainsAsync("waiter@test.com", It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _cognito.Setup(c => c.SignUpAsync("waiter@test.com", "Pass123!", "Bob", "Smith", "WAITER", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Ok("waiter-id-456"));
-        _userRepo.Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _userRepo
+            .Setup(r => r.CreateAsync(
+                It.IsAny<User>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _sut.SignUpAsync("waiter@test.com", "Pass123!", "Bob", "Smith");
@@ -82,7 +92,12 @@ public class AuthServiceTests
         _waiterListRepo.Setup(r => r.ContainsAsync("user@test.com", It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _cognito.Setup(c => c.SignUpAsync("user@test.com", "Pass123!", "John", "Doe", "CUSTOMER", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Ok("user-id-123"));
-        _userRepo.Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _userRepo
+            .Setup(r => r.CreateAsync(
+                It.IsAny<User>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _sut.SignUpAsync("user@test.com", "Pass123!", "John", "Doe");
@@ -97,7 +112,7 @@ public class AuthServiceTests
                 u.LastName == "Doe" &&
                 u.Role == "CUSTOMER" &&
                 u.WaiterFlag == null),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<CancellationToken>(), It.IsAny<bool>()), Times.Once);
     }
 
     [Fact]
@@ -107,7 +122,12 @@ public class AuthServiceTests
         _waiterListRepo.Setup(r => r.ContainsAsync("waiter@test.com", It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _cognito.Setup(c => c.SignUpAsync("waiter@test.com", "Pass123!", "Bob", "Smith", "WAITER", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Ok("waiter-id-456"));
-        _userRepo.Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _userRepo
+            .Setup(r => r.CreateAsync(
+                It.IsAny<User>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _sut.SignUpAsync("waiter@test.com", "Pass123!", "Bob", "Smith");
@@ -120,7 +140,7 @@ public class AuthServiceTests
                 u.Email == "waiter@test.com" &&
                 u.Role == "WAITER" &&
                 u.WaiterFlag == "1"),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<CancellationToken>(), It.IsAny<bool>()), Times.Once);
     }
 
     [Fact]
@@ -132,7 +152,11 @@ public class AuthServiceTests
             .ReturnsAsync(Result.Ok("user-id-123"));
         _cognito.Setup(c => c.DeleteUserAsync("user@test.com", It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
 
-        _userRepo.Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+        _userRepo
+            .Setup(r => r.CreateAsync(
+                It.IsAny<User>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()))
             .ThrowsAsync(new Exception("DynamoDB unavailable"));
 
         // Act
@@ -165,7 +189,8 @@ public class AuthServiceTests
         result.IsFailed.Should().BeTrue();
         result.Errors[0].Should().Be(AuthErrors.UserAlreadyExists);
 
-        _userRepo.Verify(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()), Times.Never);
+        _userRepo.Verify(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()), Times
+            .Never);
     }
 
     [Fact]
@@ -189,7 +214,8 @@ public class AuthServiceTests
         // Assert
         await act.Should().ThrowAsync<Exception>();
 
-        _userRepo.Verify(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()), Times.Never);
+        _userRepo.Verify(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()), Times
+            .Never);
         _cognito.Verify(c => c.DeleteUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 

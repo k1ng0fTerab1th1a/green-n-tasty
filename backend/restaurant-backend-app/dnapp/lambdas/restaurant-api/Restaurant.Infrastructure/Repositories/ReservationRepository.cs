@@ -206,7 +206,6 @@ public sealed class ReservationRepository : IReservationRepository
                 }
             },
 
-            // Remove slots from TableDays
             new()
             {
                 Update = new Update
@@ -385,37 +384,7 @@ public sealed class ReservationRepository : IReservationRepository
         await _dynamoDb.UpdateItemAsync(request, ct);
     }
     
-    public async Task<Result<(string waiterId, string locationId)>> GetWaiterAndLocationIdFromReservationAsync(string 
-        reservationId,
-        CancellationToken ct)
-    {
-        var request = new GetItemRequest
-        {
-            TableName = "Reservations",
-            Key = new Dictionary<string, AttributeValue>
-            {
-                { "id", new AttributeValue { S = reservationId } }
-            },
-            ProjectionExpression = "#w, #l",
-            ExpressionAttributeNames = new Dictionary<string, string>
-            {
-                { "#w", "waiterId" },
-                { "#l", "locationId" }
-            }
-        };
-
-        var response = await _dynamoDb.GetItemAsync(request, ct);
-
-        if (!response.IsItemSet)
-            return ReservationErrors.ReservationNotFound;
-
-        return Result.Ok((
-            waiterId: response.Item["waiterId"].S,
-            locationId: response.Item["locationId"].S
-        ));
-
-    }
-
+    
     public async Task<Result> SetFeedbackIdInReservation(string reservationId, string feedbackId, string fieldName,
         CancellationToken ct)
     {

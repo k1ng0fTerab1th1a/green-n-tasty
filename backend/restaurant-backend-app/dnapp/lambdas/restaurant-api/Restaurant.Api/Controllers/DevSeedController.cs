@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Restaurant.Api.Contracts.Responses;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
+using Restaurant.Infrastructure;
 
 namespace Restaurant.Api.Controllers;
 

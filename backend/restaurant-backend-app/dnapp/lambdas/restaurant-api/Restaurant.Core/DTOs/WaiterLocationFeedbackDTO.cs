@@ -9,4 +9,6 @@ public class WaiterLocationFeedbackDTO
     
     public double CuisineRating { get; set; }
     public int CuisineFeedbacksNumber { get; set; }
+    
+    public FeedbackOfUserDTO? UpdateUserData { get; set; }
 }

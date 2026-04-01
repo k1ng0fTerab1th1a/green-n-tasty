@@ -246,4 +246,143 @@ public sealed class FeedbackEndpointsTests : IClassFixture<CustomWebApplicationF
         res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         _factory.FeedbackService.LastCalculatedReservationId.Should().BeNull();
     }
+    
+    [Fact]
+public async Task GetUpdateFeedbackData_WhenValid_ShouldReturn200_AndMapAllFields()
+{
+    _factory.FeedbackService.Reset();
+    _factory.FeedbackService.GetCalculatedFeedbackDataResponse = Result.Ok(new WaiterLocationFeedbackDTO
+    {
+        WaiterName             = "Giorgi Beridze",
+        WaiterImageUrl         = "http://img/waiter-1",
+        WaiterRating           = 4.8,
+        WaiterFeedbacksNumber  = 48,
+        CuisineRating          = 4.5,
+        CuisineFeedbacksNumber = 90,
+        UpdateUserData = new FeedbackOfUserDTO
+        {
+            KitchenFeedbackId = "kf-001",
+            KitchenRating     = 4,
+            KitchenComment    = "Good food",
+            ServiceFeedbackId = "sf-001",
+            ServiceRating     = 5,
+            ServiceComment    = "Great service"
+        }
+    });
+
+    var request = Authed(HttpMethod.Get, "/feedbacks/feedback-short-update-data?reservationId=rsv-001");
+    var res = await _client.SendAsync(request);
+
+    res.StatusCode.Should().Be(HttpStatusCode.OK);
+    _factory.FeedbackService.LastCalculatedReservationId.Should().Be("rsv-001");
+
+    using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+    doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+
+    var data = doc.RootElement.GetPropertyIgnoreCase("data");
+    data.GetPropertyIgnoreCase("waiterName").GetString().Should().Be("Giorgi Beridze");
+    data.GetPropertyIgnoreCase("waiterRating").GetDouble().Should().BeApproximately(4.8, 0.001);
+
+    var updateData = data.GetPropertyIgnoreCase("updateUserData");
+    updateData.GetPropertyIgnoreCase("kitchenFeedbackId").GetString().Should().Be("kf-001");
+    updateData.GetPropertyIgnoreCase("kitchenRating").GetInt32().Should().Be(4);
+    updateData.GetPropertyIgnoreCase("serviceFeedbackId").GetString().Should().Be("sf-001");
+    updateData.GetPropertyIgnoreCase("serviceRating").GetInt32().Should().Be(5);
+}
+
+[Fact]
+public async Task GetUpdateFeedbackData_WhenServiceFails_ShouldReturnFailResponse()
+{
+    _factory.FeedbackService.Reset();
+    _factory.FeedbackService.GetCalculatedFeedbackDataResponse =
+        Result.Fail<WaiterLocationFeedbackDTO>(FeedbackErrors.DataFetchingError);
+
+    var request = Authed(HttpMethod.Get, "/feedbacks/feedback-short-update-data?reservationId=rsv-bad");
+    var res = await _client.SendAsync(request);
+
+    _factory.FeedbackService.LastCalculatedReservationId.Should().Be("rsv-bad");
+
+    using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+    doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+    doc.RootElement.GetPropertyIgnoreCase("message").GetString()
+        .Should().Be(FeedbackErrors.DataFetchingError.Message);
+}
+
+[Fact]
+public async Task GetUpdateFeedbackData_WhenMissingReservationId_ShouldReturn400()
+{
+    _factory.FeedbackService.Reset();
+
+    var request = Authed(HttpMethod.Get, "/feedbacks/feedback-short-update-data");
+    var res = await _client.SendAsync(request);
+
+    res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    _factory.FeedbackService.LastCalculatedReservationId.Should().BeNull();
+}
+
+[Fact]
+public async Task UpdateFeedback_WhenValid_ShouldReturn200()
+{
+    _factory.FeedbackService.Reset();
+    _factory.FeedbackService.UpdateFeedbackResponse = Result.Ok();
+
+    var dto = new CreateFeedbackDTO
+    {
+        ReservationId  = "rsv-001",
+        ServiceRating  = 4,
+        ServiceComment = "Updated comment",
+        CuisineRating  = 5,
+        CuisineComment = "Even better food"
+    };
+
+    var request = Authed(HttpMethod.Put, "/feedbacks/update-feedback", userId: "customer-1");
+    request.Content = JsonContent.Create(dto);
+
+    var res = await _client.SendAsync(request);
+
+    res.StatusCode.Should().Be(HttpStatusCode.OK);
+    _factory.FeedbackService.LastUpdateDto!.ReservationId.Should().Be("rsv-001");
+    _factory.FeedbackService.LastUpdateUserId.Should().NotBeNullOrEmpty();
+
+    using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+    doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+}
+
+[Fact]
+public async Task UpdateFeedback_WhenServiceFails_ShouldReturnFailResponse()
+{
+    _factory.FeedbackService.Reset();
+    _factory.FeedbackService.UpdateFeedbackResponse = FeedbackErrors.FeedbackUpdateUnsuccessful;
+
+    var dto = new CreateFeedbackDTO { ReservationId = "rsv-001" };
+
+    var request = Authed(HttpMethod.Put, "/feedbacks/update-feedback", userId: "customer-1");
+    request.Content = JsonContent.Create(dto);
+
+    var res = await _client.SendAsync(request);
+
+    using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+    doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+    doc.RootElement.GetPropertyIgnoreCase("message").GetString()
+        .Should().Be(FeedbackErrors.FeedbackUpdateUnsuccessful.Message);
+}
+
+[Fact]
+public async Task UpdateFeedback_WhenFeedbackNotFound_ShouldReturnFailResponse()
+{
+    _factory.FeedbackService.Reset();
+    _factory.FeedbackService.UpdateFeedbackResponse = FeedbackErrors.FeedbackNotFound;
+
+    var dto = new CreateFeedbackDTO { ReservationId = "rsv-missing" };
+
+    var request = Authed(HttpMethod.Put, "/feedbacks/update-feedback", userId: "customer-1");
+    request.Content = JsonContent.Create(dto);
+
+    var res = await _client.SendAsync(request);
+
+    using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+    doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+    doc.RootElement.GetPropertyIgnoreCase("message").GetString()
+        .Should().Be(FeedbackErrors.FeedbackNotFound.Message);
+}
 }

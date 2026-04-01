@@ -5,7 +5,7 @@ namespace Restaurant.Core.Interfaces.Repositories;
 
 public interface IUserRepository
 {
-    Task CreateAsync(User user, CancellationToken ct);
+    Task CreateAsync(User user, CancellationToken ct, bool isOnlyUpdate = false);
     Task<User?> GetByIdAsync(string userId, CancellationToken ct);
     Task<IReadOnlyList<User>> SearchCustomersAsync(string query, CancellationToken ct);
     Task UpdateEmailAsync(string userId, string newEmail, CancellationToken ct);
