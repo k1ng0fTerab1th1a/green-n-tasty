@@ -15,7 +15,7 @@ public static class OrderErrors
         new("Reservation status does not allow order completion.", ErrorType.Validation);
 
     public static readonly BusinessError Forbidden =
-        new("You are not assigned to this reservation.", ErrorType.Forbidden);
+        new("You do not have access to this order.", ErrorType.Forbidden);
 
     public static readonly BusinessError NoDishesProvided =
         new("Add dishes to the order.", ErrorType.Validation);

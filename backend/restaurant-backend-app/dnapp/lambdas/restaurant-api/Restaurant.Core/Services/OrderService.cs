@@ -119,7 +119,7 @@ public class OrderService(
         string reservationId,
         CancellationToken ct = default)
     {
-        return await GetOrderForActorAsync(actorId, reservationId, ct);
+        return await GetReadableOrderForActorAsync(actorId, reservationId, ct);
     }
 
     public async Task<Result<Order>> AddDishAsync(
@@ -289,6 +289,29 @@ public class OrderService(
 
     private static bool IsDishEnabled(string? state)
         => string.Equals(state, "ON", StringComparison.OrdinalIgnoreCase);
+
+    private async Task<Result<Order>> GetReadableOrderForActorAsync(
+        string actorId,
+        string reservationId,
+        CancellationToken ct)
+    {
+        var order = await _orderRepo.GetByReservationIdAsync(reservationId, ct);
+        if (order is null)
+            return Result.Fail<Order>(OrderErrors.OrderNotFound);
+
+        var isAssignedWaiter =
+            string.Equals(order.WaiterId, actorId, StringComparison.Ordinal);
+
+        var isReservationCustomer =
+            !string.IsNullOrWhiteSpace(order.CustomerId) &&
+            string.Equals(order.CustomerId, actorId, StringComparison.Ordinal);
+
+        if (!isAssignedWaiter && !isReservationCustomer)
+            return Result.Fail<Order>(OrderErrors.Forbidden);
+
+        order.ProcessedOperationIds ??= [];
+        return order;
+    }
 
     private async Task<Result<Order>> GetOrderForActorAsync(
         string actorId,

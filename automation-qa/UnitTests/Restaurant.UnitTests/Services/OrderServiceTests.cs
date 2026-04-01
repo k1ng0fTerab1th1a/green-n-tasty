@@ -410,6 +410,48 @@ public sealed class OrderServiceTests
         _dishRepo.VerifyNoOtherCalls();
     }
 
+    [Fact]
+    public async Task GetByReservationAsync_WhenOrderBelongsToCustomer_ReturnsOrder()
+    {
+        var order = BuildOrder("res-1");
+        order.WaiterId = "waiter-1";
+        order.CustomerId = "customer-1";
+
+        _orderRepo
+            .Setup(r => r.GetByReservationIdAsync("res-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        var result = await _sut.GetByReservationAsync("customer-1", "res-1", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Id.Should().Be("res-1");
+
+        _orderRepo.VerifyAll();
+        _reservationRepo.VerifyNoOtherCalls();
+        _dishRepo.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetByReservationAsync_WhenActorIsNeitherWaiterNorCustomer_ReturnsForbidden()
+    {
+        var order = BuildOrder("res-1");
+        order.WaiterId = "waiter-1";
+        order.CustomerId = "customer-1";
+
+        _orderRepo
+            .Setup(r => r.GetByReservationIdAsync("res-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        var result = await _sut.GetByReservationAsync("customer-2", "res-1", CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(OrderErrors.Forbidden);
+
+        _orderRepo.VerifyAll();
+        _reservationRepo.VerifyNoOtherCalls();
+        _dishRepo.VerifyNoOtherCalls();
+    }
+
     private static CreateOrderDTO BuildCreateDto(string reservationId, params (string dishId, int qty)[] items)
         => new()
         {
