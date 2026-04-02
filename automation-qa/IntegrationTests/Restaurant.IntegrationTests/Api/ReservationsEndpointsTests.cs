@@ -254,7 +254,6 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
 
         var res = await _client.PostAsJsonAsync("/reservations/waiter", new
         {
-            locationId = "loc-1",
             tableNumber = 3,
             date = "2030-03-05",
             timeFrom = "12:00",
@@ -274,7 +273,6 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         var request = Authed(HttpMethod.Post, "/reservations/waiter", userId: "waiter-1", role: "WAITER");
         request.Content = JsonContent.Create(new
         {
-            locationId = "loc-1",
             tableNumber = 3,
             date = "2030-03-05",
             timeFrom = "12:00",
@@ -318,7 +316,6 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         var request = Authed(HttpMethod.Post, "/reservations/waiter", userId: "waiter-1", role: "WAITER");
         request.Content = JsonContent.Create(new
         {
-            locationId = "loc-1",
             tableNumber = 3,
             date = "2030-03-05",
             timeFrom = "12:00",
@@ -358,7 +355,6 @@ public sealed class ReservationsEndpointsTests : IClassFixture<CustomWebApplicat
         var request = Authed(HttpMethod.Post, "/reservations/waiter", userId: "customer-1", role: "CUSTOMER");
         request.Content = JsonContent.Create(new
         {
-            locationId = "loc-1",
             tableNumber = 3,
             date = "2030-03-05",
             timeFrom = "12:00",

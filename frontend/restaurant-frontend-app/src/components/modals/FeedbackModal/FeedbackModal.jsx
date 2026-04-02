@@ -9,7 +9,8 @@ export default function FeedbackModal({
                                           reservationId,
                                           waiter,
                                           bookingStatus,
-                                          initialData
+                                          initialData,
+                                          isMealServed = false,   // ⬅ ДОДАТИ
                                       }) {
     const [activeTab, setActiveTab] = useState("service");
     const [serviceRating, setServiceRating] = useState(initialData?.serviceRating || 4);
@@ -18,8 +19,9 @@ export default function FeedbackModal({
     const [serviceComment, setServiceComment] = useState(initialData?.serviceComment || "");
     const [cuisineComment, setCuisineComment] = useState(initialData?.cuisineComment || "");
 
-    // Кухня сіра ТІЛЬКИ якщо статус InProgress
-    const isCulinaryDisabled = bookingStatus?.toLowerCase().replace(/\s+/g, "") === "inprogress";
+    const isCulinaryDisabled =
+        bookingStatus?.toLowerCase().replace(/\s+/g, "") === "inprogress" &&
+        !isMealServed;
 
     const displayWaiter = waiter || {
         name: "Mario Jast",

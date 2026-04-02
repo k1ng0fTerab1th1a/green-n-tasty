@@ -356,27 +356,61 @@ public sealed class DishRepositoryIntegrationTests
     {
         var id1 = DishId();
         var id2 = DishId();
+        var id3 = DishId();
 
-        await _context.SaveAsync(new Dish
+        var prefix = $"qa{Guid.NewGuid():N}"[..10];
+
+        var saladA = new Dish
         {
             Id = id1,
-            Name = "Селедка рол",
-            DishType = "MAIN"
-        });
+            Name = $"{prefix} alpha",
+            DishType = "SALAD",
+            State = "ON"
+        };
 
-        await _context.SaveAsync(new Dish
+        var saladB = new Dish
         {
             Id = id2,
-            Name = "Селедка салат",
-            DishType = "SALAD"
-        });
+            Name = $"{prefix} beta",
+            DishType = "SALAD",
+            State = "ON"
+        };
 
-        await _repo.RebuildSearchIndexAsync(CancellationToken.None);
+        var main = new Dish
+        {
+            Id = id3,
+            Name = $"{prefix} main",
+            DishType = "MAIN",
+            State = "ON"
+        };
 
-        var result = await _repo.SearchAsync("селед", "SALAD", 1, CancellationToken.None);
+        try
+        {
+            await _context.SaveAsync(saladA);
+            await _context.SaveAsync(saladB);
+            await _context.SaveAsync(main);
 
-        result.Should().HaveCount(1);
-        result.Should().ContainSingle(x => x.Id == id2);
+            await _repo.UpsertDishSearchIndexAsync(saladA, CancellationToken.None);
+            await _repo.UpsertDishSearchIndexAsync(saladB, CancellationToken.None);
+            await _repo.UpsertDishSearchIndexAsync(main, CancellationToken.None);
+
+            var result = await _repo.SearchAsync(prefix, "SALAD", 1, CancellationToken.None);
+
+            result.Should().HaveCount(1);
+            result[0].Id.Should().Be(id1);
+            result[0].DishType.Should().Be("SALAD");
+            result[0].Name.Should().Be($"{prefix} alpha");
+        }
+        finally
+        {
+            await _repo.RemoveDishSearchIndexAsync(id1, CancellationToken.None);
+            await _repo.RemoveDishSearchIndexAsync(id2, CancellationToken.None);
+            await _repo.RemoveDishSearchIndexAsync(id3, CancellationToken.None);
+
+            await _context.DeleteAsync<Dish>(id1);
+            await _context.DeleteAsync<Dish>(id2);
+            await _context.DeleteAsync<Dish>(id3);
+        }
     }
 
     [Fact]

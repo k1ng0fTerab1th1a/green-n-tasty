@@ -3,7 +3,6 @@
 public sealed class CreateReservationForWaiterDTO
 {
     public CreateReservationForWaiterDTO(
-        string locationId,
         int tableNumber,
         DateOnly date,
         TimeOnly timeFrom,
@@ -12,7 +11,6 @@ public sealed class CreateReservationForWaiterDTO
         string? customerId,
         string? visitorName)
     {
-        LocationId = locationId;
         TableNumber = tableNumber;
         Date = date;
         TimeFrom = timeFrom;
@@ -22,7 +20,6 @@ public sealed class CreateReservationForWaiterDTO
         VisitorName = visitorName;
     }
 
-    public string LocationId { get; set; } = null!;
     public int TableNumber { get; set; }
     public DateOnly Date { get; set; }
     public TimeOnly TimeFrom { get; set; }

@@ -204,37 +204,23 @@ export default function EditReservationModal({ isOpen, onClose, onConfirm, reser
         return () => clearTimeout(delayDebounceFn);
     }, [customerSearch, customerType, isApiSearchPaused]);
 
-    // Завантаження доступних столів при зміні дати або гостей
     useEffect(() => {
         if (!isOpen || !date) return;
 
         const fetchTables = async () => {
             setIsLoadingTables(true);
             try {
-                const currentResStart = timeFrom;
-                const currentResEnd   = timeTo;
                 const currentTableNumber = reservation?.tableNumber;
 
                 const params = {
                     locationId: "location-1",
                     date,
                     guests,
+                    excludeReservationId: reservation?.id || undefined,
                 };
 
                 const result = await getAvailableTables(params);
                 let tablesFromApi = (result.isSuccess && result.data) ? result.data : [];
-
-                const isCurrentTableInList = tablesFromApi.some(
-                    t => Number(t.tableNumber) === Number(currentTableNumber)
-                );
-
-                if (!isCurrentTableInList && currentTableNumber) {
-                    tablesFromApi.push({
-                        tableNumber: currentTableNumber,
-                        capacity: reservation?.guestsCount || reservation?.guestNumber || guests,
-                        availableSlots: []
-                    });
-                }
 
                 const processedTables = tablesFromApi.map(t => {
                     const isCurrentTable = Number(t.tableNumber) === Number(currentTableNumber);
@@ -243,17 +229,21 @@ export default function EditReservationModal({ isOpen, onClose, onConfirm, reser
                         const start = parseTimeToMinutes(extractTimeFromOffset(s.startOffset));
                         let end = parseTimeToMinutes(extractTimeFromOffset(s.endOffset));
                         if (end !== null && start !== null && end < start) {
-                            end += 24 * 60;
+                            end += 24 * 60; // слот через північ
                         }
                         return { start, end };
                     }).filter(seg => seg.start !== null && seg.end !== null);
 
+                    // 🔹 ДОДАЄМО ІНТЕРВАЛ ПОТОЧНОЇ РЕЗЕРВАЦІЇ ДЛЯ ПОТОЧНОГО СТОЛУ
                     if (isCurrentTable) {
-                        let resStartMin = parseTimeToMinutes(currentResStart);
-                        let resEndMin   = parseTimeToMinutes(currentResEnd);
+                        let resStartMin = parseTimeToMinutes(timeFrom);
+                        let resEndMin   = parseTimeToMinutes(timeTo);
+
                         if (resEndMin !== null && resStartMin !== null && resEndMin < resStartMin) {
+                            // якщо резервація теж може перетинати північ
                             resEndMin += 24 * 60;
                         }
+
                         if (resStartMin !== null && resEndMin !== null) {
                             segments.push({ start: resStartMin, end: resEndMin });
                         }
@@ -267,7 +257,7 @@ export default function EditReservationModal({ isOpen, onClose, onConfirm, reser
                     let current = segments[0];
 
                     for (let i = 1; i < segments.length; i++) {
-                        const GAP_LIMIT = 15;
+                        const GAP_LIMIT = 15;          // ⬅ якщо перерва ≤ 15 хв – склеюємо
                         if (segments[i].start <= current.end + GAP_LIMIT) {
                             current.end = Math.max(current.end, segments[i].end);
                         } else {
@@ -339,7 +329,7 @@ export default function EditReservationModal({ isOpen, onClose, onConfirm, reser
         };
 
         fetchTables();
-    }, [date, guests, isOpen, reservation]);
+    }, [date, guests, isOpen, reservation, timeFrom, timeTo]);
 
     const handleSubmit = () => {
         const updateData = {

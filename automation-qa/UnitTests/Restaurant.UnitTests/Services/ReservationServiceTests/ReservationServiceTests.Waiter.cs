@@ -12,10 +12,10 @@ public sealed partial class ReservationServiceTests
     public async Task CreateForWaiterAsync_WhenExistingCustomer_ShouldCreateReservation()
     {
         var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10));
-        var dto = new CreateReservationForWaiterDTO("loc-1", 3, date, new TimeOnly(12, 0), new TimeOnly(13, 0), 2, "customer-1", null);
+        var dto = new CreateReservationForWaiterDTO(3, date, new TimeOnly(12, 0), new TimeOnly(13, 0), 2, "customer-1", null);
 
         _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(BuildWaiter("waiter-1"));
+            .ReturnsAsync(BuildWaiter("waiter-1", "loc-1"));
         _userRepo.Setup(r => r.GetByIdAsync("customer-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildCustomer("customer-1"));
 
@@ -54,10 +54,10 @@ public sealed partial class ReservationServiceTests
     public async Task CreateForWaiterAsync_WhenAnonymousVisitor_ShouldCreateReservation()
     {
         var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10));
-        var dto = new CreateReservationForWaiterDTO("loc-1", 3, date, new TimeOnly(12, 0), new TimeOnly(13, 0), 2, null, "Anna Visitor");
+        var dto = new CreateReservationForWaiterDTO(3, date, new TimeOnly(12, 0), new TimeOnly(13, 0), 2, null, "Anna Visitor");
 
         _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(BuildWaiter("waiter-1"));
+            .ReturnsAsync(BuildWaiter("waiter-1", "loc-1"));
 
         _locationRepo.Setup(r => r.GetByIdAsync("loc-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildLocation());
@@ -87,7 +87,6 @@ public sealed partial class ReservationServiceTests
     public async Task CreateForWaiterAsync_WhenBothCustomerIdAndVisitorNameProvided_ShouldReturnValidationError()
     {
         var dto = new CreateReservationForWaiterDTO(
-            "loc-1",
             3,
             DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)),
             new TimeOnly(12, 0),
@@ -97,7 +96,7 @@ public sealed partial class ReservationServiceTests
             "Anna Visitor");
 
         _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(BuildWaiter("waiter-1"));
+            .ReturnsAsync(BuildWaiter("waiter-1", "loc-1"));
 
         var result = await _sut.CreateForWaiterAsync("waiter-1", dto, default);
 
@@ -109,7 +108,6 @@ public sealed partial class ReservationServiceTests
     public async Task CreateForWaiterAsync_WhenNeitherCustomerIdNorVisitorNameProvided_ShouldReturnValidationError()
     {
         var dto = new CreateReservationForWaiterDTO(
-            "loc-1",
             3,
             DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)),
             new TimeOnly(12, 0),
@@ -119,7 +117,7 @@ public sealed partial class ReservationServiceTests
             null);
 
         _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(BuildWaiter("waiter-1"));
+            .ReturnsAsync(BuildWaiter("waiter-1", "loc-1"));
 
         var result = await _sut.CreateForWaiterAsync("waiter-1", dto, default);
 
@@ -131,7 +129,6 @@ public sealed partial class ReservationServiceTests
     public async Task CreateForWaiterAsync_WhenCustomerNotFound_ShouldReturnCustomerNotFoundError()
     {
         var dto = new CreateReservationForWaiterDTO(
-            "loc-1",
             3,
             DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)),
             new TimeOnly(12, 0),
@@ -141,7 +138,7 @@ public sealed partial class ReservationServiceTests
             null);
 
         _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(BuildWaiter("waiter-1"));
+            .ReturnsAsync(BuildWaiter("waiter-1", "loc-1"));
         _userRepo.Setup(r => r.GetByIdAsync("customer-404", It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
 
@@ -155,7 +152,6 @@ public sealed partial class ReservationServiceTests
     public async Task CreateForWaiterAsync_WhenCustomerRoleIsNotCustomer_ShouldReturnCustomerNotFoundError()
     {
         var dto = new CreateReservationForWaiterDTO(
-            "loc-1",
             3,
             DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)),
             new TimeOnly(12, 0),
@@ -165,7 +161,7 @@ public sealed partial class ReservationServiceTests
             null);
 
         _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(BuildWaiter("waiter-1"));
+            .ReturnsAsync(BuildWaiter("waiter-1", "loc-1"));
         _userRepo.Setup(r => r.GetByIdAsync("admin-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new User
             {
@@ -186,10 +182,10 @@ public sealed partial class ReservationServiceTests
     public async Task CreateForWaiterAsync_WhenWaiterScheduleMissing_ShouldReturnNoWaiterAssignedError()
     {
         var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10));
-        var dto = new CreateReservationForWaiterDTO("loc-1", 3, date, new TimeOnly(12, 0), new TimeOnly(13, 0), 2, "customer-1", null);
+        var dto = new CreateReservationForWaiterDTO(3, date, new TimeOnly(12, 0), new TimeOnly(13, 0), 2, "customer-1", null);
 
         _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(BuildWaiter("waiter-1"));
+            .ReturnsAsync(BuildWaiter("waiter-1", "loc-1"));
         _userRepo.Setup(r => r.GetByIdAsync("customer-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildCustomer("customer-1"));
 
@@ -210,10 +206,10 @@ public sealed partial class ReservationServiceTests
     public async Task CreateForWaiterAsync_WhenScheduleBelongsToAnotherWaiter_ShouldReturnWaiterNotAssignedError()
     {
         var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10));
-        var dto = new CreateReservationForWaiterDTO("loc-1", 3, date, new TimeOnly(12, 0), new TimeOnly(13, 0), 2, "customer-1", null);
+        var dto = new CreateReservationForWaiterDTO(3, date, new TimeOnly(12, 0), new TimeOnly(13, 0), 2, "customer-1", null);
 
         _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(BuildWaiter("waiter-1"));
+            .ReturnsAsync(BuildWaiter("waiter-1", "loc-1"));
         _userRepo.Setup(r => r.GetByIdAsync("customer-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildCustomer("customer-1"));
 
@@ -238,7 +234,6 @@ public sealed partial class ReservationServiceTests
     public async Task CreateForWaiterAsync_WhenActorIsNotWaiter_ShouldReturnForbiddenError()
     {
         var dto = new CreateReservationForWaiterDTO(
-            "loc-1",
             3,
             DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)),
             new TimeOnly(12, 0),
@@ -272,7 +267,7 @@ public sealed partial class ReservationServiceTests
     public async Task SearchCustomersForWaiterAsync_WhenQueryIsEmpty_ShouldReturnEmptyList_AndNotSearchRepository()
     {
         _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(BuildWaiter("waiter-1"));
+            .ReturnsAsync(BuildWaiter("waiter-1", "loc-1"));
 
         var result = await _sut.SearchCustomersForWaiterAsync("waiter-1", "", default);
 
@@ -285,7 +280,7 @@ public sealed partial class ReservationServiceTests
     public async Task SearchCustomersForWaiterAsync_ShouldReturnMaskedEmailList()
     {
         _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(BuildWaiter("waiter-1"));
+            .ReturnsAsync(BuildWaiter("waiter-1", "loc-1"));
 
         _userRepo.Setup(r => r.SearchCustomersAsync("ann", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<User>
@@ -359,5 +354,20 @@ public sealed partial class ReservationServiceTests
 
         result.IsFailed.Should().BeTrue();
         result.Errors[0].Should().Be(ReservationErrors.WaiterNotAssignedForUpdate);
+    }
+
+    [Fact]
+    public async Task CreateForWaiterAsync_WhenWaiterHasNoLocation_ShouldReturnWaiterLocationNotConfigured()
+    {
+        var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10));
+        var dto = new CreateReservationForWaiterDTO(3, date, new TimeOnly(12, 0), new TimeOnly(13, 0), 2, "customer-1", null);
+
+        _userRepo.Setup(r => r.GetByIdAsync("waiter-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildWaiter("waiter-1"));
+
+        var result = await _sut.CreateForWaiterAsync("waiter-1", dto, default);
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(ReservationErrors.WaiterLocationNotConfigured);
     }
 }

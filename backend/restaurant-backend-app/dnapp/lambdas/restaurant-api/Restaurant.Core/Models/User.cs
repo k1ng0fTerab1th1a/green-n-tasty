@@ -23,6 +23,9 @@ public class User
     [DynamoDBProperty("waiterFlag")]
     public string? WaiterFlag { get; set; } = null;
 
+    [DynamoDBProperty("locationId")]
+    public string? LocationId { get; set; }
+
     [DynamoDBProperty("imageUrl")]
     public string? ImageUrl { get; set; }
 

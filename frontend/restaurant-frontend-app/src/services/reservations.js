@@ -1,7 +1,7 @@
 import { api } from "./api";
 
 export const getClientReservations = async () => {
-    const response = await api.get("/reservations/customer"); //
+    const response = await api.get("/reservations/customer");
     return response.data;
 };
 
@@ -16,15 +16,14 @@ export const createReservation = async (reservationData) => {
 };
 
 export const deleteReservation = async (id) => {
-    const response = await api.delete(`/reservations/${id}`); //
-    return response.data; // Повертає результат видалення
+    const response = await api.delete(`/reservations/${id}`);
+    return response.data;
 };
 
-// ❗ Приводимо до такого ж формату isSuccess, як інші waiter‑методи
 export const updateReservation = async (reservationData) => {
     try {
         const response = await api.put("/reservations", reservationData);
-        return response.data; // очікується { isSuccess, message?, ... }
+        return response.data;
     } catch (error) {
         console.error("Error updating reservation:", error);
         return {
@@ -123,21 +122,34 @@ export const finishReservation = async (id) => {
     }
 };
 
-// export const getReservationReceipt = async (reservationId) => {
-//     try {
-//         const response = await api.get(`/reservations/${reservationId}/receipt`, {
-//             responseType: "text",       // бекенд віддає text/plain
-//         });
-//         // очікуємо просто рядок з текстом чеку
-//         return {
-//             isSuccess: true,
-//             data: response.data,
-//         };
-//     } catch (error) {
-//         console.error("Error fetching reservation receipt:", error);
-//         return {
-//             isSuccess: false,
-//             message: error.response?.data?.message || error.message,
-//         };
-//     }
-// };
+export const downloadReservationReceiptPdf = async (reservationId) => {
+    try {
+        const response = await api.get(`/reservations/${reservationId}/receipt`, {
+            responseType: "blob",
+            headers: {
+                Accept: "application/pdf",
+            },
+        });
+
+        const blob = new Blob([response.data], { type: "application/pdf" });
+        const url = window.URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `reservation-${reservationId}-receipt.pdf`;
+
+        document.body.appendChild(link);
+        link.click();
+
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        return { isSuccess: true };
+    } catch (error) {
+        console.error("Error downloading reservation receipt PDF:", error);
+        return {
+            isSuccess: false,
+            message: error.response?.data?.message || error.message,
+        };
+    }
+};
