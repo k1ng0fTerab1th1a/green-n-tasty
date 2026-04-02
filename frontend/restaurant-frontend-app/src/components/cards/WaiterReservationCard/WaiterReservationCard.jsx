@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { Button } from "../../index.js";                     // ⬅ прибрали TableSelector
 import styles from "./WaiterReservationCard.module.css";
 
 import pinIcon from "../../../assets/icons/pin.svg";
@@ -30,6 +28,7 @@ export default function WaiterReservationCard({
         customerName,
         dishCount,
         tableNumber,
+        isMealServed,
     } = booking;
 
     const displayName = customerName || visitorName || "Guest";
@@ -69,7 +68,12 @@ export default function WaiterReservationCard({
                     <>
                         <div className={styles.leftActions}>
                             <Button variant="tertiary" onClick={onFinish}>Finish</Button>
-                            <Button variant="tertiary" onClick={onMealServed}>MealServed</Button>
+
+                            {!isMealServed && (
+                                <Button variant="tertiary" onClick={onMealServed}>
+                                    MealServed
+                                </Button>
+                            )}
                         </div>
                         {dishCount > 0 ? (
                             <Button variant="primary" onClick={() => onEditOrder(booking)}>Edit Order</Button>
@@ -82,7 +86,10 @@ export default function WaiterReservationCard({
                 return (
                     <>
                         <div className={styles.leftActions}></div>
-                        <Button variant="secondary" onClick={onReceipt}>RECEIPT</Button>
+                        {/*{!isMealServed && (*/}
+                        {dishCount > 0 && (
+                            <Button variant="secondary" onClick={onReceipt}>RECEIPT</Button>
+                        )}
                     </>
                 );
             case "cancelled":

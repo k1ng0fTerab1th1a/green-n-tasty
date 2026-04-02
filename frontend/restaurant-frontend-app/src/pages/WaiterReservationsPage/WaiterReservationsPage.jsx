@@ -9,7 +9,7 @@ import {
     WaiterReservationCard,
     CreateOrderModal,
     EditOrderModal,
-    EditReservationModal   // ⬅ ДОДАЛИ
+    EditReservationModal
 } from "../../components/index.js";
 
 import { useAuth } from "../../auth/AuthContext.jsx";
@@ -21,7 +21,7 @@ import {
     startReservation,
     setMealsServed,
     finishReservation,
-    getReservationReceipt
+    downloadReservationReceiptPdf
 } from "../../services/reservations";
 import {
     createOrder,
@@ -348,17 +348,19 @@ export default function WaiterReservationsPage() {
 
 
 
-    // const handleReceipt = async (id) => {
-    //     const result = await getReservationReceipt(id);
-    //
-    //     if (result.isSuccess && result.data) {
-    //         // Можна просто показати текст у toast
-    //         showToast("success", "Receipt", result.data);
-    //
-    //     } else {
-    //         showToast("error", "Failed", result.message || "Failed to generate receipt");
-    //     }
-    // };
+    const handleReceipt = async (id) => {
+        const result = await downloadReservationReceiptPdf(id);
+
+        if (result.isSuccess) {
+            showToast("success", "Receipt", "Receipt PDF has been downloaded.");
+        } else {
+            showToast(
+                "error",
+                "Failed",
+                result.message || "Failed to generate receipt PDF"
+            );
+        }
+    };
 
     return (
         <MainLayout role="waiter">
@@ -456,7 +458,7 @@ export default function WaiterReservationsPage() {
                                     onStart={() => handleStartReservation(res.id)}
                                     onFinish={() => handleFinishReservation(res.id)}
                                     onMealServed={() => handleMealsServed(res.id)}
-                                    // onReceipt={() => handleReceipt(res.id)}
+                                    onReceipt={() => handleReceipt(res.id)}
                                 />
                             ))}
                         </div>
