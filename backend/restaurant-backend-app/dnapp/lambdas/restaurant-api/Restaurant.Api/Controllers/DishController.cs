@@ -12,7 +12,7 @@ namespace Restaurant.Api.Controllers;
 
 [ApiController]
 [Route("dishes")]
-public class DishController(IDishService _dishService, S3FileService _s3FileService) : ControllerBase
+public class DishController(IDishService _dishService, IFileService _s3FileService) : ControllerBase
 {
     [HttpGet("popular")]
     [ProducesResponseType(typeof(ApiResponse<List<DishShortResponse>>), StatusCodes.Status200OK)]
