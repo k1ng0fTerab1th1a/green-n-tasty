@@ -17,6 +17,9 @@ public static class AuthErrors
     public static BusinessError RefreshTokenFailed =>
         new("Failed to refresh token.", ErrorType.Validation);
 
+    public static BusinessError InvalidPassword =>
+        new("This password does not match the requirements", ErrorType.Validation);
+        
     public static BusinessError WaiterLocationNotConfigured =>
         new("Waiter location is not configured.", ErrorType.Validation);
 
@@ -28,6 +31,9 @@ public static class AuthErrors
 
     public static BusinessError InvalidVerificationCode =>
         new("Invalid or expired verification code.", ErrorType.Validation);
+
+    public static BusinessError FailedPasswordUpdate =>
+        new("Failed password reset", ErrorType.Validation);
 
     public static BusinessError AccessTokenRequired =>
         new("Access token is required.", ErrorType.Unauthorized);

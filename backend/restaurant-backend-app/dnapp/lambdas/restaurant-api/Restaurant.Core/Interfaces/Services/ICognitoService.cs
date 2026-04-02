@@ -31,6 +31,7 @@ public interface ICognitoService
         string proposedPassword,
         CancellationToken ct);
 
+    Task<Result> UpdatePasswordAsync(string email, string newPassword, CancellationToken ct = default);
     Task<Result> UpdateUserEmailAsync(string accessToken, string newEmail, CancellationToken ct);
     Task<Result> VerifyEmailChangeAsync(string accessToken, string code, CancellationToken ct);
 }

@@ -1,6 +1,7 @@
 using Amazon;
 using Amazon.CognitoIdentityProvider;
 using Amazon.S3;
+using Amazon.SimpleEmail;
 using Amazon.SQS;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -91,6 +92,11 @@ public class Startup
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IReportsRepository, ReportsRepository>();
 
+        services.Configure<EmailServiceSettings>(
+    _configuration.GetSection("EmailServiceSettings"));
+
+        services.AddSingleton<IAmazonSimpleEmailService>(_ => new AmazonSimpleEmailServiceClient());
+        services.AddScoped<IEmailService, EmailService>();
 
         services.Configure<ClientSettings>(
             _configuration.GetSection("ClientSettings"));

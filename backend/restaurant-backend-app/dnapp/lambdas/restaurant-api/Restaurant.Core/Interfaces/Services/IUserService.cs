@@ -12,4 +12,7 @@ public interface IUserService
     Task<Result> ChangePasswordAsync(string accessToken, string currentPassword, string newPassword, CancellationToken ct);
     Task<Result<string>> UpdateAvatarAsync(string userId, FileUploadDto file, CancellationToken ct);
     Task<Result<User>> GetMeAsync(string userId, CancellationToken ct);
+    Task<Result> CreateOtpAsync(string email, CancellationToken ct);
+    Task<Result> VerifyOtp(string email, string otp, CancellationToken ct);
+    Task<Result> RecoverPassword(string email, string otp, string password, CancellationToken ct);
 }

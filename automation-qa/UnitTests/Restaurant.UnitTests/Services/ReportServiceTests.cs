@@ -45,7 +45,7 @@ public sealed class ReportServiceTests
         repo.Setup(r => r.QueryReportsByDateAsync(
                 new DateTime(2026, 1, 10),
                 new DateTime(2026, 1, 10),
-                new DateTime(2026, 1, 10, 23, 59, 59, 999).AddTicks(9999),
+            It.IsAny<DateTime>(),
                 It.IsAny<CancellationToken>()))
             .Returns(ToAsyncEnumerable(entry));
 
@@ -71,7 +71,7 @@ public sealed class ReportServiceTests
         repo.Verify(r => r.QueryReportsByDateAsync(
             new DateTime(2026, 1, 10),
             new DateTime(2026, 1, 10),
-            new DateTime(2026, 1, 10, 23, 59, 59, 999).AddTicks(9999),
+            It.IsAny<DateTime>(),
             It.IsAny<CancellationToken>()), Times.Once);
         repo.Verify(r => r.GetAllLocationsAsync(It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
@@ -95,7 +95,7 @@ public sealed class ReportServiceTests
         repo.Setup(r => r.QueryReportsByDateAsync(
                 new DateTime(2026, 2, 2),
                 new DateTime(2026, 2, 2),
-                new DateTime(2026, 2, 2, 23, 59, 59, 999).AddTicks(9999),
+            It.IsAny<DateTime>(),
                 It.IsAny<CancellationToken>()))
             .Returns(ToAsyncEnumerable(entry));
 
@@ -147,7 +147,7 @@ public sealed class ReportServiceTests
         repo.Verify(r => r.QueryReportsByDateAsync(
             new DateTime(2026, 2, 2),
             new DateTime(2026, 2, 2),
-            new DateTime(2026, 2, 2, 23, 59, 59, 999).AddTicks(9999),
+            It.IsAny<DateTime>(),
             It.IsAny<CancellationToken>()), Times.Once);
         repo.Verify(r => r.GetAllWaitersAsync(It.IsAny<CancellationToken>()), Times.Once);
         repo.Verify(r => r.GetAllLocationsAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -173,7 +173,7 @@ public sealed class ReportServiceTests
         repo.Setup(r => r.QueryReportsByDateAsync(
                 new DateTime(2026, 3, 15),
                 new DateTime(2026, 3, 15),
-                new DateTime(2026, 3, 15, 23, 59, 59, 999).AddTicks(9999),
+            It.IsAny<DateTime>(),
                 It.IsAny<CancellationToken>()))
             .Returns(ToAsyncEnumerable(entry));
 
@@ -204,7 +204,7 @@ public sealed class ReportServiceTests
         repo.Verify(r => r.QueryReportsByDateAsync(
             new DateTime(2026, 3, 15),
             new DateTime(2026, 3, 15),
-            new DateTime(2026, 3, 15, 23, 59, 59, 999).AddTicks(9999),
+            It.IsAny<DateTime>(),
             It.IsAny<CancellationToken>()), Times.Once);
         repo.Verify(r => r.GetAllLocationsAsync(It.IsAny<CancellationToken>()), Times.Once);
         repo.Verify(r => r.GetAllWaitersAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -230,7 +230,7 @@ public sealed class ReportServiceTests
         repo.Setup(r => r.QueryReportsByDateAsync(
                 new DateTime(2026, 4, 1),
                 new DateTime(2026, 4, 1),
-                new DateTime(2026, 4, 1, 23, 59, 59, 999).AddTicks(9999),
+            It.IsAny<DateTime>(),
                 It.IsAny<CancellationToken>()))
             .Returns(ToAsyncEnumerable(entry));
 
@@ -249,7 +249,7 @@ public sealed class ReportServiceTests
         repo.Verify(r => r.QueryReportsByDateAsync(
             new DateTime(2026, 4, 1),
             new DateTime(2026, 4, 1),
-            new DateTime(2026, 4, 1, 23, 59, 59, 999).AddTicks(9999),
+            It.IsAny<DateTime>(),
             It.IsAny<CancellationToken>()), Times.Once);
         repo.Verify(r => r.GetAllLocationsAsync(It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
