@@ -72,3 +72,63 @@ export async function getFeedbackShortData(reservationId) {
         };
     }
 }
+
+export async function getFeedbackShortUpdateData(reservationId) {
+    try {
+        const response = await api.get("/feedbacks/feedback-short-update-data", {
+            params: { reservationId },
+        });
+
+        const body = response.data;
+
+        return {
+            isSuccess: body?.isSuccess ?? true,
+            data: body?.data ?? body,
+            message: body?.message,
+        };
+    } catch (error) {
+        return {
+            isSuccess: false,
+            message:
+                error?.response?.data?.message ||
+                error?.message ||
+                "Failed to load feedback update data",
+        };
+    }
+}
+
+export async function updateAuthorisedFeedback(feedbackData) {
+    try {
+        const body = { reservationId: feedbackData.reservationId };
+
+        if (feedbackData.serviceRating && feedbackData.serviceRating > 0) {
+            body.serviceRating = feedbackData.serviceRating;
+        }
+        if (feedbackData.serviceComment && feedbackData.serviceComment.trim()) {
+            body.serviceComment = feedbackData.serviceComment.trim();
+        }
+        if (feedbackData.cuisineRating && feedbackData.cuisineRating > 0) {
+            body.cuisineRating = feedbackData.cuisineRating;
+        }
+        if (feedbackData.cuisineComment && feedbackData.cuisineComment.trim()) {
+            body.cuisineComment = feedbackData.cuisineComment.trim();
+        }
+
+        const response = await api.put("/feedbacks/update-feedback", body);
+
+        const resBody = response.data;
+        return {
+            isSuccess: resBody?.isSuccess ?? true,
+            data: resBody?.data ?? resBody,
+            message: resBody?.message,
+        };
+    } catch (error) {
+        return {
+            isSuccess: false,
+            message:
+                error?.response?.data?.message ||
+                error?.message ||
+                "Failed to update feedback",
+        };
+    }
+}

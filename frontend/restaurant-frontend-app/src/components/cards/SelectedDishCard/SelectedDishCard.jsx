@@ -36,7 +36,7 @@ export default function SelectedDishCard({ dish, onRemove, onUpdateQuantity }) {
                                 +
                             </button>
                         </div>
-                        <span className="body-bold">{price * quantity} $</span>
+                        <span className="body-bold">{(dish.price * dish.quantity).toFixed(2)} $</span>
                     </div>
                 </div>
             </div>

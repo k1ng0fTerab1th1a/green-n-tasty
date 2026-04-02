@@ -18,7 +18,6 @@ export default function VisitorFeedbackPage() {
     });
 
     const handleClose = () => {
-        // куди відправляємо людину після фідбеку
         navigate("/");
     };
 
@@ -53,7 +52,7 @@ export default function VisitorFeedbackPage() {
         }
     };
 
-    // якщо посилання битеньке – просто не показуємо форму
+
     if (!reservationId || !secretCode) {
         return (
             <MainLayout>

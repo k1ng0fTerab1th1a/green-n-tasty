@@ -35,6 +35,7 @@
     min-width: 190px;
     position: relative;
     background: var(--neutral-0);
+    cursor: pointer;
 }
 
 .nativeInputWrap {
@@ -50,8 +51,8 @@
     width: 100%;
     height: 100%;
     opacity: 0;
-    cursor: pointer;
-    z-index: 2;
+    pointer-events: none;
+    z-index: -1;
 }
 
 .inputValue {
@@ -63,6 +64,13 @@
 .fieldIcon {
     width: 20px;
     height: 20px;
+}
+
+.fieldIcon,
+.inputValue,
+.chevronIcon {
+    pointer-events: none;
+    user-select: none;
 }
 
 .chevronIcon {
