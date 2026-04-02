@@ -1,4 +1,4 @@
-import {useState, useEffect, useCallback} from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
     MainLayout,
     PageBanner,
@@ -9,7 +9,7 @@ import {
     WaiterReservationCard,
     CreateOrderModal,
     EditOrderModal,
-    EditReservationModal   // ⬅ ДОДАЛИ
+    EditReservationModal
 } from "../../components/index.js";
 
 import { useAuth } from "../../auth/AuthContext.jsx";
@@ -17,12 +17,18 @@ import {
     getWaiterReservations,
     createWaiterReservation,
     updateReservation,
-    deleteReservation,      // ⬅ ДОДАЛИ
-    startReservation,       // ⬅ ДОДАЛИ
-    setMealsServed,         // ⬅ ДОДАЛИ
+    deleteReservation,
+    startReservation,
+    setMealsServed,
     finishReservation,
-    getReservationReceipt
+    downloadReservationReceiptPdf
 } from "../../services/reservations";
+import {
+    createOrder,
+    getOrderByReservation,
+    addDishToOrder,
+    removeDishFromOrder,
+} from "../../services/orders";
 import styles from "./WaiterReservationsPage.module.css";
 
 import calendarIcon from "../../assets/icons/calendar_bl.svg";
@@ -32,6 +38,7 @@ import chevronDownIcon from "../../assets/icons/chevron-down.svg";
 
 export default function WaiterReservationsPage() {
     const { auth } = useAuth();
+    const dateInputRef = useRef(null);
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -45,11 +52,33 @@ export default function WaiterReservationsPage() {
     const [selectedReservation, setSelectedReservation] = useState(null);
     const [isEditOrderModalOpen, setIsEditOrderModalOpen] = useState(false);
 
-    // ⬅ Стан для модалки редагування резервації
     const [isEditReservationModalOpen, setIsEditReservationModalOpen] = useState(false);
     const [reservationForEdit, setReservationForEdit] = useState(null);
 
+    const [orderOperationId, setOrderOperationId] = useState(null);
+
     const welcomeTitle = `Hello, ${auth?.username || "Waiter"}`;
+
+    const handleBlockClick = () => {
+        if (dateInputRef.current) {
+            if (typeof dateInputRef.current.showPicker === 'function') {
+                dateInputRef.current.showPicker();
+            } else {
+                dateInputRef.current.focus(); // Фолбек
+            }
+        }
+    };
+
+    const generateOperationId = () => {
+        if (typeof crypto !== "undefined" && crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        return (
+            Date.now().toString(36) +
+            Math.random().toString(36).substring(2, 10)
+        );
+    };
+
 
     const ensureTimeFormat = (timeStr) => {
         if (!timeStr) return "00:00";
@@ -117,17 +146,163 @@ export default function WaiterReservationsPage() {
         month: "short", day: "numeric", year: "numeric",
     });
 
-    const handleConfirmOrder = (dishes) => {
-        showToast("success", "Success", "Order has been created successfully.");
-        setIsOrderModalOpen(false);
+    const statusPriority = {
+        finished: 0,
+        inprogress: 1,
+        reserved: 2,
+        cancelled: 3,
     };
 
-    const handleSaveOrderChanges = (dishes) => {
-        setIsEditOrderModalOpen(false);
-        showToast("success", "Success", "All changes has been saved successfully.");
+    const getStatusKey = (status) =>
+        status ? status.toString().toLowerCase().replace(/\s+/g, "") : "";
+
+    const sortedReservations = [...reservations].sort((a, b) => {
+        const aKey = getStatusKey(a.status);
+        const bKey = getStatusKey(b.status);
+
+        const aPr = statusPriority[aKey] ?? 999;
+        const bPr = statusPriority[bKey] ?? 999;
+
+        if (aPr !== bPr) return aPr - bPr;
+
+        const aStart = a.startDateTime || "";
+        const bStart = b.startDateTime || "";
+        return aStart.localeCompare(bStart);
+    });
+
+    const handleOpenEditOrder = async (reservation) => {
+        const result = await getOrderByReservation(reservation.id);
+
+        if (!result.isSuccess || !result.data) {
+            showToast("error", "Failed", result.message || "Failed to load order details.");
+            return;
+        }
+
+        const order = result.data;
+
+        const mappedDishes = (order.dishes || []).map((d) => ({
+            id: d.dishId,
+            name: d.name,
+            description: d.description,
+            price: d.priceAtOrder,
+            imageUrl: d.photoUrl,
+            quantity: d.quantity,
+        }));
+
+        setSelectedReservation({
+            ...reservation,
+            orderId: order.id,
+            dishes: mappedDishes,
+            totalAmount: order.totalAmount,
+        });
+
+        setIsEditOrderModalOpen(true);
     };
 
-    // ⬅ Обробник збереження змін резервації (PUT /reservations)
+    const handleConfirmOrder = async (dishes) => {
+        if (!selectedReservation) {
+            showToast("error", "Error", "No reservation selected for order.");
+            return;
+        }
+
+        const result = await createOrder(selectedReservation.id, dishes);
+
+        if (result.isSuccess) {
+            showToast("success", "Success", "Order has been created successfully.");
+            setIsOrderModalOpen(false);
+            await loadData();
+        } else {
+            showToast("error", "Failed", result.message || "Failed to create order.");
+        }
+    };
+
+    const handleSaveOrderChanges = async (updatedDishes) => {
+        if (!selectedReservation) {
+            showToast("error", "Error", "No reservation selected for order.");
+            return;
+        }
+
+        const reservationId = selectedReservation.id;
+        const originalDishes = selectedReservation.dishes || [];
+
+        const origById = new Map(originalDishes.map((d) => [d.id, d]));
+        const updatedById = new Map(updatedDishes.map((d) => [d.id, d]));
+
+        const additions = [];
+        const removals = [];
+
+        updatedDishes.forEach((upd) => {
+            const orig = origById.get(upd.id);
+            if (!orig) {
+                if (upd.quantity > 0) {
+                    additions.push({ dishId: upd.id, quantity: upd.quantity });
+                }
+                return;
+            }
+
+            if (upd.quantity > orig.quantity) {
+                additions.push({
+                    dishId: upd.id,
+                    quantity: upd.quantity - orig.quantity,
+                });
+            } else if (upd.quantity < orig.quantity) {
+                removals.push({
+                    dishId: upd.id,
+                    quantity: orig.quantity - upd.quantity,
+                });
+            }
+        });
+
+        originalDishes.forEach((orig) => {
+            if (!updatedById.has(orig.id) && orig.quantity > 0) {
+                removals.push({ dishId: orig.id, quantity: orig.quantity });
+            }
+        });
+
+        if (additions.length === 0 && removals.length === 0) {
+            setIsEditOrderModalOpen(false);
+            showToast("success", "Saved", "No changes to apply.");
+            return;
+        }
+
+        try {
+            for (const add of additions) {
+                const opId = generateOperationId();
+                const res = await addDishToOrder(reservationId, {
+                    operationId: opId,
+                    dishId: add.dishId,
+                    quantity: add.quantity,
+                });
+                if (!res.isSuccess) {
+                    throw new Error(res.message || "Failed to add dish.");
+                }
+            }
+
+            for (const rem of removals) {
+                const opId = generateOperationId();
+                const res = await removeDishFromOrder(reservationId, {
+                    operationId: opId,
+                    dishId: rem.dishId,
+                    quantity: rem.quantity,
+                });
+                if (!res.isSuccess) {
+                    throw new Error(res.message || "Failed to remove dish.");
+                }
+            }
+
+            setIsEditOrderModalOpen(false);
+            showToast("success", "Success", "Order has been updated successfully.");
+            await loadData();
+        } catch (error) {
+            console.error("Failed to update order:", error);
+            showToast(
+                "error",
+                "Failed",
+                error.message || "Failed to update order. Please try again."
+            );
+        }
+    };
+
     const handleUpdateReservation = async (updateData) => {
         const result = await updateReservation(updateData);
 
@@ -180,17 +355,19 @@ export default function WaiterReservationsPage() {
         }
     };
 
-    // const handleReceipt = async (id) => {
-    //     const result = await getReservationReceipt(id);
-    //
-    //     if (result.isSuccess && result.data) {
-    //         // Можна просто показати текст у toast
-    //         showToast("success", "Receipt", result.data);
-    //
-    //     } else {
-    //         showToast("error", "Failed", result.message || "Failed to generate receipt");
-    //     }
-    // };
+    const handleReceipt = async (id) => {
+        const result = await downloadReservationReceiptPdf(id);
+
+        if (result.isSuccess) {
+            showToast("success", "Receipt", "Receipt PDF has been downloaded.");
+        } else {
+            showToast(
+                "error",
+                "Failed",
+                result.message || "Failed to generate receipt PDF"
+            );
+        }
+    };
 
     return (
         <MainLayout role="waiter">
@@ -199,10 +376,11 @@ export default function WaiterReservationsPage() {
                 <div className={styles.contentContainer}>
                     <div className={styles.filtersWrapper}>
                         <div className={styles.filtersBar}>
-                            <div className={styles.filterInputGroup}>
+                            <div className={styles.filterInputGroup} onClick={handleBlockClick}>
                                 <img src={calendarIcon} alt="" className={styles.fieldIcon} />
                                 <div className={styles.nativeInputWrap}>
                                     <input
+                                        ref={dateInputRef}
                                         type="date"
                                         value={filterDate}
                                         onChange={(e) => setFilterDate(e.target.value)}
@@ -213,30 +391,30 @@ export default function WaiterReservationsPage() {
                                 <img src={chevronDownIcon} alt="" className={styles.chevronIcon} />
                             </div>
 
-                            <div className={styles.filterInputGroup}>
-                                <img src={clockIcon} alt="" className={styles.fieldIcon} />
-                                <div className={styles.nativeInputWrap}>
-                                    <input
-                                        type="time"
-                                        value={filterTime}
-                                        onChange={(e) => setFilterTime(e.target.value)}
-                                        className={styles.nativeInput}
-                                    />
-                                    <span className={styles.inputValue}>{filterTime}</span>
-                                </div>
-                                <img src={chevronDownIcon} alt="" className={styles.chevronIcon} />
-                            </div>
+                            {/*<div className={styles.filterInputGroup}>*/}
+                            {/*    <img src={clockIcon} alt="" className={styles.fieldIcon} />*/}
+                            {/*    <div className={styles.nativeInputWrap}>*/}
+                            {/*        <input*/}
+                            {/*            type="time"*/}
+                            {/*            value={filterTime}*/}
+                            {/*            onChange={(e) => setFilterTime(e.target.value)}*/}
+                            {/*            className={styles.nativeInput}*/}
+                            {/*        />*/}
+                            {/*        <span className={styles.inputValue}>{filterTime}</span>*/}
+                            {/*    </div>*/}
+                            {/*    <img src={chevronDownIcon} alt="" className={styles.chevronIcon} />*/}
+                            {/*</div>*/}
 
-                            <Dropdown
-                                options={[
-                                    { value: "any", label: "Any table" },
-                                    { value: "1", label: "Table 1" },
-                                    { value: "2", label: "Table 2" }
-                                ]}
-                                value={filterTable}
-                                onChange={setFilterTable}
-                                className={styles.filterDropdown}
-                            />
+                            {/*<Dropdown*/}
+                            {/*    options={[*/}
+                            {/*        { value: "any", label: "Any table" },*/}
+                            {/*        { value: "1", label: "Table 1" },*/}
+                            {/*        { value: "2", label: "Table 2" }*/}
+                            {/*    ]}*/}
+                            {/*    value={filterTable}*/}
+                            {/*    onChange={setFilterTable}*/}
+                            {/*    className={styles.filterDropdown}*/}
+                            {/*/>*/}
 
                             <button className={styles.searchBtn} onClick={loadData}>
                                 <img src={searchIcon} alt="Search" />
@@ -257,7 +435,7 @@ export default function WaiterReservationsPage() {
                         <div className={styles.stateMessage}>Loading data...</div>
                     ) : (
                         <div className={styles.grid}>
-                            {reservations.map((res) => (
+                            {sortedReservations.map((res) => (
                                 <WaiterReservationCard
                                     key={res.id}
                                     booking={res}
@@ -280,10 +458,7 @@ export default function WaiterReservationsPage() {
                                         });
                                         setIsEditReservationModalOpen(true);
                                     }}
-                                    onEditOrder={() => {
-                                        setSelectedReservation(res);
-                                        setIsEditOrderModalOpen(true);
-                                    }}
+                                    onEditOrder={() => handleOpenEditOrder(res)}   // ⬅ ТУТ
                                     onCreateOrder={() => {
                                         setSelectedReservation(res);
                                         setIsOrderModalOpen(true);
@@ -291,7 +466,7 @@ export default function WaiterReservationsPage() {
                                     onStart={() => handleStartReservation(res.id)}
                                     onFinish={() => handleFinishReservation(res.id)}
                                     onMealServed={() => handleMealsServed(res.id)}
-                                    // onReceipt={() => handleReceipt(res.id)}   // ⬅ ТУТ
+                                    onReceipt={() => handleReceipt(res.id)}
                                 />
                             ))}
                         </div>

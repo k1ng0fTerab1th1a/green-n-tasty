@@ -4,7 +4,9 @@ using Restaurant.Core.Errors;
 using Restaurant.Core.Helpers;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
+using Restaurant.Core.Messaging;
 using Restaurant.Core.Models;
+using System.Text.Json;
 
 namespace Restaurant.Core.Services;
 
@@ -19,6 +21,7 @@ public sealed class ReservationService : IReservationService
     private readonly ITableRepository _tableRepository;
     private readonly IUserRepository _userRepository;
     private readonly IDishRepository _dishRepository;
+    private readonly IEventPublisher _eventPublisher;
 
     public ReservationService(
         IReservationRepository repo,
@@ -26,7 +29,8 @@ public sealed class ReservationService : IReservationService
         ILocationRepository locationRepository,
         ITableRepository tableRepository,
         IUserRepository userRepository,
-        IDishRepository dishRepository)
+        IDishRepository dishRepository,
+        IEventPublisher eventPublisher)
     {
         _repo = repo;
         _waiterScheduleRepository = waiterScheduleRepository;
@@ -34,6 +38,7 @@ public sealed class ReservationService : IReservationService
         _tableRepository = tableRepository;
         _userRepository = userRepository;
         _dishRepository = dishRepository;
+        _eventPublisher = eventPublisher;
     }
 
     public async Task<Result<IReadOnlyList<Reservation>>> GetByCustomer(string actorUserId, CancellationToken ct = default)
@@ -164,6 +169,10 @@ public sealed class ReservationService : IReservationService
         if (!string.Equals(actor.Role, WaiterRole, StringComparison.OrdinalIgnoreCase))
             return ReservationErrors.Forbidden;
 
+        var waiterLocationId = actor.LocationId?.Trim();
+        if (string.IsNullOrWhiteSpace(waiterLocationId))
+            return ReservationErrors.WaiterLocationNotConfigured;
+
         var customerId = string.IsNullOrWhiteSpace(dto.CustomerId) ? null : dto.CustomerId.Trim();
         var visitorName = string.IsNullOrWhiteSpace(dto.VisitorName) ? null : dto.VisitorName.Trim();
 
@@ -182,7 +191,7 @@ public sealed class ReservationService : IReservationService
             customerName = $"{customer.FirstName} {customer.LastName}";
         }
 
-        var location = await _locationRepository.GetByIdAsync(dto.LocationId, ct);
+        var location = await _locationRepository.GetByIdAsync(waiterLocationId, ct);
         if (location is null) return ReservationErrors.LocationNotFound;
 
         var (startDate, endDate) = ReservationTimeHelper.ResolveReservationDates(dto.Date, dto.TimeFrom, dto.TimeTo, location);
@@ -194,7 +203,7 @@ public sealed class ReservationService : IReservationService
 
         var slots = ReservationTimeHelper.GenerateSlots(start, end);
 
-        var schedule = await _waiterScheduleRepository.GetAsync($"{dto.LocationId}#{dto.TableNumber}", dto.Date.ToString("yyyy-MM-dd"), ct);
+        var schedule = await _waiterScheduleRepository.GetAsync($"{waiterLocationId}#{dto.TableNumber}", dto.Date.ToString("yyyy-MM-dd"), ct);
         if (schedule is null) return ReservationErrors.NoWaiterAssigned;
 
         if (!string.Equals(schedule.WaiterId, waiterId, StringComparison.Ordinal))
@@ -209,10 +218,10 @@ public sealed class ReservationService : IReservationService
             CustomerName = customerName,
             WaiterId = waiterId,
             WaiterName = $"{actor.FirstName} {actor.LastName}",
-            LocationId = dto.LocationId,
+            LocationId = waiterLocationId,
             LocationAddress = location.Address,
             TableNumber = dto.TableNumber,
-            TableKey = $"{dto.LocationId}#{dto.TableNumber}",
+            TableKey = $"{waiterLocationId}#{dto.TableNumber}",
             StartDateTime = start.ToString("yyyy-MM-ddTHH:mmzzz"),
             EndDateTime = end.ToString("yyyy-MM-ddTHH:mmzzz"),
             ActualStartTime = null,
@@ -390,10 +399,11 @@ public sealed class ReservationService : IReservationService
         if (reservation.Status != ReservationStatus.InProgress)
             return ReservationErrors.NotFinishable;
 
-        var actualEnd = DateTimeOffset.UtcNow.ToString("O");
+        var actualEnd = DateTimeOffset.UtcNow;
+        var actualEndText = actualEnd.ToString("O");
         reservation.Status = ReservationStatus.Finished;
-        reservation.ActualEndTime = actualEnd;
-        reservation.UpdatedAt = actualEnd;
+        reservation.ActualEndTime = actualEndText;
+        reservation.UpdatedAt = actualEndText;
 
         var slots = ReservationTimeHelper.GenerateSlots(
             DateTimeOffset.Parse(reservation.StartDateTime),
@@ -421,7 +431,23 @@ public sealed class ReservationService : IReservationService
             }
         }
 
+        await PublishReservationCompletedAsync(reservation.Id, actualEnd, ct);
+
         return reservation;
+    }
+
+    private async Task PublishReservationCompletedAsync(
+        string reservationId,
+        DateTimeOffset actualEnd,
+        CancellationToken ct)
+    {
+        var reservationCompletedEvent = new SqsEvent(
+            EventTypes.ReservationCompleted,
+            JsonSerializer.SerializeToElement(new ReservationCompletedDTO(
+                reservationId,
+                actualEnd)));
+
+        await _eventPublisher.PublishAsync(reservationCompletedEvent, ct);
     }
     
     private static string GenerateReservationId(string locationAddress, int tableNumber, DateTimeOffset start)
@@ -434,7 +460,8 @@ public sealed class ReservationService : IReservationService
 
         var dateCode = start.ToString("ddMMyy");
         var timeCode = start.ToString("HHmm");
+        var suffix = Guid.NewGuid().ToString("N")[..6];
 
-        return $"{addressCode}-{tableNumber}-{dateCode}-{timeCode}";
+        return $"{addressCode}-{tableNumber}-{dateCode}-{timeCode}-{suffix}";
     }
 }

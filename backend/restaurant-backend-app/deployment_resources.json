@@ -35,7 +35,8 @@
             "sqs:GetQueueAttributes",
             "ses:SendEmail",
             "ses:SendRawEmail",
-            "s3:GetObject"
+            "s3:GetObject",
+            "s3:PutObject"
           ],
           "Effect": "Allow",
           "Resource": "*"

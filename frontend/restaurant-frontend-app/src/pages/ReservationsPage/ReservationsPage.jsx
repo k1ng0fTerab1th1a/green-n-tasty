@@ -7,7 +7,12 @@ import {
     ReservationModal,
     FeedbackModal
 } from "../../components/index.js";
-import { submitAuthorisedFeedback } from "../../services/feedbacks";
+import {
+    submitAuthorisedFeedback,
+    getFeedbackShortData,
+    getFeedbackShortUpdateData,
+    updateAuthorisedFeedback,
+} from "../../services/feedbacks";
 import { getClientReservations, deleteReservation } from "../../services/reservations";
 import { getAvailableTables } from "../../services/bookings";
 import { useAuth } from "../../auth/AuthContext.jsx";
@@ -23,6 +28,11 @@ export default function ReservationsPage() {
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [feedbackReservationId, setFeedbackReservationId] = useState(null);
     const [currentBookingStatus, setCurrentBookingStatus] = useState(null);
+
+    const [feedbackInitialData, setFeedbackInitialData] = useState(null);
+    const [feedbackWaiter, setFeedbackWaiter] = useState(null);
+    const [feedbackIsMealServed, setFeedbackIsMealServed] = useState(false);
+    const [isEditingFeedback, setIsEditingFeedback] = useState(false);
 
     const welcomeTitle = `Hello, ${auth.username || "Guest"}`;
 
@@ -59,10 +69,59 @@ export default function ReservationsPage() {
         }
     };
 
-    const handleFeedbackClick = (booking) => {
-        setFeedbackReservationId(booking.id);
-        setCurrentBookingStatus(booking.status); // Зберігаємо статус для модалки
-        setIsFeedbackModalOpen(true);
+    const handleFeedbackClick = async (booking) => {
+        try {
+            setFeedbackReservationId(booking.id);
+            setCurrentBookingStatus(booking.status);
+            setFeedbackIsMealServed(!!booking.isMealServed);
+            setIsEditingFeedback(!!booking.hasFeedback);
+
+            const loader = booking.hasFeedback
+                ? getFeedbackShortUpdateData
+                : getFeedbackShortData;
+
+            const result = await loader(booking.id);
+
+            if (result.isSuccess && result.data) {
+                const data = result.data;
+                // Дані для редагування знаходяться в updateUserData
+                const updateData = data.updateUserData || {};
+
+                setFeedbackInitialData({
+                    serviceRating: updateData.serviceRating || 0,
+                    serviceComment: updateData.serviceComment || "",
+                    culinaryRating: updateData.kitchenRating || 0, // Зверніть увагу на назву в JSON
+                    cuisineComment: updateData.kitchenComment || "", // Зверніть увагу на назву в JSON
+                    // Додаємо флаг, яку вкладку відкрити
+                    initialTab: updateData.kitchenFeedbackId && !updateData.serviceFeedbackId ? "culinary" : "service"
+                });
+
+                if (data.waiterName) {
+                    setFeedbackWaiter({
+                        name: data.waiterName,
+                        role: "Waiter",
+                        rating: data.waiterRating ? Number(data.waiterRating.toFixed(2)) : 5,
+                        avatar: data.waiterImageUrl || "",
+                    });
+                } else {
+                    setFeedbackWaiter(null);
+                }
+
+                setIsFeedbackModalOpen(true);
+            } else if (!result.isSuccess) {
+                showToast(
+                    "error",
+                    "Error",
+                    result.message || "Failed to load feedback data"
+                );
+                setFeedbackInitialData(null);
+                setFeedbackWaiter(null);
+            }
+
+            setIsFeedbackModalOpen(true);
+        } catch (error) {
+            showToast("error", "Error", "Failed to load feedback data");
+        }
     };
 
     const formatTimeFromISO = (isoString) => {
@@ -89,17 +148,35 @@ export default function ReservationsPage() {
                 payload.cuisineComment = data.cuisineComment || "";
             }
 
-            const result = await submitAuthorisedFeedback(payload);
+            let result;
+            if (isEditingFeedback) {
+                // PUT /feedbacks/update-feedback
+                result = await updateAuthorisedFeedback(payload);
+            } else {
+                // POST /feedbacks/authorised
+                result = await submitAuthorisedFeedback(payload);
+            }
 
             if (result.isSuccess) {
-                showToast("success", "Thank you!", "Your feedback has been submitted.");
+                showToast(
+                    "success",
+                    "Thank you!",
+                    isEditingFeedback
+                        ? "Your feedback has been updated."
+                        : "Your feedback has been submitted."
+                );
                 setIsFeedbackModalOpen(false);
                 loadData();
             } else {
                 showToast("error", "Failed", result.message);
             }
         } catch (error) {
-            showToast("error", "Error", "Could not submit feedback");
+            const message =
+                error?.response?.data?.message ||
+                error?.message ||
+                String(error);
+
+            showToast("error", "Error", message);
         }
     };
 
@@ -166,6 +243,37 @@ export default function ReservationsPage() {
 
     useEffect(() => { loadData(); }, []);
 
+    const getStatusKey = (status) => {
+        const normalized = status?.toLowerCase().replace(/\s+/g, "");
+        if (normalized === "cancelled" || normalized === "canceled") return "cancelled";
+        return normalized || "";
+    };
+
+    const statusPriority = {
+        inprogress: 0,
+        reserved: 1,
+        finished: 2,
+        cancelled: 3,
+    };
+
+    const sortedReservations = [...reservations].sort((a, b) => {
+        const aKey = getStatusKey(a.status);
+        const bKey = getStatusKey(b.status);
+
+        const ap = statusPriority[aKey] ?? 999;
+        const bp = statusPriority[bKey] ?? 999;
+
+        if (ap !== bp) return ap - bp;
+
+        // всередині категорії сортуємо за датою: найновіші спочатку
+        const aStart = a.startDateTime || "";
+        const bStart = b.startDateTime || "";
+
+        // більш пізня дата (більший рядок ISO) повинна йти вище
+        return bStart.localeCompare(aStart);
+    });
+
+
     return (
         <MainLayout>
             <div className={styles.page}>
@@ -177,7 +285,7 @@ export default function ReservationsPage() {
                         <div className={styles.stateMessage}>You don't have any reservations.</div>
                     ) : (
                         <div className={styles.grid}>
-                            {reservations.map((res) => {
+                            {sortedReservations.map((res) => {
                                 const startTime = formatTimeFromISO(res.startDateTime);
                                 const endTime = formatTimeFromISO(res.endDateTime);
 
@@ -192,12 +300,17 @@ export default function ReservationsPage() {
                                             }),
                                             time: `${startTime} - ${endTime}`,
                                             guests: res.guestsCount,
-                                            status: res.status
+                                            status: res.status,
+                                            hasFeedback: Boolean(
+                                                res.serviceFeedbackId || res.kitchenFeedbackId
+                                            ),
                                         }}
                                         onCancel={() => handleCancel(res.id)}
                                         onEdit={() => handleEditClick(res)}
                                         onFeedback={handleFeedbackClick}
-                                        hasFeedback={res.hasFeedback}
+                                        hasFeedback={Boolean(
+                                            res.serviceFeedbackId || res.kitchenFeedbackId
+                                        )}
                                     />
                                 );
                             })}
@@ -221,7 +334,10 @@ export default function ReservationsPage() {
                     onClose={() => setIsFeedbackModalOpen(false)}
                     onSubmit={handleFeedbackSubmit}
                     reservationId={feedbackReservationId}
-                    bookingStatus={currentBookingStatus} // Передаємо статус
+                    bookingStatus={currentBookingStatus}
+                    waiter={feedbackWaiter}
+                    initialData={feedbackInitialData}
+                    isMealServed={feedbackIsMealServed}   // ⬅ НОВЕ
                 />
             )}
 

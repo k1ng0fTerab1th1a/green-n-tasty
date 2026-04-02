@@ -9,17 +9,38 @@ export default function FeedbackModal({
                                           reservationId,
                                           waiter,
                                           bookingStatus,
-                                          initialData
+                                          initialData,
+                                          isMealServed = false,
                                       }) {
     const [activeTab, setActiveTab] = useState("service");
-    const [serviceRating, setServiceRating] = useState(initialData?.serviceRating || 4);
-    const [culinaryRating, setCulinaryRating] = useState(initialData?.culinaryRating || 4);
 
-    const [serviceComment, setServiceComment] = useState(initialData?.serviceComment || "");
-    const [cuisineComment, setCuisineComment] = useState(initialData?.cuisineComment || "");
+    const [serviceRating, setServiceRating] = useState(0);
+    const [culinaryRating, setCulinaryRating] = useState(0);
+    const [serviceComment, setServiceComment] = useState("");
+    const [cuisineComment, setCuisineComment] = useState("");
 
-    // Кухня сіра ТІЛЬКИ якщо статус InProgress
-    const isCulinaryDisabled = bookingStatus?.toLowerCase().replace(/\s+/g, "") === "inprogress";
+    useEffect(() => {
+        if (isOpen && initialData) {
+            setServiceRating(initialData.serviceRating || 0);
+            setCulinaryRating(initialData.culinaryRating || 0);
+            setServiceComment(initialData.serviceComment || "");
+            setCuisineComment(initialData.cuisineComment || "");
+
+            // АВТОМАТИЧНЕ ПЕРЕМИКАННЯ ВКЛАДКИ
+            // Якщо є дані по кухні, але немає по сервісу — відкриваємо кулінарію
+            if (initialData.initialTab) {
+                setActiveTab(initialData.initialTab);
+            } else if (initialData.culinaryRating > 0 && !initialData.serviceRating) {
+                setActiveTab("culinary");
+            } else {
+                setActiveTab("service");
+            }
+        }
+    }, [isOpen, initialData]);
+
+    const isCulinaryDisabled =
+        bookingStatus?.toLowerCase().replace(/\s+/g, "") === "inprogress" &&
+        !isMealServed;
 
     const displayWaiter = waiter || {
         name: "Mario Jast",

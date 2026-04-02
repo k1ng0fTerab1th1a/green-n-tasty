@@ -46,7 +46,7 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
         _factory.CognitoService.Reset();
 
         var req = Authed(HttpMethod.Put, "/user/email", userId: "user-42");
-        req.Content = Json(new { newEmail = "new@test.com" });
+        req.Content = Json(new { newEmail = "new@test.com", accessToken = "test-access-token" });
 
         var res = await _client.SendAsync(req);
 
@@ -54,9 +54,9 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
 
         using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
         doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
-        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Email updated successfully");
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Verification code sent to new email");
 
-        _factory.CognitoService.LastUpdateEmailArgs.Should().Be(("user-42", "new@test.com"));
+        _factory.CognitoService.LastUpdateEmailArgs.Should().Be(("test-access-token", "new@test.com"));
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
         _factory.CognitoService.UpdateEmailFailResult = AuthErrors.UserNotFound;
 
         var req = Authed(HttpMethod.Put, "/user/email", userId: "ghost-user");
-        req.Content = Json(new { newEmail = "new@test.com" });
+        req.Content = Json(new { newEmail = "new@test.com", accessToken = "test-access-token" });
 
         var res = await _client.SendAsync(req);
 
@@ -97,7 +97,7 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
         _factory.CognitoService.UpdateEmailFailResult = AuthErrors.UserAlreadyExists;
 
         var req = Authed(HttpMethod.Put, "/user/email", userId: "user-42");
-        req.Content = Json(new { newEmail = "taken@test.com" });
+        req.Content = Json(new { newEmail = "taken@test.com", accessToken = "test-access-token" });
 
         var res = await _client.SendAsync(req);
 
@@ -237,7 +237,7 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
     public async Task UpdateAvatar_WhenStorageFails_ShouldReturn500()
     {
         _factory.UserService.Reset();
-        _factory.UserService.UpdateAvatarFailResult = FileErrors.FileUploadFail;
+        _factory.UserService.UpdateAvatarExceptionToThrow = new Exception("Failed to upload to file system");
 
         var req = Authed(HttpMethod.Post, "/user/avatar", userId: "user-77");
         req.Content = CreateAvatarMultipartContent("image/png", [0x89, 0x50, 0x4E, 0x47]);
@@ -245,6 +245,93 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
         var res = await _client.SendAsync(req);
 
         res.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Failed to upload to file system");
+    }
+    
+    [Fact]
+    public async Task UpdateUsername_WithoutUserHeader_ShouldReturn401()
+    {
+        _factory.UserService.Reset();
+
+        var res = await _client.PutAsync("/user/username",
+            Json(new { firstName = "John", lastName = "Doe" }));
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        _factory.UserService.LastUpdateUserNameUserId.Should().BeNull();
+    }
+    
+    [Fact]
+    public async Task UpdateUsername_ShouldReturn200_AndCallServiceWithCorrectArgs()
+    {
+        _factory.UserService.Reset();
+
+        var req = Authed(HttpMethod.Put, "/user/username", userId: "user-42");
+        req.Content = Json(new { firstName = "John", lastName = "Doe" });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+
+        root.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+        root.GetPropertyIgnoreCase("message").GetString()
+            .Should().Be("Username updated successfully");
+
+        _factory.UserService.LastUpdateUserNameUserId.Should().Be("user-42");
+        _factory.UserService.LastUpdateFirstName.Should().Be("John");
+        _factory.UserService.LastUpdateLastName.Should().Be("Doe");
+    }
+    
+    [Fact]
+    public async Task UpdateUsername_WhenValidationFails_ShouldReturn400_AndNotCallService()
+    {
+        _factory.UserService.Reset();
+
+        var req = Authed(HttpMethod.Put, "/user/username", userId: "user-42");
+        req.Content = Json(new { firstName = "", lastName = "" }); // invalid
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        _factory.UserService.LastUpdateUserNameUserId.Should().BeNull();
+    }
+    
+    [Fact]
+    public async Task UpdateUsername_WhenUserNotFound_ShouldReturn404()
+    {
+        _factory.UserService.Reset();
+        _factory.UserService.UpdateUserNameFailResult = UserErrors.UserNotFound;
+
+        var req = Authed(HttpMethod.Put, "/user/username", userId: "ghost-user");
+        req.Content = Json(new { firstName = "John", lastName = "Doe" });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+    }
+    
+    [Fact]
+    public async Task UpdateUsername_WhenValidationErrorFromService_ShouldReturn400()
+    {
+        _factory.UserService.Reset();
+        _factory.UserService.UpdateUserNameFailResult = UserErrors.UpdateNotSuccessful;
+
+        var req = Authed(HttpMethod.Put, "/user/username", userId: "user-42");
+        req.Content = Json(new { firstName = "J", lastName = "D" });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     private static MultipartFormDataContent CreateAvatarMultipartContent(string contentType, byte[] payload)

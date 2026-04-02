@@ -96,4 +96,82 @@ public sealed class LocationRepositoryIntegrationTests
 
         item.Should().BeNull();
     }
+    
+    [Fact]
+    public async Task UpdateKitchenRatingAsync_ShouldUpdateRatingAndFeedbacksAmount()
+    {
+        var id = Guid.NewGuid().ToString("N");
+
+        await _context.SaveAsync(new Location
+        {
+            Id = id,
+            Address = "Berlin, Test str 1",
+            Description = "Test",
+            TotalCapacity = 10,
+            AverageOccupancy = 0.5,
+            ImageUrl = "http://img",
+            TotalRating = 420,
+            FeedbacksAmount = 100 
+        });
+
+        await _repo.UpdateKitchenRatingAsync(id, 5);
+
+        var updatedLocation = await _repo.GetByIdAsync(id);
+
+        updatedLocation.Should().NotBeNull();
+        updatedLocation!.TotalRating.Should().Be(425);
+        updatedLocation.FeedbacksAmount.Should().Be(101);
+    }
+
+    [Fact]
+    public async Task GetLocationFeedbacksDataAsync_ShouldReturnCorrectData()
+    {
+        var id = Guid.NewGuid().ToString("N");
+
+        await _context.SaveAsync(new Location
+        {
+            Id = id,
+            Address = "Berlin, Test str 1",
+            Description = "Test",
+            TotalCapacity = 10,
+            AverageOccupancy = 0.5,
+            ImageUrl = "http://img",
+            TotalRating = 420,
+            FeedbacksAmount = 100 
+        });
+
+        var (rating, feedbacksAmount) = await _repo.GetLocationFeedbacksDataAsync(id);
+
+        rating.Should().Be(420);
+        feedbacksAmount.Should().Be(100);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldUpdateLocationDetails()
+    {
+        var id = Guid.NewGuid().ToString("N");
+
+        var location = new Location
+        {
+            Id = id,
+            Address = "Berlin, Test str 1",
+            Description = "Test",
+            TotalCapacity = 10,
+            AverageOccupancy = 0.5,
+            ImageUrl = "http://img",
+            TotalRating = 420,
+            FeedbacksAmount = 100 
+        };
+        await _context.SaveAsync(location);
+
+        location.Address = "Berlin, Updated str 1";
+        location.TotalCapacity = 15;
+        await _repo.UpdateAsync(location, CancellationToken.None);
+
+        var updatedLocation = await _repo.GetByIdAsync(id);
+
+        updatedLocation.Should().NotBeNull();
+        updatedLocation!.Address.Should().Be("Berlin, Updated str 1");
+        updatedLocation.TotalCapacity.Should().Be(15);
+    }
 }

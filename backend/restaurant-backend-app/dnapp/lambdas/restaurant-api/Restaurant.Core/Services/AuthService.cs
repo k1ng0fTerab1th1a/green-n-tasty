@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
@@ -22,9 +23,12 @@ public class AuthService : IAuthService
 
     public async Task<Result> SignUpAsync(string email, string password, string firstName, string lastName, CancellationToken ct = default)
     {
-        var role = "CUSTOMER";
-        bool isWaiter = await IsWaiter(email, ct);
-        if (isWaiter) role = "WAITER";
+        var waiterEntry = await GetWaiterEntry(email, ct);
+        var isWaiter = waiterEntry is not null;
+        var role = isWaiter ? "WAITER" : "CUSTOMER";
+
+        if (isWaiter && string.IsNullOrWhiteSpace(waiterEntry!.LocationId))
+            return Result.Fail(AuthErrors.WaiterLocationNotConfigured);
 
         var signUpResult = await _cognitoService.SignUpAsync(email, password, firstName, lastName, role, ct);
         if (signUpResult.IsFailed)
@@ -42,7 +46,11 @@ public class AuthService : IAuthService
                 CreatedAt = DateTime.UtcNow.ToString("o"),
                 UpdatedAt = DateTime.UtcNow.ToString("o")
             };
-            if (isWaiter) user.WaiterFlag = "1";
+            if (isWaiter)
+            {
+                user.WaiterFlag = "1";
+                user.LocationId = waiterEntry!.LocationId!.Trim();
+            }
 
             await _userRepository.CreateAsync(user, ct);
         }
@@ -61,7 +69,7 @@ public class AuthService : IAuthService
         if (signInResult.IsFailed)
             return Result.Fail<AuthResult>(signInResult.Errors);
 
-        var (idToken, refreshToken) = signInResult.Value;
+        var (idToken, accessToken, refreshToken) = signInResult.Value;
 
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(idToken);
@@ -71,11 +79,11 @@ public class AuthService : IAuthService
         var username = $"{firstName} {lastName}".Trim();
         var role = jwtToken.Claims.FirstOrDefault(c => c.Type == "custom:role")?.Value ?? "CUSTOMER";
 
-        return new AuthResult(idToken, refreshToken, username, role);
+        return new AuthResult(idToken, accessToken, refreshToken, username, role);
     }
 
-    private async Task<bool> IsWaiter(string email, CancellationToken ct)
+    private async Task<WaiterListEntry?> GetWaiterEntry(string email, CancellationToken ct)
     {
-        return await _waiterListRepository.ContainsAsync(email, ct);
+        return await _waiterListRepository.GetByEmailAsync(email, ct);
     }
 }

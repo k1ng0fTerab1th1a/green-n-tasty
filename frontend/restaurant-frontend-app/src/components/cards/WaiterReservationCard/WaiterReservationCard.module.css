@@ -74,3 +74,10 @@
     font-weight: 700 !important;
     min-width: 120px;
 }
+
+.tableLabel {
+    font-weight: 500;
+    color: #000;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}

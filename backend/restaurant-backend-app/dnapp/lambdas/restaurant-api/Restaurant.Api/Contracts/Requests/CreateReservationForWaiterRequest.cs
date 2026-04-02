@@ -2,7 +2,6 @@
 
 public sealed class CreateReservationForWaiterRequest
 {
-    public string LocationId { get; set; } = null!;
     public int TableNumber { get; set; }
     public string Date { get; set; } = null!;
     public string TimeFrom { get; set; } = null!;

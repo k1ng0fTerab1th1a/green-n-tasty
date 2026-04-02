@@ -112,6 +112,71 @@ public sealed class OrderRepositoryIntegrationTests
         loadedReservation.Should().NotBeNull();
         loadedReservation!.DishCount.Should().Be(0);
     }
+    
+
+    [Fact]
+    public async Task CompleteOnReservationFinishIfOpenAsync_WhenOrderIsNotOpen_ShouldReturnTrue()
+    {
+        var order = BuildOrder();
+        order.Status = OrderStatus.Completed;
+        await _context.SaveAsync(order);
+
+        var result = await _repo.CompleteOnReservationFinishIfOpenAsync(order.ReservationId, order.WaiterId, DateTimeOffset.UtcNow.ToString("O"));
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CompleteAsync_WhenConditionsMet_ShouldCompleteOrder()
+    {
+        var order = BuildOrder();
+        await _context.SaveAsync(order);
+        
+        order.CompletedAt = DateTimeOffset.UtcNow.ToString("O");
+
+        var result = await _repo.CompleteAsync(order, order.WaiterId, order.Version, Guid.NewGuid().ToString(), CancellationToken.None);
+
+        result.Should().BeTrue();
+
+        var updatedOrder = await _context.LoadAsync<Order>(order.Id);
+        updatedOrder.Should().NotBeNull();
+        updatedOrder!.Status.Should().Be(OrderStatus.Completed);
+    }
+
+    [Fact]
+    public async Task CompleteAsync_WhenConditionsNotMet_ShouldReturnFalse()
+    {
+        var order = BuildOrder();
+        await _context.SaveAsync(order);
+        
+        order.CompletedAt = DateTimeOffset.UtcNow.ToString("O");
+
+        var result = await _repo.CompleteAsync(order, "wrong-waiter-id", order.Version, Guid.NewGuid().ToString(), CancellationToken.None);
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetByReservationIdAsync_WhenReservationDoesNotExist_ShouldReturnNull()
+    {
+        var result = await _repo.GetByReservationIdAsync(Guid.NewGuid().ToString("N"));
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateWithReservationDishCountAsync_WhenConditionsNotMet_ShouldReturnFalse()
+    {
+        var reservation = BuildReservation(waiterId: "waiter-1", status: ReservationStatus.InProgress, dishCount: 0);
+        await _context.SaveAsync(reservation);
+
+        var order = BuildOrder(reservationId: reservation.Id, waiterId: reservation.WaiterId);
+        await _context.SaveAsync(order);
+
+        var result = await _repo.UpdateWithReservationDishCountAsync(order, order.Version, Guid.NewGuid().ToString(), -1, DateTimeOffset.UtcNow.ToString("O"), CancellationToken.None);
+
+        result.Should().BeFalse();
+    }
 
     private static Reservation BuildReservation(string waiterId, ReservationStatus status, int dishCount)
     {

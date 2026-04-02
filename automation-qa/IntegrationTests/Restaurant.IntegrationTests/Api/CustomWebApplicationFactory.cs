@@ -1,6 +1,7 @@
 ﻿using Amazon.CognitoIdentityProvider;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.S3;
 using FluentResults;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
@@ -14,6 +15,9 @@ using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
 using Restaurant.Core.SharedModels;
+using Restaurant.Infrastructure.Services;
+using Restaurant.Reports.Application;
+using Restaurant.Reports.Domain.Data;
 
 namespace Restaurant.IntegrationTests.Api;
 
@@ -28,6 +32,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public FakeCognitoService CognitoService { get; } = new();
     public FakeUserService UserService { get; }
     public FakeTableService TableService { get; } = new();
+    public FakeReceiptService ReceiptService { get; } = new();
+    public FakeReportService ReportService { get; } = new();
+    public Mock<IFileService> FileServiceMock { get; private set; } = new();
 
     public CustomWebApplicationFactory()
     {
@@ -56,7 +63,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddSingleton<IAmazonDynamoDB>(_ => new Mock<IAmazonDynamoDB>().Object);
             services.AddSingleton<IDynamoDBContext>(_ => new Mock<IDynamoDBContext>().Object);
             services.AddSingleton<IAmazonCognitoIdentityProvider>(_ => new Mock<IAmazonCognitoIdentityProvider>().Object);
-
+            
+            services.RemoveAll<IFileService>();
+            services.AddSingleton<IFileService>(FileServiceMock.Object);
+            
             services.RemoveAll<IReservationService>();
             services.AddSingleton<IReservationService>(ReservationService);
 
@@ -83,9 +93,16 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<ITableService>();
             services.AddSingleton<ITableService>(TableService);
+            
+            services.RemoveAll<IReceiptService>();
+            services.AddSingleton<IReceiptService>(ReceiptService);
+            
+            services.RemoveAll<IReportService>();
+            services.AddSingleton<IReportService>(ReportService);
         });
     }
 
+    public void ResetFileServiceMock() => FileServiceMock.Reset();
     public sealed class FakeUserService : IUserService
     {
         private readonly FakeCognitoService _cognitoService;
@@ -98,6 +115,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public BusinessError? UpdateUserNameFailResult { get; set; }
         public BusinessError? UpdateAvatarFailResult { get; set; }
+        public Exception? UpdateAvatarExceptionToThrow { get; set; }
         public BusinessError? GetMeFailResult { get; set; }
         public string AvatarUrlResponse { get; set; } = "https://cdn.test/avatar.jpg";
         public User MeResponse { get; set; } = BuildDefaultUser();
@@ -109,11 +127,12 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public string? LastAvatarContentType { get; private set; }
         public long LastAvatarSize { get; private set; }
         public string? LastGetMeUserId { get; private set; }
-
+        
         public void Reset()
         {
             UpdateUserNameFailResult = null;
             UpdateAvatarFailResult = null;
+            UpdateAvatarExceptionToThrow = null;
             GetMeFailResult = null;
             AvatarUrlResponse = "https://cdn.test/avatar.jpg";
             MeResponse = BuildDefaultUser();
@@ -127,8 +146,11 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastGetMeUserId = null;
         }
 
-        public async Task<Result> UpdateEmailAsync(string userId, string newEmail, CancellationToken ct)
-            => await _cognitoService.UpdateUserEmailAsync(userId, newEmail, ct);
+        public async Task<Result> UpdateEmailAsync(string newEmail, string accessToken, CancellationToken ct)
+            => await _cognitoService.UpdateUserEmailAsync(accessToken, newEmail, ct);
+
+        public Task<Result> VerifyEmailChangeAsync(string userId, string newEmail, string accessToken, string code, CancellationToken ct)
+            => Task.FromResult(Result.Ok());
 
         public Task<Result> UpdateUserNameAsync(string userId, string firstName, string lastName, CancellationToken ct)
         {
@@ -147,6 +169,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastUpdateAvatarUserId = userId;
             LastAvatarContentType = file.ContentType;
             LastAvatarSize = file.Size;
+
+            if (UpdateAvatarExceptionToThrow is not null)
+                throw UpdateAvatarExceptionToThrow;
 
             if (UpdateAvatarFailResult is not null)
                 return Task.FromResult(Result.Fail<string>(UpdateAvatarFailResult));
@@ -181,7 +206,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
     public sealed class FakeAuthService : IAuthService
     {
-        public AuthResult SignInResponse { get; set; } = new("id-token", "refresh-token", "John Doe", "CUSTOMER");
+        public AuthResult SignInResponse { get; set; } = new("id-token", "access-token", "refresh-token", "John Doe", "CUSTOMER");
 
         public BusinessError? SignUpFailResult { get; set; }
         public BusinessError? SignInFailResult { get; set; }
@@ -195,7 +220,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public void Reset()
         {
-            SignInResponse = new AuthResult("id-token", "refresh-token", "John Doe", "CUSTOMER");
+            SignInResponse = new AuthResult("id-token", "access-token", "refresh-token", "John Doe", "CUSTOMER");
             SignUpFailResult = null;
             SignInFailResult = null;
             LastSignUpEmail = null;
@@ -230,6 +255,85 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Result.Ok(SignInResponse));
         }
     }
+    
+    public sealed class FakeReportService : IReportService
+{
+    public DateRange? LastRange { get; private set; }
+    public DateRange? LastComparisonRange { get; private set; }
+
+    public BusinessError? FailResult { get; set; }
+
+    public List<LocationReportData> LocationResponse { get; set; } = new();
+    public List<WaiterReportData> WaiterResponse { get; set; } = new();
+
+    public byte[] LocationExportResponse { get; set; } = [1, 2, 3];
+    public byte[] WaiterExportResponse { get; set; } = [4, 5, 6];
+
+    public void Reset()
+    {
+        LastRange = null;
+        LastComparisonRange = null;
+        FailResult = null;
+
+        LocationResponse = new();
+        WaiterResponse = new();
+
+        LocationExportResponse = [1, 2, 3];
+        WaiterExportResponse = [4, 5, 6];
+    }
+
+    public Task<Result<List<LocationReportData>>> GetLocationReportDataAsync(
+        DateRange range, DateRange? comparisonRange, CancellationToken ct)
+    {
+        LastRange = range;
+        LastComparisonRange = comparisonRange;
+
+        if (FailResult is not null)
+            return Task.FromResult(Result.Fail<List<LocationReportData>>(FailResult));
+
+        return Task.FromResult(Result.Ok(LocationResponse));
+    }
+
+    public Task<Result<List<WaiterReportData>>> GetWaiterReportDataAsync(
+        DateRange range, DateRange? comparisonRange, CancellationToken ct)
+    {
+        LastRange = range;
+        LastComparisonRange = comparisonRange;
+
+        if (FailResult is not null)
+            return Task.FromResult(Result.Fail<List<WaiterReportData>>(FailResult));
+
+        return Task.FromResult(Result.Ok(WaiterResponse));
+    }
+
+    public Task<Result<byte[]>> ExportLocationReportAsync(
+        DateRange range, DateRange? comparisonRange, CancellationToken ct)
+    {
+        LastRange = range;
+        LastComparisonRange = comparisonRange;
+
+        if (FailResult is not null)
+            return Task.FromResult(Result.Fail<byte[]>(FailResult));
+
+        return Task.FromResult(Result.Ok(LocationExportResponse));
+    }
+
+    public Task<Result<byte[]>> ExportWaiterReportAsync(
+        DateRange range, DateRange? comparisonRange, CancellationToken ct)
+    {
+        LastRange = range;
+        LastComparisonRange = comparisonRange;
+
+        if (FailResult is not null)
+            return Task.FromResult(Result.Fail<byte[]>(FailResult));
+
+        return Task.FromResult(Result.Ok(WaiterExportResponse));
+    }
+
+    public Task<Result<FullReportData>> GetFullReportDataAsync(
+        DateRange range, DateRange? comparisonRange, CancellationToken ct)
+        => throw new NotImplementedException();
+}
 
     public sealed class FakeOrderService : IOrderService
     {
@@ -356,7 +460,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public BusinessError? UpdateEmailFailResult { get; set; }
         public string? LastRefreshTokenInput { get; private set; }
         public string? LastSignOutRefreshToken { get; private set; }
-        public (string UserId, string NewEmail)? LastUpdateEmailArgs { get; private set; }
+        public (string AccessToken, string NewEmail)? LastUpdateEmailArgs { get; private set; }
 
         public void Reset()
         {
@@ -374,7 +478,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role, CancellationToken ct = default)
             => throw new NotImplementedException();
 
-        public Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password, CancellationToken ct = default)
+        public Task<Result<(string IdToken, string AccessToken, string RefreshToken)>> SignInAsync(string email, string password, CancellationToken ct = default)
             => throw new NotImplementedException();
 
         public Task<Result> DeleteUserAsync(string email, CancellationToken ct = default)
@@ -400,15 +504,18 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Result.Ok());
         }
 
-        public Task<Result> UpdateUserEmailAsync(string userId, string newEmail, CancellationToken ct = default)
+        public Task<Result> UpdateUserEmailAsync(string accessToken, string newEmail, CancellationToken ct = default)
         {
-            LastUpdateEmailArgs = (userId, newEmail);
+            LastUpdateEmailArgs = (accessToken, newEmail);
 
             if (UpdateEmailFailResult is not null)
                 return Task.FromResult(Result.Fail(UpdateEmailFailResult));
 
             return Task.FromResult(Result.Ok());
         }
+
+        public Task<Result> VerifyEmailChangeAsync(string accessToken, string code, CancellationToken ct = default)
+            => Task.FromResult(Result.Ok());
     }
 
     public sealed class FakeReservationService : IReservationService
@@ -619,6 +726,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             var start = new DateTimeOffset(dto.Date.ToDateTime(dto.TimeFrom), TimeSpan.Zero);
             var endDate = dto.TimeTo < dto.TimeFrom ? dto.Date.AddDays(1) : dto.Date;
             var end = new DateTimeOffset(endDate.ToDateTime(dto.TimeTo), TimeSpan.Zero);
+            const string waiterLocationId = "loc-1";
 
             var reservation = new Reservation
             {
@@ -627,10 +735,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 CustomerName = dto.CustomerId is null ? null : $"Customer {dto.CustomerId}",
                 WaiterId = waiterId,
                 WaiterName = $"Waiter {waiterId}",
-                LocationId = dto.LocationId,
+                LocationId = waiterLocationId,
                 LocationAddress = "Main street 1",
                 TableNumber = dto.TableNumber,
-                TableKey = $"{dto.LocationId}#{dto.TableNumber}",
+                TableKey = $"{waiterLocationId}#{dto.TableNumber}",
                 StartDateTime = start.ToString("O"),
                 EndDateTime = end.ToString("O"),
                 ActualStartTime = null,
@@ -784,6 +892,35 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             if (location is null)
                 return Task.FromResult(Result.Fail<Location>(LocationErrors.NotFound));
             return Task.FromResult(Result.Ok(location));
+        }
+    }
+    
+    public sealed class FakeReceiptService : IReceiptService
+    {
+        public byte[] PdfResponse { get; set; } = [0x25, 0x50, 0x44, 0x46];
+        public BusinessError? FailResult { get; set; }
+
+        public string? LastReservationId { get; private set; }
+        public string? LastWaiterId { get; private set; }
+
+        public void Reset()
+        {
+            PdfResponse = [0x25, 0x50, 0x44, 0x46];
+            FailResult = null;
+            LastReservationId = null;
+            LastWaiterId = null;
+        }
+
+        public Task<Result<byte[]>> GetReceiptAsync(
+            string reservationId, string waiterId, CancellationToken ct)
+        {
+            LastReservationId = reservationId;
+            LastWaiterId = waiterId;
+
+            if (FailResult is not null)
+                return Task.FromResult(Result.Fail<byte[]>(FailResult));
+
+            return Task.FromResult(Result.Ok(PdfResponse));
         }
     }
 

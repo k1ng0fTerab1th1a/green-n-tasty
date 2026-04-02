@@ -2,8 +2,11 @@ using FluentResults;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;
+using Restaurant.Core.Interfaces.Services;
+using Restaurant.Core.Messaging;
 using Restaurant.Core.Models;
 using Restaurant.Core.Services;
+using System.Text.Json;
 
 namespace Restaurant.UnitTests.Services;
 
@@ -17,6 +20,7 @@ public class FeedbackServiceTests
     private readonly Mock<IReservationRepository> _resRepo;
     private readonly Mock<IUserRepository> _userRepo;
     private readonly Mock<ILocationRepository> _locationRepo;
+    private readonly Mock<IEventPublisher> _eventPublisher;
     private readonly FeedbackService _sut;
 
     public FeedbackServiceTests()
@@ -25,12 +29,18 @@ public class FeedbackServiceTests
         _resRepo = new Mock<IReservationRepository>(MockBehavior.Strict);
         _userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
         _locationRepo = new Mock<ILocationRepository>(MockBehavior.Strict);
+        _eventPublisher = new Mock<IEventPublisher>(MockBehavior.Strict);
+
+        _eventPublisher
+            .Setup(p => p.PublishAsync(It.IsAny<SqsEvent>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _sut = new FeedbackService(
             _repo.Object,
             _resRepo.Object,
             _userRepo.Object,
-            _locationRepo.Object
+            _locationRepo.Object,
+            _eventPublisher.Object
         );
     }
 
@@ -474,6 +484,15 @@ public class FeedbackServiceTests
             It.IsAny<CancellationToken>()), Times.Once);
 
         _userRepo.Verify(u => u.UpdateUserRatingAsync("waiter-1", 5, It.IsAny<CancellationToken>()), Times.Once);
+        _eventPublisher.Verify(
+            p => p.PublishAsync(
+                It.Is<SqsEvent>(e =>
+                    e.EventType == EventTypes.FeedbackCreated &&
+                    e.Payload.GetProperty("ReservationId").GetString() == "rsv-1" &&
+                    e.Payload.GetProperty("ServiceFeedback").GetInt32() == 5 &&
+                    e.Payload.GetProperty("CuisineFeedback").ValueKind == JsonValueKind.Null),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
         _locationRepo.VerifyNoOtherCalls();
     }
 
@@ -522,6 +541,24 @@ public class FeedbackServiceTests
 
         _userRepo.Verify(u => u.UpdateUserRatingAsync("waiter-1", 5, It.IsAny<CancellationToken>()), Times.Once);
         _locationRepo.Verify(l => l.UpdateKitchenRatingAsync("loc-1", 4, It.IsAny<CancellationToken>()), Times.Once);
+        _eventPublisher.Verify(
+            p => p.PublishAsync(
+                It.Is<SqsEvent>(e =>
+                    e.EventType == EventTypes.FeedbackCreated &&
+                    e.Payload.GetProperty("ReservationId").GetString() == "rsv-1" &&
+                    e.Payload.GetProperty("ServiceFeedback").ValueKind == JsonValueKind.Number &&
+                    e.Payload.GetProperty("ServiceFeedback").GetInt32() == 5),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _eventPublisher.Verify(
+            p => p.PublishAsync(
+                It.Is<SqsEvent>(e =>
+                    e.EventType == EventTypes.FeedbackCreated &&
+                    e.Payload.GetProperty("ReservationId").GetString() == "rsv-1" &&
+                    e.Payload.GetProperty("CuisineFeedback").ValueKind == JsonValueKind.Number &&
+                    e.Payload.GetProperty("CuisineFeedback").GetInt32() == 4),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -728,6 +765,15 @@ public class FeedbackServiceTests
             It.IsAny<CancellationToken>()), Times.Once);
 
         _resRepo.Verify(r => r.ClearSecretCode("rsv-1", It.IsAny<CancellationToken>()), Times.Once);
+        _eventPublisher.Verify(
+            p => p.PublishAsync(
+                It.Is<SqsEvent>(e =>
+                    e.EventType == EventTypes.FeedbackCreated &&
+                    e.Payload.GetProperty("ReservationId").GetString() == "rsv-1" &&
+                    e.Payload.GetProperty("ServiceFeedback").GetInt32() == 5 &&
+                    e.Payload.GetProperty("CuisineFeedback").ValueKind == JsonValueKind.Null),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
         _locationRepo.VerifyNoOtherCalls();
     }
 
@@ -775,6 +821,24 @@ public class FeedbackServiceTests
 
         _resRepo.Verify(r => r.ClearSecretCode("rsv-1", It.IsAny<CancellationToken>()), Times.Once);
         _locationRepo.Verify(l => l.UpdateKitchenRatingAsync("loc-1", 4, It.IsAny<CancellationToken>()), Times.Once);
+        _eventPublisher.Verify(
+            p => p.PublishAsync(
+                It.Is<SqsEvent>(e =>
+                    e.EventType == EventTypes.FeedbackCreated &&
+                    e.Payload.GetProperty("ReservationId").GetString() == "rsv-1" &&
+                    e.Payload.GetProperty("ServiceFeedback").ValueKind == JsonValueKind.Number &&
+                    e.Payload.GetProperty("ServiceFeedback").GetInt32() == 5),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _eventPublisher.Verify(
+            p => p.PublishAsync(
+                It.Is<SqsEvent>(e =>
+                    e.EventType == EventTypes.FeedbackCreated &&
+                    e.Payload.GetProperty("ReservationId").GetString() == "rsv-1" &&
+                    e.Payload.GetProperty("CuisineFeedback").ValueKind == JsonValueKind.Number &&
+                    e.Payload.GetProperty("CuisineFeedback").GetInt32() == 4),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -1032,6 +1096,15 @@ public class FeedbackServiceTests
         _userRepo.Verify(u => u.CreateAsync(
             It.Is<User>(w => w.TotalRating == 17),
             It.IsAny<CancellationToken>(), true), Times.Once);
+        _eventPublisher.Verify(
+            p => p.PublishAsync(
+                It.Is<SqsEvent>(e =>
+                    e.EventType == EventTypes.FeedbackCreated &&
+                    e.Payload.GetProperty("ReservationId").GetString() == "rsv-1" &&
+                    e.Payload.GetProperty("ServiceFeedback").GetInt32() == 5 &&
+                    e.Payload.GetProperty("CuisineFeedback").ValueKind == JsonValueKind.Null),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -1074,6 +1147,15 @@ public class FeedbackServiceTests
         _locationRepo.Verify(l => l.UpdateAsync(
             It.Is<Location>(loc => loc.TotalRating == 13),
             It.IsAny<CancellationToken>()), Times.Once);
+        _eventPublisher.Verify(
+            p => p.PublishAsync(
+                It.Is<SqsEvent>(e =>
+                    e.EventType == EventTypes.FeedbackCreated &&
+                    e.Payload.GetProperty("ReservationId").GetString() == "rsv-1" &&
+                    e.Payload.GetProperty("ServiceFeedback").ValueKind == JsonValueKind.Null &&
+                    e.Payload.GetProperty("CuisineFeedback").GetInt32() == 5),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -1103,6 +1185,15 @@ public class FeedbackServiceTests
 
         result.IsSuccess.Should().BeTrue();
         _repo.Verify(r => r.SaveFeedbackAsync(It.IsAny<Feedback>(), It.IsAny<CancellationToken>()), Times.Once);
+        _eventPublisher.Verify(
+            p => p.PublishAsync(
+                It.Is<SqsEvent>(e =>
+                    e.EventType == EventTypes.FeedbackCreated &&
+                    e.Payload.GetProperty("ReservationId").GetString() == "rsv-1" &&
+                    e.Payload.GetProperty("ServiceFeedback").GetInt32() == 4 &&
+                    e.Payload.GetProperty("CuisineFeedback").ValueKind == JsonValueKind.Null),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
