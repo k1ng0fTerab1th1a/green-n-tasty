@@ -225,6 +225,104 @@ public sealed class UserServiceTests
         fileService.Verify(f => f.GetFileUrl("uploads/avatars/user-1/profile"), Times.Once);
         fileService.VerifyNoOtherCalls();
     }
+    
+    // ── UpdateEmailAsync ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task UpdateEmailAsync_WhenCognitoFails_ShouldReturnCognitoError_AndNotUpdateRepository()
+    {
+        var cognito    = new Mock<ICognitoService>(MockBehavior.Strict);
+        var userRepo   = new Mock<IUserRepository>(MockBehavior.Strict);
+        var fileService = new Mock<IFileService>(MockBehavior.Strict);
+
+        cognito.Setup(c => c.UpdateUserEmailAsync("user-1", "new@email.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Fail(UserErrors.UpdateNotSuccessful));
+
+        var sut = new UserService(cognito.Object, userRepo.Object, fileService.Object);
+
+        var result = await sut.UpdateEmailAsync("user-1", "new@email.com", CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().BeEquivalentTo(UserErrors.UpdateNotSuccessful);
+
+        cognito.Verify(c => c.UpdateUserEmailAsync("user-1", "new@email.com", It.IsAny<CancellationToken>()), Times.Once);
+        cognito.VerifyNoOtherCalls();
+        userRepo.VerifyNoOtherCalls();
+        fileService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task UpdateEmailAsync_WhenCognitoSucceeds_ShouldUpdateRepository_AndReturnOk()
+    {
+        var cognito     = new Mock<ICognitoService>(MockBehavior.Strict);
+        var userRepo    = new Mock<IUserRepository>(MockBehavior.Strict);
+        var fileService = new Mock<IFileService>(MockBehavior.Strict);
+
+        cognito.Setup(c => c.UpdateUserEmailAsync("user-1", "new@email.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Ok());
+
+        userRepo.Setup(r => r.UpdateEmailAsync("user-1", "new@email.com", It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var sut = new UserService(cognito.Object, userRepo.Object, fileService.Object);
+
+        var result = await sut.UpdateEmailAsync("user-1", "new@email.com", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+
+        cognito.Verify(c => c.UpdateUserEmailAsync("user-1", "new@email.com", It.IsAny<CancellationToken>()), Times.Once);
+        cognito.VerifyNoOtherCalls();
+        userRepo.Verify(r => r.UpdateEmailAsync("user-1", "new@email.com", It.IsAny<CancellationToken>()), Times.Once);
+        userRepo.VerifyNoOtherCalls();
+        fileService.VerifyNoOtherCalls();
+    }
+
+    // ── UpdateUserNameAsync ───────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task UpdateUserNameAsync_WhenRepositorySucceeds_ShouldReturnOk()
+    {
+        var cognito     = new Mock<ICognitoService>(MockBehavior.Strict);
+        var userRepo    = new Mock<IUserRepository>(MockBehavior.Strict);
+        var fileService = new Mock<IFileService>(MockBehavior.Strict);
+
+        userRepo.Setup(r => r.UpdateUserNameAsync("user-1", "Jane", "Smith", It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var sut = new UserService(cognito.Object, userRepo.Object, fileService.Object);
+
+        var result = await sut.UpdateUserNameAsync("user-1", "Jane", "Smith", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+
+        userRepo.Verify(r => r.UpdateUserNameAsync("user-1", "Jane", "Smith", It.IsAny<CancellationToken>()), Times.Once);
+        userRepo.VerifyNoOtherCalls();
+        cognito.VerifyNoOtherCalls();
+        fileService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task UpdateUserNameAsync_WhenRepositoryThrows_ShouldReturnUpdateNotSuccessful()
+    {
+        var cognito     = new Mock<ICognitoService>(MockBehavior.Strict);
+        var userRepo    = new Mock<IUserRepository>(MockBehavior.Strict);
+        var fileService = new Mock<IFileService>(MockBehavior.Strict);
+
+        userRepo.Setup(r => r.UpdateUserNameAsync("user-1", "Jane", "Smith", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("DynamoDB unavailable"));
+
+        var sut = new UserService(cognito.Object, userRepo.Object, fileService.Object);
+
+        var result = await sut.UpdateUserNameAsync("user-1", "Jane", "Smith", CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().BeEquivalentTo(UserErrors.UpdateNotSuccessful);
+
+        userRepo.Verify(r => r.UpdateUserNameAsync("user-1", "Jane", "Smith", It.IsAny<CancellationToken>()), Times.Once);
+        userRepo.VerifyNoOtherCalls();
+        cognito.VerifyNoOtherCalls();
+        fileService.VerifyNoOtherCalls();
+    }
 
     [Fact]
     public async Task ChangePasswordAsync_WhenAccessTokenMissing_ShouldReturnUnauthorized_AndNotCallCognito()

@@ -5,6 +5,7 @@ using Amazon.Runtime;
 
 namespace Restaurant.IntegrationTests.Infrastructure;
 
+
 public class DynamoDbFixture : IAsyncLifetime
 {
     private static readonly string[] RequiredUserIndexes =
@@ -51,31 +52,43 @@ public class DynamoDbFixture : IAsyncLifetime
     {
         const string tableName = "Users";
 
-        var existing = await Client.ListTablesAsync();
-        if (existing.TableNames.Contains(tableName))
+        try
         {
             var table = await Client.DescribeTableAsync(tableName);
+
             var existingIndexes = table.Table.GlobalSecondaryIndexes?
                 .Select(x => x.IndexName)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
+                .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? new HashSet<string>();
 
             var hasAllIndexes = RequiredUserIndexes.All(existingIndexes.Contains);
+
             if (hasAllIndexes)
             {
                 await WaitForTableActiveAsync(tableName);
                 return;
             }
 
+            // Schema mismatch → delete table
             await Client.DeleteTableAsync(tableName);
 
+            // Wait until table is fully deleted
             while (true)
             {
-                var tables = await Client.ListTablesAsync();
-                if (!tables.TableNames.Contains(tableName))
+                try
+                {
+                    await Client.DescribeTableAsync(tableName);
+                }
+                catch (ResourceNotFoundException)
+                {
                     break;
+                }
 
                 await Task.Delay(500);
             }
+        }
+        catch (ResourceNotFoundException)
+        {
+            // Table does not exist → continue to creation
         }
 
         var request = new CreateTableRequest
