@@ -231,7 +231,7 @@ public class CognitoService : ICognitoService
         }
         catch (Exception)
         {
-            return Result.Fail("Password update failed");
+            return AuthErrors.FailedPasswordUpdate;
         }
     }
 }

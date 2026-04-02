@@ -29,4 +29,7 @@ public static class AuthErrors
     public static BusinessError InvalidVerificationCode =>
         new("Invalid or expired verification code.", ErrorType.Validation);
 
+    public static BusinessError FailedPasswordUpdate =>
+        new("Failed password reset", ErrorType.Validation);
+
 }
