@@ -153,7 +153,7 @@ public class AuthServiceTests
                 u.Role == "WAITER" &&
                 u.WaiterFlag == "1" &&
                 u.LocationId == "loc-1"),
-            It.IsAny<CancellationToken>()), It.IsAny<bool>()), Times.Once);
+            It.IsAny<CancellationToken>(), It.IsAny<bool>()), Times.Once);
     }
 
     [Fact]
@@ -259,7 +259,8 @@ public class AuthServiceTests
 
         _userRepo.Verify(r => r.CreateAsync(
             It.IsAny<User>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<CancellationToken>(),
+            It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]
@@ -362,7 +363,10 @@ public class AuthServiceTests
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Never);
 
-        _userRepo.Verify(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()), Times.Never);
+        _userRepo.Verify(r => r.CreateAsync(
+            It.IsAny<User>(),
+            It.IsAny<CancellationToken>(),
+            It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]
