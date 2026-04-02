@@ -31,8 +31,8 @@ export default function LoginPage() {
     const [form, setForm] = useState({ email: "", password: "" });
     const [touched, setTouched] = useState({ email: false, password: false });
 
-    const [status, setStatus] = useState("idle"); // idle | loading | invalid | locked | server_error
-    const [banner, setBanner] = useState(""); // locked/server_error)
+    const [status, setStatus] = useState("idle");
+    const [banner, setBanner] = useState("");
     const [toastOpen, setToastOpen] = useState(false);
     const [toastData, setToastData] = useState(null);
     const { signInSuccess } = useAuth();
@@ -105,9 +105,9 @@ export default function LoginPage() {
                 return;
             }
 
-            const { idToken, refreshToken, username, role, email } = res.data;
+            const { idToken, accessToken, refreshToken, username, role, email } = res.data;
 
-            if (!idToken || !refreshToken) {
+            if (!idToken || !accessToken || !refreshToken) {  // ← Перевіряємо всі три токени
                 setStatus("server_error");
                 setBanner("Tokens were not returned by the server.");
                 return;
@@ -115,6 +115,7 @@ export default function LoginPage() {
 
             signInSuccess({
                 idToken,
+                accessToken,
                 refreshToken,
                 username,
                 role,
