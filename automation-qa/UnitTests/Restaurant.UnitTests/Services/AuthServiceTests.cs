@@ -269,7 +269,7 @@ public class AuthServiceTests
         var fakeToken = GenerateFakeJwt("John", "Doe", "CUSTOMER");
 
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Ok<(string, string)>((fakeToken, "refresh-token")));
+            .ReturnsAsync(Result.Ok<(string, string, string)>((fakeToken, It.IsAny<string>(), "refresh-token")));
 
         var result = await _sut.SignInAsync("user@test.com", "Pass123!");
 
@@ -286,7 +286,7 @@ public class AuthServiceTests
     {
         var fakeToken = GenerateFakeJwt("Bob", "Smith", "WAITER");
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Ok<(string, string)>((fakeToken, "refresh-token")));
+            .ReturnsAsync(Result.Ok<(string, string, string)>((fakeToken, It.IsAny<string>(), "refresh-token")));
 
         var result = await _sut.SignInAsync("waiter@test.com", "Pass123!");
 
@@ -304,7 +304,7 @@ public class AuthServiceTests
         var fakeToken = new JwtSecurityTokenHandler().WriteToken(token);
 
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Ok<(string, string)>((fakeToken, "refresh-token")));
+            .ReturnsAsync(Result.Ok<(string, string, string)>((fakeToken, It.IsAny<string>(), "refresh-token")));
 
         var result = await _sut.SignInAsync("user@test.com", "Pass123!");
 
@@ -321,7 +321,7 @@ public class AuthServiceTests
         var fakeToken = new JwtSecurityTokenHandler().WriteToken(token);
 
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Ok<(string, string)>((fakeToken, "refresh-token")));
+            .ReturnsAsync(Result.Ok<(string, string, string)>((fakeToken, It.IsAny<string>(), "refresh-token")));
 
         var result = await _sut.SignInAsync("user@test.com", "Pass123!");
 
@@ -332,7 +332,7 @@ public class AuthServiceTests
     public async Task SignIn_WhenInvalidCredentials_ShouldReturnFailedResult()
     {
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Fail<(string, string)>(AuthErrors.InvalidCredentials));
+            .ReturnsAsync(Result.Fail<(string, string, string)>(AuthErrors.InvalidCredentials));
 
         var result = await _sut.SignInAsync("user@test.com", "wrong");
 
@@ -373,7 +373,7 @@ public class AuthServiceTests
     public async Task SignIn_ShouldPropagate_EmailNotVerified_WhenCognitoReturnsEmailNotVerified()
     {
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Fail<(string, string)>(AuthErrors.EmailNotVerified));
+            .ReturnsAsync(Result.Fail<(string, string, string)>(AuthErrors.EmailNotVerified));
 
         var result = await _sut.SignInAsync("user@test.com", "Pass123!");
 

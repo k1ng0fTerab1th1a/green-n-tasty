@@ -235,30 +235,75 @@ public sealed class UserServiceTests
         var userRepo   = new Mock<IUserRepository>(MockBehavior.Strict);
         var fileService = new Mock<IFileService>(MockBehavior.Strict);
 
-        cognito.Setup(c => c.UpdateUserEmailAsync("user-1", "new@email.com", It.IsAny<CancellationToken>()))
+        cognito.Setup(c => c.UpdateUserEmailAsync("access-token", "new@email.com", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Fail(UserErrors.UpdateNotSuccessful));
 
         var sut = new UserService(cognito.Object, userRepo.Object, fileService.Object);
 
-        var result = await sut.UpdateEmailAsync("user-1", "new@email.com", CancellationToken.None);
+        var result = await sut.UpdateEmailAsync("new@email.com", "access-token", CancellationToken.None);
 
         result.IsFailed.Should().BeTrue();
         result.Errors[0].Should().BeEquivalentTo(UserErrors.UpdateNotSuccessful);
 
-        cognito.Verify(c => c.UpdateUserEmailAsync("user-1", "new@email.com", It.IsAny<CancellationToken>()), Times.Once);
+        cognito.Verify(c => c.UpdateUserEmailAsync("access-token", "new@email.com", It.IsAny<CancellationToken>()), Times.Once);
         cognito.VerifyNoOtherCalls();
         userRepo.VerifyNoOtherCalls();
         fileService.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task UpdateEmailAsync_WhenCognitoSucceeds_ShouldUpdateRepository_AndReturnOk()
+    public async Task UpdateEmailAsync_WhenCognitoSucceeds_ShouldReturnOk_WithoutTouchingRepository()
     {
         var cognito     = new Mock<ICognitoService>(MockBehavior.Strict);
         var userRepo    = new Mock<IUserRepository>(MockBehavior.Strict);
         var fileService = new Mock<IFileService>(MockBehavior.Strict);
 
-        cognito.Setup(c => c.UpdateUserEmailAsync("user-1", "new@email.com", It.IsAny<CancellationToken>()))
+        cognito.Setup(c => c.UpdateUserEmailAsync("access-token", "new@email.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Ok());
+
+        var sut = new UserService(cognito.Object, userRepo.Object, fileService.Object);
+
+        var result = await sut.UpdateEmailAsync("new@email.com", "access-token", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+
+        cognito.Verify(c => c.UpdateUserEmailAsync("access-token", "new@email.com", It.IsAny<CancellationToken>()), Times.Once);
+        cognito.VerifyNoOtherCalls();
+        userRepo.VerifyNoOtherCalls();
+        fileService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task VerifyEmailChangeAsync_WhenCodeInvalid_ShouldReturnError_AndNotUpdateRepository()
+    {
+        var cognito     = new Mock<ICognitoService>(MockBehavior.Strict);
+        var userRepo    = new Mock<IUserRepository>(MockBehavior.Strict);
+        var fileService = new Mock<IFileService>(MockBehavior.Strict);
+
+        cognito.Setup(c => c.VerifyEmailChangeAsync("access-token", "wrong-code", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Fail(AuthErrors.InvalidVerificationCode));
+
+        var sut = new UserService(cognito.Object, userRepo.Object, fileService.Object);
+
+        var result = await sut.VerifyEmailChangeAsync("user-1", "new@email.com", "access-token", "wrong-code", CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().BeEquivalentTo(AuthErrors.InvalidVerificationCode);
+
+        cognito.Verify(c => c.VerifyEmailChangeAsync("access-token", "wrong-code", It.IsAny<CancellationToken>()), Times.Once);
+        cognito.VerifyNoOtherCalls();
+        userRepo.VerifyNoOtherCalls();
+        fileService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task VerifyEmailChangeAsync_WhenCodeValid_ShouldUpdateRepository_AndReturnOk()
+    {
+        var cognito     = new Mock<ICognitoService>(MockBehavior.Strict);
+        var userRepo    = new Mock<IUserRepository>(MockBehavior.Strict);
+        var fileService = new Mock<IFileService>(MockBehavior.Strict);
+
+        cognito.Setup(c => c.VerifyEmailChangeAsync("access-token", "123456", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Ok());
 
         userRepo.Setup(r => r.UpdateEmailAsync("user-1", "new@email.com", It.IsAny<CancellationToken>()))
@@ -266,11 +311,11 @@ public sealed class UserServiceTests
 
         var sut = new UserService(cognito.Object, userRepo.Object, fileService.Object);
 
-        var result = await sut.UpdateEmailAsync("user-1", "new@email.com", CancellationToken.None);
+        var result = await sut.VerifyEmailChangeAsync("user-1", "new@email.com", "access-token", "123456", CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
 
-        cognito.Verify(c => c.UpdateUserEmailAsync("user-1", "new@email.com", It.IsAny<CancellationToken>()), Times.Once);
+        cognito.Verify(c => c.VerifyEmailChangeAsync("access-token", "123456", It.IsAny<CancellationToken>()), Times.Once);
         cognito.VerifyNoOtherCalls();
         userRepo.Verify(r => r.UpdateEmailAsync("user-1", "new@email.com", It.IsAny<CancellationToken>()), Times.Once);
         userRepo.VerifyNoOtherCalls();

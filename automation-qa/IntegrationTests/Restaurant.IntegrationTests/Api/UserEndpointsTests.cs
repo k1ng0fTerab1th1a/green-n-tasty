@@ -46,7 +46,7 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
         _factory.CognitoService.Reset();
 
         var req = Authed(HttpMethod.Put, "/user/email", userId: "user-42");
-        req.Content = Json(new { newEmail = "new@test.com" });
+        req.Content = Json(new { newEmail = "new@test.com", accessToken = "test-access-token" });
 
         var res = await _client.SendAsync(req);
 
@@ -54,9 +54,9 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
 
         using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
         doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
-        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Email updated successfully");
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Verification code sent to new email");
 
-        _factory.CognitoService.LastUpdateEmailArgs.Should().Be(("user-42", "new@test.com"));
+        _factory.CognitoService.LastUpdateEmailArgs.Should().Be(("test-access-token", "new@test.com"));
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
         _factory.CognitoService.UpdateEmailFailResult = AuthErrors.UserNotFound;
 
         var req = Authed(HttpMethod.Put, "/user/email", userId: "ghost-user");
-        req.Content = Json(new { newEmail = "new@test.com" });
+        req.Content = Json(new { newEmail = "new@test.com", accessToken = "test-access-token" });
 
         var res = await _client.SendAsync(req);
 
@@ -97,7 +97,7 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
         _factory.CognitoService.UpdateEmailFailResult = AuthErrors.UserAlreadyExists;
 
         var req = Authed(HttpMethod.Put, "/user/email", userId: "user-42");
-        req.Content = Json(new { newEmail = "taken@test.com" });
+        req.Content = Json(new { newEmail = "taken@test.com", accessToken = "test-access-token" });
 
         var res = await _client.SendAsync(req);
 
