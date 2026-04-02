@@ -70,7 +70,7 @@ export default function WaiterReservationCard({
                         <div className={styles.leftActions}>
                             <Button variant="tertiary" onClick={onFinish}>Finish</Button>
 
-                            {!isMealServed && (
+                            {!isMealServed && dishCount > 0 && (
                                 <Button variant="tertiary" onClick={onMealServed}>
                                     MealServed
                                 </Button>
@@ -87,7 +87,6 @@ export default function WaiterReservationCard({
                 return (
                     <>
                         <div className={styles.leftActions}></div>
-                        {/*{!isMealServed && (*/}
                         {dishCount > 0 && (
                             <Button variant="secondary" onClick={onReceipt}>RECEIPT</Button>
                         )}
@@ -123,12 +122,12 @@ export default function WaiterReservationCard({
                         <img src={clockIcon} alt="" className={styles.icon} />
                         <span className="body-bold">{displayTimeRange}</span>
                     </div>
-                    {dishCount > 0 && (
+                    {/*{dishCount > 0 && (*/}
                         <div className={styles.infoRow}>
                             <img src={dishIcon} alt="" className={styles.icon} />
                             <span className="body-bold">Order: {dishCount} dishes</span>
                         </div>
-                    )}
+                    {/*)}*/}
                     <div className={styles.infoRow}>
                         <img src={userIcon} alt="" className={styles.icon} />
                         <span className="body-bold">Customer: {displayName}</span>

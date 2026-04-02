@@ -8,14 +8,15 @@ export async function signUp(payload) {
 
 export async function signIn(payload) {
     const res = await api.post("/auth/sign-in", payload);
+    // console.log("Sign in response:", res.data);
     return res.data;
 }
 
-export async function refreshTokens(refreshToken) {
-    return api.post("/auth/refresh-token", {
-        refreshToken
-    });
-}
+export const refreshTokens = async (refreshToken) => {
+    const response = await api.post("/auth/refresh", { refreshToken });
+    // console.log("Refresh response:", response.data);
+    return response;
+};
 
 export async function signOut(refreshToken) {
     const res = await api.post("/auth/sign-out", { refreshToken });

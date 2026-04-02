@@ -38,19 +38,19 @@ api.interceptors.response.use(
         }
 
         try {
-
             if (!refreshPromise) {
                 refreshPromise = refreshTokens(refreshToken)
                     .finally(() => refreshPromise = null);
             }
 
             const res = await refreshPromise;
-
             const newIdToken = res.data.data.idToken;
+            const newAccessToken = res.data.data.accessToken;
             const newRefreshToken = res.data.data.refreshToken;
 
             tokenStorage.setSession({
                 idToken: newIdToken,
+                accessToken: newAccessToken,
                 refreshToken: newRefreshToken,
                 username: tokenStorage.getSession().username,
                 role: tokenStorage.getSession().role,
@@ -60,12 +60,9 @@ api.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${newIdToken}`;
 
             return api(originalRequest);
-
         } catch (err) {
-
             tokenStorage.clear();
             return Promise.reject(err);
-
         }
     }
 );
