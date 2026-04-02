@@ -12,15 +12,37 @@ export function AuthProvider({ children }) {
         email: "",
     });
 
+    const updateUserProfile = useCallback(({ firstName, lastName, email }) => {
+        setAuth(prev => ({
+            ...prev,
+            username: `${firstName} ${lastName}`,
+            email: email || prev.email
+        }));
+
+        const session = tokenStorage.getSession();
+        tokenStorage.setSession({
+            ...session,
+            username: `${firstName} ${lastName}`,
+            email: email || session.email
+        });
+    }, []);
+
     const refresh = useCallback(async () => {
         const { refreshToken } = tokenStorage.getSession();
         if (!refreshToken) return;
 
         try {
             const res = await refreshTokens(refreshToken);
-            const { idToken, refreshToken: newRefreshToken, username, role, email } = res.data.data;
+            const { idToken, accessToken, refreshToken: newRefreshToken, username, role, email } = res.data.data;
 
-            tokenStorage.setSession({ idToken, refreshToken: newRefreshToken, username, role, email });
+            tokenStorage.setSession({
+                idToken,
+                accessToken,
+                refreshToken: newRefreshToken,
+                username,
+                role,
+                email
+            });
 
             setAuth({
                 isAuth: true,
@@ -34,7 +56,7 @@ export function AuthProvider({ children }) {
             tokenStorage.clear();
             setAuth({ isAuth: false, username: "", role: "", email: "" });
         }
-    }, []);
+    }, [])
 
     useEffect(() => {
         if (!auth.isAuth) return;
@@ -71,10 +93,11 @@ export function AuthProvider({ children }) {
 
     const value = useMemo(() => ({
         auth,
-        signInSuccess: ({ idToken, refreshToken, username, role, email }) => {
-            tokenStorage.setSession({ idToken, refreshToken, username, role, email });
-            setAuth({ isAuth: true, username: username || "", role: role || "", email: "" });
+        signInSuccess: ({ idToken, accessToken, refreshToken, username, role, email }) => {
+            tokenStorage.setSession({ idToken, accessToken, refreshToken, username, role, email });
+            setAuth({ isAuth: true, username: username || "", role: role || "", email: email || "" });
         },
+        updateUserProfile,
         signOut: async () => {
             const { refreshToken } = tokenStorage.getSession();
             try {
