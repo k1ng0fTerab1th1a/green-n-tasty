@@ -3,12 +3,14 @@ using Restaurant.Core.DTOs;
 using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
+using Restaurant.Core.Messaging;
 using Restaurant.Core.Models;
+using System.Text.Json;
 
 namespace Restaurant.Core.Services;
 
 public class FeedbackService(IFeedbackRepository feedbackRepository, IReservationRepository reservationRepository, 
-    IUserRepository userRepository, ILocationRepository locationRepository) : IFeedbackService
+    IUserRepository userRepository, ILocationRepository locationRepository, IEventPublisher eventPublisher) : IFeedbackService
 {
     public async Task<Result<FeedbackPaginatedDto>> GetFeedbacksForLocation(string locationId, int size, string type, List<string> sort, string? pageToken = null, CancellationToken ct = default)
     {
@@ -88,12 +90,25 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
         {
             var result = await ProcessServiceFeedbackAsync(dto, reservation, author, ct);
             if (result.IsFailed) return result;
+
+            await PublishFeedbackCreatedAsync(
+                reservation.Id,
+                dto.ServiceRating.Value,
+                null,
+                ct);
+
         }
 
         if (dto.CuisineRating.HasValue)
         {
             var result = await ProcessCuisineFeedbackAsync(dto, reservation, author, ct);
             if (result.IsFailed) return result;
+
+            await PublishFeedbackCreatedAsync(
+                reservation.Id,
+                null,
+                dto.CuisineRating.Value,
+                ct);
         }
 
         return Result.Ok();
@@ -234,6 +249,12 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
                 : await UpdateExistingKitchenFeedbackAsync(reservation.KitchenFeedbackId, reservation.LocationId, dto.CuisineRating.Value, dto.CuisineComment, ct);
 
             if (result.IsFailed) return result;
+
+            await PublishFeedbackCreatedAsync(
+                reservation.Id,
+                null,
+                dto.CuisineRating.Value,
+                ct);
         }
 
         if (dto.ServiceRating.HasValue)
@@ -243,6 +264,12 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
                 : await UpdateExistingServiceFeedbackAsync(reservation.ServiceFeedbackId, reservation.WaiterId, dto.ServiceRating.Value, dto.ServiceComment, ct);
 
             if (result.IsFailed) return result;
+
+            await PublishFeedbackCreatedAsync(
+                reservation.Id,
+                dto.ServiceRating.Value,
+                null,
+                ct);
         }
 
         return Result.Ok();
@@ -306,6 +333,34 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
     {
         var userData = await userRepository.GetUserDataForFeedbackCreationByIdAsync(userId, ct);
         return new FeedbackAuthor(userId, userData.username, userData.iamgeUrl ?? string.Empty);
+    }
+
+    private async Task PublishFeedbackCreatedAsync(
+        string reservationId,
+        int? serviceRating,
+        int? cuisineRating,
+        CancellationToken ct)
+    {
+        var feedbackCreatedEvent = BuildFeedbackCreatedEvent(
+            reservationId,
+            serviceRating,
+            cuisineRating);
+
+        await eventPublisher.PublishAsync(feedbackCreatedEvent, ct);
+    }
+
+    private static SqsEvent BuildFeedbackCreatedEvent(
+        string reservationId,
+        int? serviceRating,
+        int? cuisineRating)
+    {
+        return new SqsEvent(
+            EventTypes.FeedbackCreated,
+            JsonSerializer.SerializeToElement(new FeedbackCreatedDTO(
+                reservationId,
+                serviceRating,
+                cuisineRating,
+                DateTimeOffset.UtcNow)));
     }
     
     private static Result ValidateFeedbackData(CreateFeedbackDTO dto)

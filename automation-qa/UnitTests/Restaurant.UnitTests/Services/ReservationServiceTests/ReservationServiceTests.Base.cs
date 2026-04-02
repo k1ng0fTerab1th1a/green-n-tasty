@@ -1,6 +1,8 @@
 using Moq;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Repositories;
+using Restaurant.Core.Interfaces.Services;
+using Restaurant.Core.Messaging;
 using Restaurant.Core.Models;
 using Restaurant.Core.Services;
 
@@ -14,6 +16,7 @@ public sealed partial class ReservationServiceTests
     private readonly Mock<ITableRepository> _tableRepo;
     private readonly Mock<IUserRepository> _userRepo;
     private readonly Mock<IDishRepository> _dishRepo;
+    private readonly Mock<IEventPublisher> _eventPublisher;
     private readonly ReservationService _sut;
 
     public ReservationServiceTests()
@@ -24,6 +27,11 @@ public sealed partial class ReservationServiceTests
         _tableRepo = new Mock<ITableRepository>(MockBehavior.Strict);
         _userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
         _dishRepo = new Mock<IDishRepository>(MockBehavior.Strict);
+        _eventPublisher = new Mock<IEventPublisher>(MockBehavior.Strict);
+
+        _eventPublisher
+            .Setup(p => p.PublishAsync(It.IsAny<SqsEvent>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _sut = new ReservationService(
             _repo.Object,
@@ -31,7 +39,8 @@ public sealed partial class ReservationServiceTests
             _locationRepo.Object,
             _tableRepo.Object,
             _userRepo.Object,
-            _dishRepo.Object);
+            _dishRepo.Object,
+            _eventPublisher.Object);
     }
 
     private static CreateReservationDTO BuildDto(DateOnly date, TimeOnly from, TimeOnly to)

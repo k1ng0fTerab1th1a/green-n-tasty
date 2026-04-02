@@ -1,4 +1,4 @@
-﻿namespace Restaurant.Reports.Messaging;
+﻿namespace Restaurant.Core.Messaging;
 
 public static class EventTypes
 {

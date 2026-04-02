@@ -83,10 +83,15 @@ public sealed class LocationRepository : ILocationRepository
         if (!response.IsItemSet)
             throw new KeyNotFoundException($"Location {locationId} not found");
 
-        return (
-            rating: int.Parse(response.Item["rating"].N),
-            feedbacksAmount: int.Parse(response.Item["feedbacksAmount"].N)
-        );
+        var rating = response.Item.TryGetValue("rating", out var r) && !string.IsNullOrEmpty(r.N)
+            ? int.Parse(r.N)
+            : 0;
+
+        var feedbacksAmount = response.Item.TryGetValue("feedbacksAmount", out var f) && !string.IsNullOrEmpty(f.N)
+            ? int.Parse(f.N)
+            : 0;
+
+        return (rating, feedbacksAmount);
     }
 
     public async Task UpdateAsync(Location location, CancellationToken ct)

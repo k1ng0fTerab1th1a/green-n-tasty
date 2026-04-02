@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace Restaurant.Reports.Messaging;
+namespace Restaurant.Core.Messaging;
 
 public sealed record SqsEvent(
     string EventType,

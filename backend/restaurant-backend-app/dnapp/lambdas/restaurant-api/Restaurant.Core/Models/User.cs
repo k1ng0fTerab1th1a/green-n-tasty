@@ -44,7 +44,7 @@ public class User
     [DynamoDBProperty("updatedAt")]
     public string UpdatedAt { get; set; } = string.Empty;
     [DynamoDBProperty("rating")]
-    public int TotalRating { get; set; }
+    public int TotalRating { get; set; } = 0;
     [DynamoDBProperty("feedbacksNumber")]
-    public int FeedbacksCount { get; set; } 
+    public int FeedbacksCount { get; set; }  = 0;
 }

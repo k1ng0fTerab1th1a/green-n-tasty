@@ -8,6 +8,9 @@ namespace Restaurant.Infrastructure.Services;
 
 public class SqsEventPublisher : IEventPublisher
 {
+    private const int MaxAttempts = 2;
+    private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(50);
+
     private readonly IAmazonSQS _sqsClient;
     private readonly string _queueUrl;
 
@@ -28,6 +31,21 @@ public class SqsEventPublisher : IEventPublisher
             MessageBody = body
         };
 
-        await _sqsClient.SendMessageAsync(request, ct);
+        for (var attempt = 0; attempt < MaxAttempts; attempt++)
+        {
+            try
+            {
+                await _sqsClient.SendMessageAsync(request, CancellationToken.None);
+                return;
+            }
+            catch (Exception) when (attempt < MaxAttempts - 1)
+            {
+                await Task.Delay(RetryDelay, CancellationToken.None);
+            }
+            catch (Exception)
+            {
+                return;
+            }
+        }
     }
 }

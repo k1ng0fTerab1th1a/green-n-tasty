@@ -18,4 +18,6 @@ public sealed class ReservationResponse
     public string Status { get; set; } = null!;
     public bool IsCreatedByWaiter { get; set; }
     public string? VisitorName { get; set; }
+    public string? ServiceFeedbackId { get; set; }
+    public string? KitchenFeedbackId { get; set; }
 }

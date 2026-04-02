@@ -24,7 +24,9 @@ public static class ReservationMapper
         IsCreatedByWaiter = x.IsCreatedByWaiter,
         VisitorName = x.VisitorName,
         DishCount = x.DishCount,
-        IsMealServed = x.IsMealServed
+        IsMealServed = x.IsMealServed,
+        KitchenFeedbackId = x.KitchenFeedbackId,
+        ServiceFeedbackId = x.ServiceFeedbackId
     };
 
     public static CreateReservationDTO ToCreateDTO(this CreateReservationRequest x) => new(

@@ -160,7 +160,7 @@ public sealed class UserServiceTests
     }
 
     [Fact]
-    public async Task UpdateAvatarAsync_WhenUploadFails_ShouldReturnUploadError()
+    public async Task UpdateAvatarAsync_WhenUploadFails_ShouldThrowException()
     {
         var cognito = new Mock<ICognitoService>(MockBehavior.Strict);
         var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
@@ -170,15 +170,14 @@ public sealed class UserServiceTests
             .ReturnsAsync(new User { UserId = "user-1" });
 
         fileService.Setup(f => f.UploadFileAsync("uploads/avatars/user-1/profile", It.IsAny<Stream>(), "image/png"))
-            .ReturnsAsync(Result.Fail(FileErrors.FileUploadFail));
+            .ThrowsAsync(new Exception("Failed to upload to file system"));
 
         var sut = new UserService(cognito.Object, userRepo.Object, fileService.Object);
         var dto = new FileUploadDto(new MemoryStream(PngBytes()), "image/png", 16);
 
-        var result = await sut.UpdateAvatarAsync("user-1", dto, CancellationToken.None);
+        Func<Task> act = async () => await sut.UpdateAvatarAsync("user-1", dto, CancellationToken.None);
 
-        result.IsFailed.Should().BeTrue();
-        result.Errors[0].Should().BeEquivalentTo(FileErrors.FileUploadFail);
+        await act.Should().ThrowAsync<Exception>().WithMessage("Failed to upload to file system");
 
         userRepo.Verify(r => r.GetByIdAsync("user-1", It.IsAny<CancellationToken>()), Times.Once);
         userRepo.VerifyNoOtherCalls();
