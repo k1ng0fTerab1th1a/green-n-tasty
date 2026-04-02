@@ -546,6 +546,7 @@ public class FeedbackServiceTests
                 It.Is<SqsEvent>(e =>
                     e.EventType == EventTypes.FeedbackCreated &&
                     e.Payload.GetProperty("ReservationId").GetString() == "rsv-1" &&
+                    e.Payload.GetProperty("ServiceFeedback").ValueKind == JsonValueKind.Number &&
                     e.Payload.GetProperty("ServiceFeedback").GetInt32() == 5),
                 It.IsAny<CancellationToken>()),
             Times.Once);
@@ -554,6 +555,7 @@ public class FeedbackServiceTests
                 It.Is<SqsEvent>(e =>
                     e.EventType == EventTypes.FeedbackCreated &&
                     e.Payload.GetProperty("ReservationId").GetString() == "rsv-1" &&
+                    e.Payload.GetProperty("CuisineFeedback").ValueKind == JsonValueKind.Number &&
                     e.Payload.GetProperty("CuisineFeedback").GetInt32() == 4),
                 It.IsAny<CancellationToken>()),
             Times.Once);
@@ -824,6 +826,7 @@ public class FeedbackServiceTests
                 It.Is<SqsEvent>(e =>
                     e.EventType == EventTypes.FeedbackCreated &&
                     e.Payload.GetProperty("ReservationId").GetString() == "rsv-1" &&
+                    e.Payload.GetProperty("ServiceFeedback").ValueKind == JsonValueKind.Number &&
                     e.Payload.GetProperty("ServiceFeedback").GetInt32() == 5),
                 It.IsAny<CancellationToken>()),
             Times.Once);
@@ -832,6 +835,7 @@ public class FeedbackServiceTests
                 It.Is<SqsEvent>(e =>
                     e.EventType == EventTypes.FeedbackCreated &&
                     e.Payload.GetProperty("ReservationId").GetString() == "rsv-1" &&
+                    e.Payload.GetProperty("CuisineFeedback").ValueKind == JsonValueKind.Number &&
                     e.Payload.GetProperty("CuisineFeedback").GetInt32() == 4),
                 It.IsAny<CancellationToken>()),
             Times.Once);
