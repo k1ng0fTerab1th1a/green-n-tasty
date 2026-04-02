@@ -17,25 +17,28 @@ export default function CreateOrderModal({ isOpen, onClose, reservation, onConfi
         }
     }, [isOpen]);
 
-    const handleSearchChange = async (e) => {
-        const value = e.target.value;
-        setSearchQuery(value);
+    useEffect(() => {
+        const trimmed = searchQuery.trim();
 
-        const trimmed = value.trim();
         if (!trimmed) {
             setSearchResults([]);
+            setIsSearching(false);
             return;
         }
 
         setIsSearching(true);
-        const res = await searchDishes(trimmed);
-        setIsSearching(false);
 
-        if (res.isSuccess) {
-            setSearchResults(res.data || []);
-        } else {
-            setSearchResults([]);
-        }
+        const delayDebounceFn = setTimeout(async () => {
+            const res = await searchDishes(trimmed);
+            setSearchResults(res.isSuccess ? (res.data || []) : []);
+            setIsSearching(false);
+        }, 600);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
+
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
     };
 
     const handleSelectDish = async (shortDish) => {
@@ -119,7 +122,10 @@ export default function CreateOrderModal({ isOpen, onClose, reservation, onConfi
                         {selectedDishes.map((dish) => (
                             <SelectedDishCard
                                 key={dish.id}
-                                dish={dish}
+                                dish={{
+                                    ...dish,
+                                    totalPrice: (dish.price * dish.quantity).toFixed(2)
+                                }}
                                 onRemove={() => handleRemoveDish(dish.id)}
                                 onUpdateQuantity={(qty) =>
                                     handleUpdateQuantity(dish.id, qty)
