@@ -7,7 +7,7 @@ import {
     ReservationModal,
     FeedbackModal
 } from "../../components/index.js";
-import { submitAuthorisedFeedback } from "../../services/feedbacks";
+import { submitAuthorisedFeedback, getFeedbackShortData } from "../../services/feedbacks";
 import { getClientReservations, deleteReservation } from "../../services/reservations";
 import { getAvailableTables } from "../../services/bookings";
 import { useAuth } from "../../auth/AuthContext.jsx";
@@ -23,6 +23,10 @@ export default function ReservationsPage() {
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [feedbackReservationId, setFeedbackReservationId] = useState(null);
     const [currentBookingStatus, setCurrentBookingStatus] = useState(null);
+
+    const [feedbackInitialData, setFeedbackInitialData] = useState(null);
+    const [feedbackWaiter, setFeedbackWaiter] = useState(null);
+    const [feedbackIsMealServed, setFeedbackIsMealServed] = useState(false);
 
     const welcomeTitle = `Hello, ${auth.username || "Guest"}`;
 
@@ -59,10 +63,52 @@ export default function ReservationsPage() {
         }
     };
 
-    const handleFeedbackClick = (booking) => {
-        setFeedbackReservationId(booking.id);
-        setCurrentBookingStatus(booking.status); // Зберігаємо статус для модалки
-        setIsFeedbackModalOpen(true);
+    const handleFeedbackClick = async (booking) => {
+        try {
+            setFeedbackReservationId(booking.id);
+            setCurrentBookingStatus(booking.status);
+            setFeedbackIsMealServed(!!booking.isMealServed); // ⬅ ТУТ
+
+            const result = await getFeedbackShortData(booking.id);
+
+            if (result.isSuccess && result.data) {
+                const data = result.data;
+
+                setFeedbackInitialData({
+                    serviceRating: data.serviceRating,
+                    serviceComment: data.serviceComment,
+                    culinaryRating: data.cuisineRating,
+                    cuisineComment: data.cuisineComment,
+                });
+
+                if (data.waiterName) {
+                    setFeedbackWaiter({
+                        name: data.waiterName,
+                        role: data.waiterRole || "Waiter",
+                        rating: data.waiterRating ?? 5,
+                        avatar: "",
+                    });
+                } else {
+                    setFeedbackWaiter(null);
+                }
+
+                if (data.bookingStatus) {
+                    setCurrentBookingStatus(data.bookingStatus);
+                }
+            } else if (!result.isSuccess) {
+                showToast(
+                    "error",
+                    "Error",
+                    result.message || "Failed to load feedback data"
+                );
+                setFeedbackInitialData(null);
+                setFeedbackWaiter(null);
+            }
+
+            setIsFeedbackModalOpen(true);
+        } catch (error) {
+            showToast("error", "Error", "Failed to load feedback data");
+        }
     };
 
     const formatTimeFromISO = (isoString) => {
@@ -99,7 +145,12 @@ export default function ReservationsPage() {
                 showToast("error", "Failed", result.message);
             }
         } catch (error) {
-            showToast("error", "Error", "Could not submit feedback");
+            const message =
+                error?.response?.data?.message ||
+                error?.message ||
+                String(error);
+
+            showToast("error", "Error", message);
         }
     };
 
@@ -221,7 +272,10 @@ export default function ReservationsPage() {
                     onClose={() => setIsFeedbackModalOpen(false)}
                     onSubmit={handleFeedbackSubmit}
                     reservationId={feedbackReservationId}
-                    bookingStatus={currentBookingStatus} // Передаємо статус
+                    bookingStatus={currentBookingStatus}
+                    waiter={feedbackWaiter}
+                    initialData={feedbackInitialData}
+                    isMealServed={feedbackIsMealServed}   // ⬅ НОВЕ
                 />
             )}
 

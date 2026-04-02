@@ -6,13 +6,12 @@ using Restaurant.Api.Mappers;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
-using Restaurant.Infrastructure.Services;
 
 namespace Restaurant.Api.Controllers;
 
 [ApiController]
 [Route("dishes")]
-public class DishController(IDishService _dishService, S3FileService _s3FileService) : ControllerBase
+public class DishController(IDishService _dishService, IFileService _fileService) : ControllerBase
 {
     [HttpGet("popular")]
     [ProducesResponseType(typeof(ApiResponse<List<DishShortResponse>>), StatusCodes.Status200OK)]
@@ -72,7 +71,7 @@ public class DishController(IDishService _dishService, S3FileService _s3FileServ
     [HttpGet("menu-file")]
     public async Task<IActionResult> GetMenuFile(CancellationToken ct)
     {
-        var stream = await _s3FileService.GetFileStreamAsync("uploads/menu/menu.pdf", ct);
+        var stream = await _fileService.GetFileStreamAsync("uploads/menu/menu.pdf", ct);
         return File(stream, "application/pdf", enableRangeProcessing:false);
     }
 

@@ -26,7 +26,7 @@ export default function CreateReservationModal({ isOpen, onClose, onConfirm }) {
     const [guests, setGuests] = useState(2);
     const [timeFrom, setTimeFrom] = useState("");
     const [timeTo, setTimeTo] = useState("");
-    const [slotStartTime, setSlotStartTime] = useState(""); // ⬅ ДОДАЛИ
+    const [slotStartTime, setSlotStartTime] = useState("");
     const [slotEndTime, setSlotEndTime] = useState("");
 
     const [table, setTable] = useState("");
@@ -115,6 +115,20 @@ export default function CreateReservationModal({ isOpen, onClose, onConfirm }) {
     useEffect(() => {
         if (!isOpen) return;
 
+        const parseTimeToMinutes = (timeStr) => {
+            if (!timeStr) return null;
+            const [h, m] = timeStr.split(":").map(Number);
+            return h * 60 + m;
+        };
+
+
+        const minutesToTime = (mins) => {
+            const normalized = ((mins % (24 * 60)) + (24 * 60)) % (24 * 60);
+            const h = Math.floor(normalized / 60).toString().padStart(2, "0");
+            const m = (normalized % 60).toString().padStart(2, "0");
+            return `${h}:${m}`;
+        };
+
         const fetchTables = async () => {
             const params = {
                 locationId: "location-1",
@@ -148,31 +162,51 @@ export default function CreateReservationModal({ isOpen, onClose, onConfirm }) {
                     });
 
                     setAvailableTables(mappedTables);
+
+                    let currentTableValue = table;
                     if (!mappedTables.some(t => t.value === table)) {
-                        setTable(mappedTables.length > 0 ? mappedTables[0].value : "");
+                        currentTableValue = mappedTables.length > 0 ? mappedTables[0].value : "";
+                        setTable(currentTableValue);
                     }
 
-                    if (result.data.length > 0) {
-                        const firstWithSlots = result.data.find(
-                            t => t.availableSlots && t.availableSlots.length > 0
-                        );
+                    if (result.data.length > 0 && currentTableValue) {
+                        const selectedTableData = result.data.find(
+                            t => t.tableNumber.toString() === currentTableValue
+                        ) || result.data[0];
 
-                        if (firstWithSlots) {
-                            const firstSlot = firstWithSlots.availableSlots[0];
+                        if (selectedTableData && selectedTableData.availableSlots && selectedTableData.availableSlots.length > 0) {
+                            let minStart = Infinity;
+                            let maxEnd = -Infinity;
 
-                            const startTime = firstSlot.startOffset.includes('T')
-                                ? firstSlot.startOffset.split('T')[1].substring(0, 5)
-                                : firstSlot.startOffset.substring(0, 5);
+                            selectedTableData.availableSlots.forEach(slot => {
+                                const rawStart = slot.startOffset.includes("T")
+                                    ? slot.startOffset.split("T")[1].substring(0, 5)
+                                    : slot.startOffset.substring(0, 5);
+                                const rawEnd = slot.endOffset.includes("T")
+                                    ? slot.endOffset.split("T")[1].substring(0, 5)
+                                    : slot.endOffset.substring(0, 5);
 
-                            const endTime = firstSlot.endOffset.includes('T')
-                                ? firstSlot.endOffset.split('T')[1].substring(0, 5)
-                                : firstSlot.endOffset.substring(0, 5);
+                                const s = parseTimeToMinutes(rawStart);
+                                let e = parseTimeToMinutes(rawEnd);
 
-                            setSlotStartTime(startTime);
-                            setSlotEndTime(endTime);
+                                if (e !== null && s !== null && e < s) {
+                                    e += 24 * 60;
+                                }
 
-                            setTimeFrom(prev => prev || startTime);
-                            setTimeTo(prev => prev || endTime);
+                                if (s !== null && s < minStart) minStart = s;
+                                if (e !== null && e > maxEnd) maxEnd = e;
+                            });
+
+                            if (minStart !== Infinity && maxEnd !== -Infinity) {
+                                const startTime = minutesToTime(minStart);
+                                const endTime = minutesToTime(maxEnd);
+
+                                setSlotStartTime(startTime);
+                                setSlotEndTime(endTime);
+
+                                setTimeFrom(startTime);
+                                setTimeTo(endTime);
+                            }
                         } else {
                             setSlotStartTime("");
                             setSlotEndTime("");
@@ -242,9 +276,21 @@ export default function CreateReservationModal({ isOpen, onClose, onConfirm }) {
                                 ref={dateInputRef}
                                 type="date"
                                 value={date}
-                                onChange={(e) => setDate(e.target.value)}
+                                onChange={(e) => {
+                                    const newDate = e.target.value;
+                                    setDate(newDate);
+                                    setTimeFrom("");
+                                    setCustomerType("visitor");
+                                    setCustomerSearch("");
+                                    setSelectedCustomer(null);
+                                    setVisitorName("");
+                                    setTimeTo("");
+                                    setSlotStartTime("");
+                                    setSlotEndTime("");
+                                }}
                                 className={styles.nativeInput}
                             />
+
                             <span className="body-bold">{displayDate}</span>
                         </div>
                         <img src={chevronDownIcon} alt="" className={styles.chevronIcon} />

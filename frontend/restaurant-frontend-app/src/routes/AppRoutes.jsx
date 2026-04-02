@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
-import { RegisterPage, LoginPage, MainPage, LocationPage, ProfilePage, SearchPage, ReservationsPage, MenuPage, WaiterReservationsPage } from "../pages/index.js";
+import { RegisterPage, LoginPage, MainPage, LocationPage, ProfilePage, SearchPage, ReservationsPage, MenuPage, WaiterReservationsPage, VisitorFeedbackPage } from "../pages/index.js";
 
 export default function AppRoutes() {
     return (
@@ -15,6 +15,7 @@ export default function AppRoutes() {
             <Route path="/reservations" element={<ReservationsPage />} />
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/waiter/reservations" element={<WaiterReservationsPage />} />
+            <Route path="/feedback" element={<VisitorFeedbackPage />} />
         </Routes>
     );
 }

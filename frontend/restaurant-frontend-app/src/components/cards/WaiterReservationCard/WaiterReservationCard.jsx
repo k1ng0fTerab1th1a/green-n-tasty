@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { Button, TableSelector } from "../../index.js";
 import styles from "./WaiterReservationCard.module.css";
 
 import pinIcon from "../../../assets/icons/pin.svg";
@@ -8,6 +6,7 @@ import clockIcon from "../../../assets/icons/clock.svg";
 import dishIcon from "../../../assets/icons/dish.svg";
 import userIcon from "../../../assets/icons/person.svg";
 import guestsIcon from "../../../assets/icons/people.svg";
+import {Button} from "../../index.js";
 
 export default function WaiterReservationCard({
                                                   booking,
@@ -30,9 +29,9 @@ export default function WaiterReservationCard({
         customerName,
         dishCount,
         tableNumber,
+        isMealServed,
     } = booking;
 
-    const [selectedTable, setSelectedTable] = useState(tableNumber?.toString() || "");
     const displayName = customerName || visitorName || "Guest";
     const dateObj = startDateTime ? new Date(startDateTime) : null;
     const displayDate = dateObj ? dateObj.toLocaleDateString() : "No date";
@@ -40,20 +39,14 @@ export default function WaiterReservationCard({
     const formatTime = (isoString) => {
         if (!isoString) return "--:--";
         return new Date(isoString).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
+            hour: "2-digit",
+            minute: "2-digit",
             timeZone: "Asia/Tbilisi",
-            hour12: false
+            hour12: false,
         });
     };
 
     const displayTimeRange = `${formatTime(startDateTime)} - ${formatTime(endDateTime)}`;
-
-    const tableOptions = [
-        { value: "1", label: "Table 1" },
-        { value: "2", label: "Table 2" },
-        { value: "3", label: "Table 3" }
-    ];
 
     const renderActions = () => {
         const currentStatus = status?.toLowerCase();
@@ -76,7 +69,12 @@ export default function WaiterReservationCard({
                     <>
                         <div className={styles.leftActions}>
                             <Button variant="tertiary" onClick={onFinish}>Finish</Button>
-                            <Button variant="tertiary" onClick={onMealServed}>MealServed</Button>
+
+                            {!isMealServed && (
+                                <Button variant="tertiary" onClick={onMealServed}>
+                                    MealServed
+                                </Button>
+                            )}
                         </div>
                         {dishCount > 0 ? (
                             <Button variant="primary" onClick={() => onEditOrder(booking)}>Edit Order</Button>
@@ -89,9 +87,14 @@ export default function WaiterReservationCard({
                 return (
                     <>
                         <div className={styles.leftActions}></div>
-                        <Button variant="secondary" onClick={onReceipt}>RECEIPT</Button>
+                        {/*{!isMealServed && (*/}
+                        {dishCount > 0 && (
+                            <Button variant="secondary" onClick={onReceipt}>RECEIPT</Button>
+                        )}
                     </>
                 );
+            case "cancelled":
+                return null;
             default:
                 return (
                     <>
@@ -116,7 +119,6 @@ export default function WaiterReservationCard({
                         <img src={calendarIcon} alt="" className={styles.icon} />
                         <span className="body-bold">{displayDate}</span>
                     </div>
-                    {/* Відображення інтервалу часу */}
                     <div className={styles.infoRow}>
                         <img src={clockIcon} alt="" className={styles.icon} />
                         <span className="body-bold">{displayTimeRange}</span>
@@ -139,11 +141,9 @@ export default function WaiterReservationCard({
                 </div>
 
                 <div className={styles.statusSide}>
-                    <TableSelector
-                        value={selectedTable}
-                        options={tableOptions}
-                        onChange={(val) => setSelectedTable(val)}
-                    />
+                    <span className={styles.tableLabel}>
+                        Table {tableNumber ?? "-"}
+                    </span>
                     <div className={styles.badge}>
                         <span className="caption">{status || "New"}</span>
                     </div>
