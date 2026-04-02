@@ -23,4 +23,7 @@ public static class AuthErrors
     public static BusinessError EmailNotVerified =>
         new("Account email is not verified. Please check your inbox for a verification link.", ErrorType.Forbidden);
 
+    public static BusinessError InvalidVerificationCode =>
+        new("Invalid or expired verification code.", ErrorType.Validation);
+
 }

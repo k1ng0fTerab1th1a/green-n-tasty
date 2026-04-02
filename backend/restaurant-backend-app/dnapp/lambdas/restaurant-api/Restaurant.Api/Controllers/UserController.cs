@@ -29,7 +29,22 @@ public class UserController : ControllerBase
     {
         var userId = User.GetUserId();
 
-        var result = await _userService.UpdateEmailAsync(userId!, request.NewEmail, ct);
+        var result = await _userService.UpdateEmailAsync(request.NewEmail, request.AccessToken, ct);
+
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<object>();
+
+        return ApiResponse<object>.Success(StatusCodes.Status200OK, null, "Verification code sent to new email");
+    }
+
+    [HttpPost("email/verify")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<ApiResponse<object>> VerifyEmailChange([FromBody] VerifyEmailChangeRequest request, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+
+        var result = await _userService.VerifyEmailChangeAsync(userId!, request.NewEmail, request.AccessToken, request.Code, ct);
 
         if (result.IsFailed)
             return result.Errors[0].ToApiResponse<object>();
