@@ -1,8 +1,9 @@
-﻿using System.Text;
-using Amazon.SimpleEmail;
+﻿using Amazon.SimpleEmail;
 using Amazon.SimpleEmail.Model;
+using Microsoft.Extensions.Options;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.SharedModels;
+using System.Text;
 
 namespace Restaurant.Core.Services;
 
@@ -11,12 +12,11 @@ public class EmailService : IEmailService
     private readonly IAmazonSimpleEmailService _ses;
     private readonly string _fromEmail;
 
-    public EmailService(IAmazonSimpleEmailService ses, EmailServiceSettings settings)
+    public EmailService(IAmazonSimpleEmailService ses, IOptions<EmailServiceSettings> _settings)
     {
         _ses = ses;
-        _fromEmail = settings.FromEmail;
+        _fromEmail = _settings.Value.FromEmail;
     }
-    
     public async Task SendEmail(string message, string subject, string email, CancellationToken ct)
     {
         var boundary = $"boundary_{Guid.NewGuid():N}";

@@ -242,12 +242,18 @@ public class UserRepository : IUserRepository
         var request = new QueryRequest
         {
             TableName = "Users",
-            IndexName = "emailNormalized-index",
+            IndexName = EmailIndex,
             Limit = 1,
             Select = Select.COUNT,
-            KeyConditionExpression = "emailNormalized = :email",
+            KeyConditionExpression = "#role = :role AND #email = :email",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#role", "role" },
+                { "#email", "emailNormalized" }
+            },
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
+                { ":role", new AttributeValue { S = CustomerRole } },
                 { ":email", new AttributeValue { S = email } }
             }
         };

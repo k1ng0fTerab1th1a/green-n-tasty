@@ -93,6 +93,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("make-otp")]
+    [AllowAnonymous]
     public async Task<ApiResponse<object>> CreateOtp(string email, CancellationToken ct)
     {
         var res = await _userService.CreateOtpAsync(email, ct);
@@ -101,6 +102,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("verify-otp")]
+    [AllowAnonymous]
     public async Task<ApiResponse<object>> VerifyOtp(string email, string otp, CancellationToken ct)
     {
         var res = await _userService.VerifyOtp(email, otp, ct);
@@ -109,6 +111,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("new-password")]
+    [AllowAnonymous]
     public async Task<ApiResponse<object>> SetNewPassword(string email, string otp, string password,
         CancellationToken ct)
     {
