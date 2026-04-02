@@ -135,13 +135,23 @@ public class UserRepository : IUserRepository
             throw new KeyNotFoundException($"Waiter {waiterId} not found");
 
         var item = response.Item;
+        var firstName = item.TryGetValue("firstName", out var fn) ? fn.S : string.Empty;
+        var lastName = item.TryGetValue("lastName", out var ln) ? ln.S : string.Empty;
+        var waiterName = $"{firstName} {lastName}".Trim();
+        var waiterRating = item.TryGetValue("rating", out var ratingAttr) && !string.IsNullOrEmpty(ratingAttr.N)
+            ? int.Parse(ratingAttr.N)
+            : 0;
+        var waiterFeedbacksNumber = item.TryGetValue("feedbacksNumber", out var feedbacksAttr) &&
+                                    !string.IsNullOrEmpty(feedbacksAttr.N)
+            ? int.Parse(feedbacksAttr.N)
+            : 0;
 
         return new WaiterFeedbackData
         {
-            WaiterName           = $"{item["firstName"].S} {item["lastName"].S}",
+            WaiterName           = waiterName,
             WaiterImageUrl       = item.TryGetValue("imageUrl", out var img) ? img.S : null,
-            WaiterRating         = int.Parse(item["rating"].N),
-            WaiterFeedbacksNumber = int.Parse(item["feedbacksNumber"].N)
+            WaiterRating         = waiterRating,
+            WaiterFeedbacksNumber = waiterFeedbacksNumber
         };
     }
 

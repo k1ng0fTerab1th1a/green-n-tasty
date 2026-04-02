@@ -374,7 +374,7 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
     public async Task UpdateAvatar_WhenStorageFails_ShouldReturn500()
     {
         _factory.UserService.Reset();
-        _factory.UserService.UpdateAvatarFailResult = FileErrors.FileUploadFail;
+        _factory.UserService.UpdateAvatarExceptionToThrow = new Exception("Failed to upload to file system");
 
         var req = Authed(HttpMethod.Post, "/user/avatar", userId: "user-77");
         req.Content = CreateAvatarMultipartContent("image/png", [0x89, 0x50, 0x4E, 0x47]);
@@ -382,6 +382,10 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
         var res = await _client.SendAsync(req);
 
         res.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Failed to upload to file system");
     }
 
     private static MultipartFormDataContent CreateAvatarMultipartContent(string contentType, byte[] payload)

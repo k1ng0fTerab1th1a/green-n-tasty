@@ -2,7 +2,7 @@ using Amazon.Lambda.Core;
 using Amazon.Lambda.SQSEvents;
 using Restaurant.Reports.Domain.Entities;
 using Restaurant.Reports.Infrastructure;
-using Restaurant.Reports.Messaging;
+using Restaurant.Core.Messaging;
 using System;
 using System.Linq;
 using System.Text.Json;

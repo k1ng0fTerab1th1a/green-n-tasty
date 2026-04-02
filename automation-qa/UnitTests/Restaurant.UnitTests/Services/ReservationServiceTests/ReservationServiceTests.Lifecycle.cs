@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using Moq;
 using Restaurant.Core.Errors;
+using Restaurant.Core.Messaging;
 using Restaurant.Core.Models;
 
 namespace Restaurant.UnitTests.Services;
@@ -236,6 +237,9 @@ public sealed partial class ReservationServiceTests
         _repo.Verify(r => r.GetByIdAsync("missing", It.IsAny<CancellationToken>()), Times.Once);
         _repo.VerifyNoOtherCalls();
         _dishRepo.VerifyNoOtherCalls();
+        _eventPublisher.Verify(
+            p => p.PublishAsync(It.IsAny<SqsEvent>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -318,6 +322,13 @@ public sealed partial class ReservationServiceTests
             It.IsAny<CancellationToken>()), Times.Once);
 
         _dishRepo.VerifyNoOtherCalls();
+        _eventPublisher.Verify(
+            p => p.PublishAsync(
+                It.Is<SqsEvent>(e =>
+                    e.EventType == EventTypes.ReservationCompleted &&
+                    e.Payload.GetProperty("ReservationId").GetString() == reservation.Id),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -374,5 +385,12 @@ public sealed partial class ReservationServiceTests
 
         _dishRepo.Verify(r => r.IncrementPopularityAsync("dish-1", 2, It.IsAny<CancellationToken>()), Times.Once);
         _dishRepo.Verify(r => r.IncrementPopularityAsync("dish-2", 1, It.IsAny<CancellationToken>()), Times.Once);
+        _eventPublisher.Verify(
+            p => p.PublishAsync(
+                It.Is<SqsEvent>(e =>
+                    e.EventType == EventTypes.ReservationCompleted &&
+                    e.Payload.GetProperty("ReservationId").GetString() == reservation.Id),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

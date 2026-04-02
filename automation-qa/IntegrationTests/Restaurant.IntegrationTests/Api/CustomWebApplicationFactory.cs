@@ -98,6 +98,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public BusinessError? UpdateUserNameFailResult { get; set; }
         public BusinessError? UpdateAvatarFailResult { get; set; }
+        public Exception? UpdateAvatarExceptionToThrow { get; set; }
         public BusinessError? GetMeFailResult { get; set; }
         public string AvatarUrlResponse { get; set; } = "https://cdn.test/avatar.jpg";
         public User MeResponse { get; set; } = BuildDefaultUser();
@@ -118,6 +119,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             UpdateUserNameFailResult = null;
             UpdateAvatarFailResult = null;
+            UpdateAvatarExceptionToThrow = null;
             GetMeFailResult = null;
             AvatarUrlResponse = "https://cdn.test/avatar.jpg";
             MeResponse = BuildDefaultUser();
@@ -155,6 +157,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastUpdateAvatarUserId = userId;
             LastAvatarContentType = file.ContentType;
             LastAvatarSize = file.Size;
+
+            if (UpdateAvatarExceptionToThrow is not null)
+                throw UpdateAvatarExceptionToThrow;
 
             if (UpdateAvatarFailResult is not null)
                 return Task.FromResult(Result.Fail<string>(UpdateAvatarFailResult));
