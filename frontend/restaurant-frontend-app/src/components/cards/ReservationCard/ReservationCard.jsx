@@ -12,7 +12,7 @@ export default function ReservationCard({
                                             onFeedback,
                                             hasFeedback
                                         }) {
-    const { address, date, time, guests, status } = booking;
+    const { address, date, time, guests, status, isMealServed } = booking;
 
     const getStatusKey = (s) => {
         const normalized = s?.toLowerCase().replace(/\s+/g, "");
