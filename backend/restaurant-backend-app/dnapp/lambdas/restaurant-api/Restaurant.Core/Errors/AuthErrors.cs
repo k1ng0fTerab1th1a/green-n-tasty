@@ -26,6 +26,9 @@ public static class AuthErrors
     public static BusinessError InvalidPasswordChangeRequest =>
         new("Current password is incorrect or the new password does not meet policy.", ErrorType.Validation);
 
+    public static BusinessError InvalidVerificationCode =>
+        new("Invalid or expired verification code.", ErrorType.Validation);
+
     public static BusinessError AccessTokenRequired =>
         new("Access token is required.", ErrorType.Unauthorized);
 }

@@ -164,30 +164,55 @@ public class CognitoService : ICognitoService
         }
     }
 
-    public async Task<Result> UpdateUserEmailAsync(string userId, string newEmail, CancellationToken ct = default)
+    public async Task<Result> UpdateUserEmailAsync(string accessToken, string newEmail, CancellationToken ct = default)
     {
         try
         {
-            await _client.AdminUpdateUserAttributesAsync(new AdminUpdateUserAttributesRequest
+            await _client.UpdateUserAttributesAsync(new UpdateUserAttributesRequest
             {
-                UserPoolId = _userPoolId,
-                Username = userId,
+                AccessToken = accessToken,
                 UserAttributes = new List<AttributeType>
                 {
-                    new() { Name = "email", Value = newEmail },
-                    new() { Name = "email_verified", Value = "true" }
+                    new() { Name = "email", Value = newEmail }
                 }
             }, ct);
 
             return Result.Ok();
         }
-        catch (UserNotFoundException)
-        {
-            return AuthErrors.UserNotFound;
-        }
         catch (AliasExistsException)
         {
             return AuthErrors.UserAlreadyExists;
+        }
+        catch (NotAuthorizedException)
+        {
+            return AuthErrors.InvalidCredentials;
+        }
+    }
+
+    public async Task<Result> VerifyEmailChangeAsync(string accessToken, string code, CancellationToken ct = default)
+    {
+        try
+        {
+            await _client.VerifyUserAttributeAsync(new VerifyUserAttributeRequest
+            {
+                AccessToken = accessToken,
+                AttributeName = "email",
+                Code = code
+            }, ct);
+
+            return Result.Ok();
+        }
+        catch (CodeMismatchException)
+        {
+            return AuthErrors.InvalidVerificationCode;
+        }
+        catch (ExpiredCodeException)
+        {
+            return AuthErrors.InvalidVerificationCode;
+        }
+        catch (NotAuthorizedException)
+        {
+            return AuthErrors.InvalidCredentials;
         }
     }
 

@@ -12,7 +12,7 @@ export default function ReservationCard({
                                             onFeedback,
                                             hasFeedback
                                         }) {
-    const { address, date, time, guests, status, isMealServed } = booking;
+    const { address, date, time, guests, status, isCreatedByWaiter } = booking;
 
     const getStatusKey = (s) => {
         const normalized = s?.toLowerCase().replace(/\s+/g, "");
@@ -40,8 +40,15 @@ export default function ReservationCard({
                     <img src={pinIcon} alt="" className={styles.icon} />
                     <span className="body-bold">{address}</span>
                 </div>
-                <div className={`${styles.badge} ${statusClass}`}>
-                    <span className="caption">{formatStatus(status)}</span>
+                <div className={styles.badgeContainer}>
+                    <div className={`${styles.badge} ${statusClass}`}>
+                        <span className="caption">{formatStatus(status)}</span>
+                    </div>
+                    {isCreatedByWaiter && (
+                        <div className={`${styles.badge} ${styles.waiterBadge}`}>
+                            <span className="caption">Created by Waiter</span>
+                        </div>
+                    )}
                 </div>
             </div>
 

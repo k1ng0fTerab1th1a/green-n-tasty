@@ -1,4 +1,4 @@
-﻿using Amazon.CognitoIdentityProvider;
+using Amazon.CognitoIdentityProvider;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.S3;
@@ -154,8 +154,11 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastGetMeUserId = null;
         }
 
-        public async Task<Result> UpdateEmailAsync(string userId, string newEmail, CancellationToken ct)
-            => await _cognitoService.UpdateUserEmailAsync(userId, newEmail, ct);
+        public async Task<Result> UpdateEmailAsync(string newEmail, string accessToken, CancellationToken ct)
+            => await _cognitoService.UpdateUserEmailAsync(accessToken, newEmail, ct);
+
+        public Task<Result> VerifyEmailChangeAsync(string userId, string newEmail, string accessToken, string code, CancellationToken ct)
+            => Task.FromResult(Result.Ok());
 
         public Task<Result> UpdateUserNameAsync(string userId, string firstName, string lastName, CancellationToken ct)
         {
@@ -484,7 +487,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public (string AccessToken, string PreviousPassword, string ProposedPassword)? LastChangePasswordArgs { get; private set; }
         public string? LastRefreshTokenInput { get; private set; }
         public string? LastSignOutRefreshToken { get; private set; }
-        public (string UserId, string NewEmail)? LastUpdateEmailArgs { get; private set; }
+        public (string AccessToken, string NewEmail)? LastUpdateEmailArgs { get; private set; }
 
         public void Reset()
         {
@@ -531,9 +534,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Result.Ok());
         }
 
-        public Task<Result> UpdateUserEmailAsync(string userId, string newEmail, CancellationToken ct = default)
+        public Task<Result> UpdateUserEmailAsync(string accessToken, string newEmail, CancellationToken ct = default)
         {
-            LastUpdateEmailArgs = (userId, newEmail);
+            LastUpdateEmailArgs = (accessToken, newEmail);
 
             if (UpdateEmailFailResult is not null)
                 return Task.FromResult(Result.Fail(UpdateEmailFailResult));
@@ -554,6 +557,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             return Task.FromResult(Result.Ok());
         }
+
+        public Task<Result> VerifyEmailChangeAsync(string accessToken, string code, CancellationToken ct = default)
+            => Task.FromResult(Result.Ok());
     }
 
     public sealed class FakeReservationService : IReservationService

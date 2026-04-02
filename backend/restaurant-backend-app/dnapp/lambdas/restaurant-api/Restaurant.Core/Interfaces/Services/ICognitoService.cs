@@ -1,4 +1,4 @@
-﻿using FluentResults;
+using FluentResults;
 
 namespace Restaurant.Core.Interfaces.Services;
 
@@ -25,11 +25,13 @@ public interface ICognitoService
 
     Task<Result> SignOutAsync(string refreshToken, CancellationToken ct);
 
-    Task<Result> UpdateUserEmailAsync(string userId, string newEmail, CancellationToken ct);
-
     Task<Result> ChangePasswordAsync(
         string accessToken,
         string previousPassword,
         string proposedPassword,
         CancellationToken ct);
+
+    Task<Result> UpdateUserEmailAsync(string accessToken, string newEmail, CancellationToken ct);
+    Task<Result> VerifyEmailChangeAsync(string accessToken, string code, CancellationToken ct);
 }
+

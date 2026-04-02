@@ -402,6 +402,18 @@ public class AuthServiceTests
             It.IsAny<bool>()), Times.Never);
     }
 
+    [Fact]
+    public async Task SignIn_ShouldPropagate_EmailNotVerified_WhenCognitoReturnsEmailNotVerified()
+    {
+        _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Fail<(string, string, string)>(AuthErrors.EmailNotVerified));
+
+        var result = await _sut.SignInAsync("user@test.com", "Pass123!");
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(AuthErrors.EmailNotVerified);
+    }
+
     private static string GenerateFakeJwt(string firstName, string lastName, string role)
     {
         var token = new JwtSecurityToken(claims: new[]

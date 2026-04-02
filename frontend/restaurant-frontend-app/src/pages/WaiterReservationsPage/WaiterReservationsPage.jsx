@@ -1,4 +1,4 @@
-import {useState, useEffect, useCallback} from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
     MainLayout,
     PageBanner,
@@ -38,6 +38,7 @@ import chevronDownIcon from "../../assets/icons/chevron-down.svg";
 
 export default function WaiterReservationsPage() {
     const { auth } = useAuth();
+    const dateInputRef = useRef(null);
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -57,6 +58,16 @@ export default function WaiterReservationsPage() {
     const [orderOperationId, setOrderOperationId] = useState(null);
 
     const welcomeTitle = `Hello, ${auth?.username || "Waiter"}`;
+
+    const handleBlockClick = () => {
+        if (dateInputRef.current) {
+            if (typeof dateInputRef.current.showPicker === 'function') {
+                dateInputRef.current.showPicker();
+            } else {
+                dateInputRef.current.focus(); // Фолбек
+            }
+        }
+    };
 
     const generateOperationId = () => {
         if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -199,7 +210,6 @@ export default function WaiterReservationsPage() {
         if (result.isSuccess) {
             showToast("success", "Success", "Order has been created successfully.");
             setIsOrderModalOpen(false);
-            // оновити список, щоб відобразити dishCount, статус тощо
             await loadData();
         } else {
             showToast("error", "Failed", result.message || "Failed to create order.");
@@ -256,7 +266,6 @@ export default function WaiterReservationsPage() {
         }
 
         try {
-            // КОЖЕН запит має СВІЙ operationId
             for (const add of additions) {
                 const opId = generateOperationId();
                 const res = await addDishToOrder(reservationId, {
@@ -346,8 +355,6 @@ export default function WaiterReservationsPage() {
         }
     };
 
-
-
     const handleReceipt = async (id) => {
         const result = await downloadReservationReceiptPdf(id);
 
@@ -369,10 +376,11 @@ export default function WaiterReservationsPage() {
                 <div className={styles.contentContainer}>
                     <div className={styles.filtersWrapper}>
                         <div className={styles.filtersBar}>
-                            <div className={styles.filterInputGroup}>
+                            <div className={styles.filterInputGroup} onClick={handleBlockClick}>
                                 <img src={calendarIcon} alt="" className={styles.fieldIcon} />
                                 <div className={styles.nativeInputWrap}>
                                     <input
+                                        ref={dateInputRef}
                                         type="date"
                                         value={filterDate}
                                         onChange={(e) => setFilterDate(e.target.value)}

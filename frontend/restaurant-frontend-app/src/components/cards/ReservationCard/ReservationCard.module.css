@@ -84,3 +84,16 @@
 .editBtn {
     min-width: 100px;
 }
+
+.badgeContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.waiterBadge {
+    background-color: #f0f0f0;
+    color: #666;
+    border: 1px solid #ddd;
+}

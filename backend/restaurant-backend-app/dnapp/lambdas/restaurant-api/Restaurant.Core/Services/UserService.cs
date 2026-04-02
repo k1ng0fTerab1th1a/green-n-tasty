@@ -28,9 +28,18 @@ public class UserService : IUserService
         _fileService = fileService;
     }
 
-    public async Task<Result> UpdateEmailAsync(string userId, string newEmail, CancellationToken ct = default)
+    public async Task<Result> UpdateEmailAsync(string newEmail, string accessToken, CancellationToken ct = default)
     {
-        var cognitoResult = await _cognitoService.UpdateUserEmailAsync(userId, newEmail, ct);
+        var cognitoResult = await _cognitoService.UpdateUserEmailAsync(accessToken, newEmail, ct);
+        if (cognitoResult.IsFailed)
+            return cognitoResult;
+
+        return Result.Ok();
+    }
+
+    public async Task<Result> VerifyEmailChangeAsync(string userId, string newEmail, string accessToken, string code, CancellationToken ct = default)
+    {
+        var cognitoResult = await _cognitoService.VerifyEmailChangeAsync(accessToken, code, ct);
         if (cognitoResult.IsFailed)
             return cognitoResult;
 
