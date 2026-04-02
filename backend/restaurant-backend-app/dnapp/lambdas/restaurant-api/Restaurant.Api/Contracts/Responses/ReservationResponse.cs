@@ -1,6 +1,4 @@
-﻿using Amazon.DynamoDBv2.DataModel;
-
-namespace Restaurant.Api.Contracts.Responses;
+﻿namespace Restaurant.Api.Contracts.Responses;
 
 public sealed class ReservationResponse
 {
