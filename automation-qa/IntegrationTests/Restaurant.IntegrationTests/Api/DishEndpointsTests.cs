@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json;
 using FluentAssertions;
+using Moq;
 using Restaurant.Api.Tests;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Models;
@@ -68,7 +69,7 @@ public class DishEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     }
     
     
-        [Fact]
+    [Fact]
     public async Task GetDishById_WhenFound_ShouldReturn200_AndMapAllFields()
     {
         _factory.DishService.Reset();
@@ -302,5 +303,75 @@ public class DishEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         _factory.DishService.LastSearchQuery.Should().Be("селед");
         _factory.DishService.LastSearchLimit.Should().Be(20);
         _factory.DishService.LastSearchType.Should().BeNull();
+    }
+    
+    [Fact]
+    public async Task GetMenuFile_ShouldReturn200_AndStreamPdfWithCorrectContentType()
+    {
+        _factory.ResetFileServiceMock();
+        var pdfBytes = System.Text.Encoding.UTF8.GetBytes("%PDF-1.4\n%Test mock PDF content");
+        var mockStream = new MemoryStream(pdfBytes);
+        
+        _factory.FileServiceMock
+            .Setup(x => x.GetFileStreamAsync("uploads/menu/menu.pdf", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockStream);
+
+        var res = await _client.GetAsync("/dishes/menu-file");
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        res.Content.Headers.ContentType?.MediaType.Should().Be("application/pdf");
+        res.Content.Headers.ContentLength.Should().Be(pdfBytes.Length);
+        
+        var responseBytes = await res.Content.ReadAsByteArrayAsync();
+        responseBytes.Should().Equal(pdfBytes);
+        
+        _factory.FileServiceMock.Verify(
+            x => x.GetFileStreamAsync("uploads/menu/menu.pdf", It.IsAny<CancellationToken>()), 
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetMenuFile_WhenFileServiceThrows_ShouldHandleGracefully()
+    {
+        _factory.FileServiceMock
+            .Setup(x => x.GetFileStreamAsync("uploads/menu/menu.pdf", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("S3 access failed"));
+
+        var res = await _client.GetAsync("/dishes/menu-file");
+
+        res.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+    }
+
+    [Fact]
+    public async Task GetMenuUrl_ShouldReturn200_AndApiResponseWithS3Url()
+    {
+        var res = await _client.GetAsync("/dishes/menu-url");
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        var responseContent = await res.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(responseContent);
+        
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+        
+        var data = doc.RootElement.GetPropertyIgnoreCase("data");
+        data.GetString().Should().Be("https://run20-tm2-frontend-bucket.s3.eu-west-2.amazonaws.com/uploads/menu/menu.pdf");
+    }
+
+    [Fact]
+    public async Task GetMenuUrl_ShouldReturnValidHttpsUrl_FormatCheck()
+    {
+        var res = await _client.GetAsync("/dishes/menu-url");
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        var responseContent = await res.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(responseContent);
+        
+        var url = doc.RootElement.GetPropertyIgnoreCase("data").GetString();
+        
+        url.Should().NotBeNull();
+        url.Should().StartWith("https://");
+        url.Should().Contain("s3.eu-west-2.amazonaws.com");
+        url.Should().EndWith("uploads/menu/menu.pdf");
     }
 }

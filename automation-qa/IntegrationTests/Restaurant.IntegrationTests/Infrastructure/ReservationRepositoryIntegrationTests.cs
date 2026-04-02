@@ -612,5 +612,695 @@ public sealed class ReservationRepositoryIntegrationTests
         loaded!.Status.Should().Be(ReservationStatus.InProgress);
         loaded.ActualEndTime.Should().BeNull();
     }
+        
+    [Fact]
+    public async Task QueryByCustomerAsync_WithDateRange_ShouldReturnOnlyReservationsInRange()
+    {
+        var customerId = $"customer-range-{Guid.NewGuid():N}";
+        var now = DateTimeOffset.UtcNow;
+
+        var inRange = new Reservation
+        {
+            Id            = Guid.NewGuid().ToString("N"),
+            CustomerId    = customerId,
+            CustomerName  = "Range Customer",
+            WaiterId      = "waiter-1",
+            WaiterName    = "Waiter One",
+            LocationId    = "loc-1",
+            TableNumber   = 1,
+            TableKey      = "loc-1#1",
+            StartDateTime = now.AddDays(5).ToString("O"),
+            EndDateTime   = now.AddDays(5).AddHours(1).ToString("O"),
+            GuestsCount   = 2,
+            Status        = ReservationStatus.Reserved,
+            CreatedAt     = now.ToString("O"),
+            UpdatedAt     = now.ToString("O")
+        };
+
+        var outOfRange = new Reservation
+        {
+            Id            = Guid.NewGuid().ToString("N"),
+            CustomerId    = customerId,
+            CustomerName  = "Range Customer",
+            WaiterId      = "waiter-1",
+            WaiterName    = "Waiter One",
+            LocationId    = "loc-1",
+            TableNumber   = 2,
+            TableKey      = "loc-1#2",
+            StartDateTime = now.AddDays(20).ToString("O"),
+            EndDateTime   = now.AddDays(20).AddHours(1).ToString("O"),
+            GuestsCount   = 2,
+            Status        = ReservationStatus.Reserved,
+            CreatedAt     = now.ToString("O"),
+            UpdatedAt     = now.ToString("O")
+        };
+
+        await _context.SaveAsync(inRange);
+        await _context.SaveAsync(outOfRange);
+
+        var from = now.AddDays(1).ToString("O");
+        var to   = now.AddDays(10).ToString("O");
+
+        var result = await _repo.QueryByCustomerAsync(customerId, from, to);
+
+        result.Should().ContainSingle(x => x.Id == inRange.Id);
+        result.Should().NotContain(x => x.Id == outOfRange.Id);
+    }
+
+    [Fact]
+    public async Task QueryByCustomerAsync_WhenCustomerIdIsEmpty_ShouldReturnEmpty()
+    {
+        var result = await _repo.QueryByCustomerAsync(string.Empty);
+        result.Should().BeEmpty();
+    }
+
+    // ── QueryByWaiterAsync (with date prefix filter) ─────────────────────────────
+
+    [Fact]
+    public async Task QueryByWaiterAsync_WithDatePrefix_ShouldReturnOnlyMatchingDay()
+    {
+        var waiterId = $"waiter-prefix-{Guid.NewGuid():N}";
+        var now      = DateTimeOffset.UtcNow;
+        var day1     = now.AddDays(30);
+        var day2     = now.AddDays(31);
+
+        var onDay1 = new Reservation
+        {
+            Id            = Guid.NewGuid().ToString("N"),
+            CustomerId    = "customer-wp",
+            CustomerName  = "WP Customer",
+            WaiterId      = waiterId,
+            WaiterName    = "WP Waiter",
+            LocationId    = "loc-1",
+            TableNumber   = 1,
+            TableKey      = "loc-1#1",
+            StartDateTime = day1.ToString("O"),
+            EndDateTime   = day1.AddHours(1).ToString("O"),
+            GuestsCount   = 2,
+            Status        = ReservationStatus.Reserved,
+            CreatedAt     = now.ToString("O"),
+            UpdatedAt     = now.ToString("O")
+        };
+
+        var onDay2 = new Reservation
+        {
+            Id            = Guid.NewGuid().ToString("N"),
+            CustomerId    = "customer-wp",
+            CustomerName  = "WP Customer",
+            WaiterId      = waiterId,
+            WaiterName    = "WP Waiter",
+            LocationId    = "loc-1",
+            TableNumber   = 2,
+            TableKey      = "loc-1#2",
+            StartDateTime = day2.ToString("O"),
+            EndDateTime   = day2.AddHours(1).ToString("O"),
+            GuestsCount   = 2,
+            Status        = ReservationStatus.Reserved,
+            CreatedAt     = now.ToString("O"),
+            UpdatedAt     = now.ToString("O")
+        };
+
+        await _context.SaveAsync(onDay1);
+        await _context.SaveAsync(onDay2);
+
+        // BeginsWith prefix — only day1's date
+        var prefix = day1.ToString("yyyy-MM-dd");
+        var result = await _repo.QueryByWaiterAsync(waiterId, prefix);
+
+        result.Should().ContainSingle(x => x.Id == onDay1.Id);
+        result.Should().NotContain(x => x.Id == onDay2.Id);
+    }
+
+    [Fact]
+    public async Task QueryByWaiterAsync_WhenWaiterIdIsEmpty_ShouldReturnEmpty()
+    {
+        var result = await _repo.QueryByWaiterAsync(string.Empty);
+        result.Should().BeEmpty();
+    }
+
+    // ── QueryByTableAsync ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task QueryByTableAsync_ShouldReturnReservationsInDateRange()
+    {
+        var tableKey = $"loc-table#{Guid.NewGuid():N}";
+        var now      = DateTimeOffset.UtcNow;
+
+        var inside = new Reservation
+        {
+            Id            = Guid.NewGuid().ToString("N"),
+            CustomerId    = "customer-t",
+            CustomerName  = "Table Customer",
+            WaiterId      = "waiter-t",
+            WaiterName    = "Table Waiter",
+            LocationId    = "loc-table",
+            TableNumber   = 1,
+            TableKey      = tableKey,
+            StartDateTime = now.AddDays(12).ToString("O"),
+            EndDateTime   = now.AddDays(12).AddHours(1).ToString("O"),
+            GuestsCount   = 2,
+            Status        = ReservationStatus.Reserved,
+            CreatedAt     = now.ToString("O"),
+            UpdatedAt     = now.ToString("O")
+        };
+
+        var outside = new Reservation
+        {
+            Id            = Guid.NewGuid().ToString("N"),
+            CustomerId    = "customer-t",
+            CustomerName  = "Table Customer",
+            WaiterId      = "waiter-t",
+            WaiterName    = "Table Waiter",
+            LocationId    = "loc-table",
+            TableNumber   = 1,
+            TableKey      = tableKey,
+            StartDateTime = now.AddDays(25).ToString("O"),
+            EndDateTime   = now.AddDays(25).AddHours(1).ToString("O"),
+            GuestsCount   = 2,
+            Status        = ReservationStatus.Reserved,
+            CreatedAt     = now.ToString("O"),
+            UpdatedAt     = now.ToString("O")
+        };
+
+        await _context.SaveAsync(inside);
+        await _context.SaveAsync(outside);
+
+        var from = now.AddDays(10).ToString("O");
+        var to   = now.AddDays(15).ToString("O");
+
+        var result = await _repo.QueryByTableAsync(tableKey, from, to, CancellationToken.None);
+
+        result.Should().ContainSingle(x => x.Id == inside.Id);
+        result.Should().NotContain(x => x.Id == outside.Id);
+    }
+
+    [Fact]
+    public async Task QueryByTableAsync_WhenNoReservationsInRange_ShouldReturnEmpty()
+    {
+        var tableKey = $"loc-empty#{Guid.NewGuid():N}";
+        var now      = DateTimeOffset.UtcNow;
+
+        var result = await _repo.QueryByTableAsync(
+            tableKey,
+            now.AddDays(1).ToString("O"),
+            now.AddDays(2).ToString("O"),
+            CancellationToken.None);
+
+        result.Should().BeEmpty();
+    }
+
+    // ── ClearSecretCode ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ClearSecretCode_ShouldRemoveSecretCodeAttribute()
+    {
+        var id = Guid.NewGuid().ToString("N");
+        var reservation = new Reservation
+        {
+            Id            = id,
+            CustomerId    = $"customer-{Guid.NewGuid():N}",
+            CustomerName  = "Secret Customer",
+            WaiterId      = "waiter-sc",
+            WaiterName    = "SC Waiter",
+            LocationId    = "loc-1",
+            TableNumber   = 1,
+            TableKey      = "loc-1#1",
+            StartDateTime = DateTimeOffset.UtcNow.AddDays(1).ToString("O"),
+            EndDateTime   = DateTimeOffset.UtcNow.AddDays(1).AddHours(1).ToString("O"),
+            GuestsCount   = 2,
+            SecretCode    = "abc123",
+            Status        = ReservationStatus.Reserved,
+            CreatedAt     = DateTimeOffset.UtcNow.ToString("O"),
+            UpdatedAt     = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        await _context.SaveAsync(reservation);
+
+        // Verify it was actually saved
+        var before = await _repo.GetByIdAsync(id);
+        before!.SecretCode.Should().Be("abc123");
+
+        await _repo.ClearSecretCode(id, CancellationToken.None);
+
+        var after = await _repo.GetByIdAsync(id);
+        after.Should().NotBeNull();
+        after!.SecretCode.Should().BeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task ClearSecretCode_WhenNoSecretCodePresent_ShouldNotThrow()
+    {
+        var id = Guid.NewGuid().ToString("N");
+        var reservation = new Reservation
+        {
+            Id            = id,
+            CustomerId    = $"customer-{Guid.NewGuid():N}",
+            CustomerName  = "No Secret Customer",
+            WaiterId      = "waiter-1",
+            WaiterName    = "Waiter One",
+            LocationId    = "loc-1",
+            TableNumber   = 1,
+            TableKey      = "loc-1#1",
+            StartDateTime = DateTimeOffset.UtcNow.AddDays(1).ToString("O"),
+            EndDateTime   = DateTimeOffset.UtcNow.AddDays(1).AddHours(1).ToString("O"),
+            GuestsCount   = 2,
+            Status        = ReservationStatus.Reserved,
+            CreatedAt     = DateTimeOffset.UtcNow.ToString("O"),
+            UpdatedAt     = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        await _context.SaveAsync(reservation);
+
+        var act = () => _repo.ClearSecretCode(id, CancellationToken.None);
+        await act.Should().NotThrowAsync();
+    }
+
+    // ── SetFeedbackIdInReservation ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SetFeedbackIdInReservation_ShouldPersistServiceFeedbackId_OnFirstCall()
+    {
+        var id = Guid.NewGuid().ToString("N");
+        var reservation = new Reservation
+        {
+            Id            = id,
+            CustomerId    = $"customer-{Guid.NewGuid():N}",
+            CustomerName  = "Feedback Customer",
+            WaiterId      = "waiter-fb",
+            WaiterName    = "FB Waiter",
+            LocationId    = "loc-1",
+            LocationAddress = "Main street 1",
+            TableNumber   = 1,
+            TableKey      = "loc-1#1",
+            StartDateTime = DateTimeOffset.UtcNow.AddDays(-1).ToString("O"),
+            EndDateTime   = DateTimeOffset.UtcNow.ToString("O"),
+            GuestsCount   = 2,
+            Status        = ReservationStatus.Finished,
+            CreatedAt     = DateTimeOffset.UtcNow.ToString("O"),
+            UpdatedAt     = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        await _context.SaveAsync(reservation);
+
+        var result = await _repo.SetFeedbackIdInReservation(
+            id, "feedback-service-42", "serviceFeedbackId", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+
+        var loaded = await _repo.GetByIdAsync(id);
+        loaded!.ServiceFeedbackId.Should().Be("feedback-service-42");
+        loaded.KitchenFeedbackId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SetFeedbackIdInReservation_ShouldPersistKitchenFeedbackId_OnFirstCall()
+    {
+        var id = Guid.NewGuid().ToString("N");
+        var reservation = new Reservation
+        {
+            Id            = id,
+            CustomerId    = $"customer-{Guid.NewGuid():N}",
+            CustomerName  = "Kitchen Feedback Customer",
+            WaiterId      = "waiter-fb",
+            WaiterName    = "FB Waiter",
+            LocationId    = "loc-1",
+            LocationAddress = "Main street 1",
+            TableNumber   = 2,
+            TableKey      = "loc-1#2",
+            StartDateTime = DateTimeOffset.UtcNow.AddDays(-1).ToString("O"),
+            EndDateTime   = DateTimeOffset.UtcNow.ToString("O"),
+            GuestsCount   = 2,
+            Status        = ReservationStatus.Finished,
+            CreatedAt     = DateTimeOffset.UtcNow.ToString("O"),
+            UpdatedAt     = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        await _context.SaveAsync(reservation);
+
+        var result = await _repo.SetFeedbackIdInReservation(
+            id, "feedback-kitchen-99", "kitchenFeedbackId", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+
+        var loaded = await _repo.GetByIdAsync(id);
+        loaded!.KitchenFeedbackId.Should().Be("feedback-kitchen-99");
+        loaded.ServiceFeedbackId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SetFeedbackIdInReservation_BothFeedbackTypes_CanBeSetIndependently()
+    {
+        var id = Guid.NewGuid().ToString("N");
+        var reservation = new Reservation
+        {
+            Id            = id,
+            CustomerId    = $"customer-{Guid.NewGuid():N}",
+            CustomerName  = "Both Feedback Customer",
+            WaiterId      = "waiter-fb",
+            WaiterName    = "FB Waiter",
+            LocationId    = "loc-1",
+            LocationAddress = "Main street 1",
+            TableNumber   = 3,
+            TableKey      = "loc-1#3",
+            StartDateTime = DateTimeOffset.UtcNow.AddDays(-1).ToString("O"),
+            EndDateTime   = DateTimeOffset.UtcNow.ToString("O"),
+            GuestsCount   = 2,
+            Status        = ReservationStatus.Finished,
+            CreatedAt     = DateTimeOffset.UtcNow.ToString("O"),
+            UpdatedAt     = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        await _context.SaveAsync(reservation);
+
+        var serviceResult = await _repo.SetFeedbackIdInReservation(
+            id, "feedback-s-1", "serviceFeedbackId", CancellationToken.None);
+        var kitchenResult = await _repo.SetFeedbackIdInReservation(
+            id, "feedback-k-1", "kitchenFeedbackId", CancellationToken.None);
+
+        serviceResult.IsSuccess.Should().BeTrue();
+        kitchenResult.IsSuccess.Should().BeTrue();
+
+        var loaded = await _repo.GetByIdAsync(id);
+        loaded!.ServiceFeedbackId.Should().Be("feedback-s-1");
+        loaded.KitchenFeedbackId.Should().Be("feedback-k-1");
+    }
+
+    [Fact]
+    public async Task SetFeedbackIdInReservation_WhenServiceFeedbackAlreadySet_ShouldReturnFail_AndNotOverwrite()
+    {
+        var id = Guid.NewGuid().ToString("N");
+        var reservation = new Reservation
+        {
+            Id              = id,
+            CustomerId      = $"customer-{Guid.NewGuid():N}",
+            CustomerName    = "Double Service Feedback",
+            WaiterId        = "waiter-fb",
+            WaiterName      = "FB Waiter",
+            LocationId      = "loc-1",
+            LocationAddress = "Main street 1",
+            TableNumber     = 4,
+            TableKey        = "loc-1#4",
+            StartDateTime   = DateTimeOffset.UtcNow.AddDays(-1).ToString("O"),
+            EndDateTime     = DateTimeOffset.UtcNow.ToString("O"),
+            GuestsCount     = 2,
+            Status          = ReservationStatus.Finished,
+            ServiceFeedbackId = "feedback-original",
+            CreatedAt       = DateTimeOffset.UtcNow.ToString("O"),
+            UpdatedAt       = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        await _context.SaveAsync(reservation);
+
+        var result = await _repo.SetFeedbackIdInReservation(
+            id, "feedback-overwrite-attempt", "serviceFeedbackId", CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+
+        var loaded = await _repo.GetByIdAsync(id);
+        loaded!.ServiceFeedbackId.Should().Be("feedback-original");
+    }
+
+    [Fact]
+    public async Task SetFeedbackIdInReservation_WhenKitchenFeedbackAlreadySet_ShouldReturnFail_AndNotOverwrite()
+    {
+        var id = Guid.NewGuid().ToString("N");
+        var reservation = new Reservation
+        {
+            Id              = id,
+            CustomerId      = $"customer-{Guid.NewGuid():N}",
+            CustomerName    = "Double Kitchen Feedback",
+            WaiterId        = "waiter-fb",
+            WaiterName      = "FB Waiter",
+            LocationId      = "loc-1",
+            LocationAddress = "Main street 1",
+            TableNumber     = 5,
+            TableKey        = "loc-1#5",
+            StartDateTime   = DateTimeOffset.UtcNow.AddDays(-1).ToString("O"),
+            EndDateTime     = DateTimeOffset.UtcNow.ToString("O"),
+            GuestsCount     = 2,
+            Status          = ReservationStatus.Finished,
+            KitchenFeedbackId = "kitchen-original",
+            CreatedAt       = DateTimeOffset.UtcNow.ToString("O"),
+            UpdatedAt       = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        await _context.SaveAsync(reservation);
+
+        var result = await _repo.SetFeedbackIdInReservation(
+            id, "kitchen-overwrite-attempt", "kitchenFeedbackId", CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+
+        var loaded = await _repo.GetByIdAsync(id);
+        loaded!.KitchenFeedbackId.Should().Be("kitchen-original");
+    }
+
+    [Fact]
+    public async Task SetFeedbackIdInReservation_WhenReservationDoesNotExist_ShouldReturnFail()
+    {
+        var result = await _repo.SetFeedbackIdInReservation(
+            Guid.NewGuid().ToString("N"), "feedback-ghost", "serviceFeedbackId", CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+    }
+
+
+    // ── FinishAndCompleteOrderIfOpenAsync ─────────────────────────────────────────
+
+    [Fact]
+    public async Task FinishAndCompleteOrderIfOpenAsync_WhenOpenOrderExists_ShouldFinishReservation_AndCompleteOrder()
+    {
+        var id       = Guid.NewGuid().ToString("N");
+        var waiterId = $"waiter-{Guid.NewGuid():N}";
+        var tableKey = $"loc-finish-order#{Guid.NewGuid():N}";
+        var date     = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(40));
+        var slots    = new List<string> { $"{date:yyyy-MM-dd}T18:00+00:00", $"{date:yyyy-MM-dd}T18:30+00:00" };
+
+        var reservation = new Reservation
+        {
+            Id             = id,
+            CustomerId     = $"customer-{Guid.NewGuid():N}",
+            CustomerName   = "Finish+Order Customer",
+            WaiterId       = waiterId,
+            WaiterName     = "Finish Waiter",
+            LocationId     = "loc-fo",
+            TableNumber    = 1,
+            TableKey       = tableKey,
+            StartDateTime  = new DateTimeOffset(DateTime.SpecifyKind(date.ToDateTime(new TimeOnly(18, 0)), DateTimeKind.Utc)).ToString("O"),
+            EndDateTime    = new DateTimeOffset(DateTime.SpecifyKind(date.ToDateTime(new TimeOnly(19, 0)), DateTimeKind.Utc)).ToString("O"),
+            ActualStartTime = DateTimeOffset.UtcNow.AddMinutes(-30).ToString("O"),
+            ActualEndTime   = DateTimeOffset.UtcNow.ToString("O"),
+            GuestsCount    = 2,
+            Status         = ReservationStatus.InProgress,
+            CreatedAt      = DateTimeOffset.UtcNow.ToString("O"),
+            UpdatedAt      = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        var order = new Order
+        {
+            Id          = id, // same id as reservation
+            ReservationId = id,
+            WaiterId    = waiterId,
+            Status      = OrderStatus.Open,
+            Version     = 1,
+            Dishes      =
+            [
+                new OrderDishSnapshot { DishId = "dish-1", Name = "Burger", Quantity = 2, PriceAtOrder = 10m },
+                new OrderDishSnapshot { DishId = "dish-2", Name = "Fries",  Quantity = 1, PriceAtOrder = 5m  }
+            ],
+            TotalAmount = 25m,
+            CreatedAt   = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        await _context.SaveAsync(reservation);
+        await _context.SaveAsync(order);
+        await _context.SaveAsync(new TableDay
+        {
+            TableKey      = tableKey,
+            Date          = date.ToString("yyyy-MM-dd"),
+            ReservedSlots = new HashSet<string>(slots),
+            Ttl           = DateTimeOffset.UtcNow.AddDays(2).ToUnixTimeSeconds()
+        });
+
+        var outcome = await _repo.FinishAndCompleteOrderIfOpenAsync(reservation, slots);
+
+        outcome.IsSuccess.Should().BeTrue();
+        outcome.OrderWasCompleted.Should().BeTrue();
+        outcome.PopularityIncrements.Should().HaveCount(2);
+        outcome.PopularityIncrements.Should().ContainSingle(x => x.DishId == "dish-1" && x.Quantity == 2);
+        outcome.PopularityIncrements.Should().ContainSingle(x => x.DishId == "dish-2" && x.Quantity == 1);
+
+        var loadedReservation = await _repo.GetByIdAsync(id);
+        loadedReservation!.Status.Should().Be(ReservationStatus.Finished);
+        loadedReservation.ActualEndTime.Should().NotBeNullOrWhiteSpace();
+
+        var loadedOrder = await _context.LoadAsync<Order>(id);
+        loadedOrder!.Status.Should().Be(OrderStatus.Completed);
+
+        var tableDay = await _context.LoadAsync<TableDay>(tableKey, date.ToString("yyyy-MM-dd"));
+        tableDay!.ReservedSlots.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task FinishAndCompleteOrderIfOpenAsync_WhenNoOrderExists_ShouldFinishReservationOnly()
+    {
+        var id       = Guid.NewGuid().ToString("N");
+        var tableKey = $"loc-finish-noorder#{Guid.NewGuid():N}";
+        var date     = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(41));
+        var slots    = new List<string> { $"{date:yyyy-MM-dd}T18:00+00:00" };
+
+        var reservation = new Reservation
+        {
+            Id              = id,
+            CustomerId      = $"customer-{Guid.NewGuid():N}",
+            CustomerName    = "No Order Customer",
+            WaiterId        = $"waiter-{Guid.NewGuid():N}",
+            WaiterName      = "No Order Waiter",
+            LocationId      = "loc-no",
+            TableNumber     = 2,
+            TableKey        = tableKey,
+            StartDateTime   = new DateTimeOffset(DateTime.SpecifyKind(date.ToDateTime(new TimeOnly(18, 0)), DateTimeKind.Utc)).ToString("O"),
+            EndDateTime     = new DateTimeOffset(DateTime.SpecifyKind(date.ToDateTime(new TimeOnly(19, 0)), DateTimeKind.Utc)).ToString("O"),
+            ActualStartTime = DateTimeOffset.UtcNow.AddMinutes(-30).ToString("O"),
+            ActualEndTime   = DateTimeOffset.UtcNow.ToString("O"),
+            GuestsCount     = 2,
+            Status          = ReservationStatus.InProgress,
+            CreatedAt       = DateTimeOffset.UtcNow.ToString("O"),
+            UpdatedAt       = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        await _context.SaveAsync(reservation);
+        await _context.SaveAsync(new TableDay
+        {
+            TableKey      = tableKey,
+            Date          = date.ToString("yyyy-MM-dd"),
+            ReservedSlots = new HashSet<string>(slots),
+            Ttl           = DateTimeOffset.UtcNow.AddDays(2).ToUnixTimeSeconds()
+        });
+
+        var outcome = await _repo.FinishAndCompleteOrderIfOpenAsync(reservation, slots);
+
+        outcome.IsSuccess.Should().BeTrue();
+        outcome.OrderWasCompleted.Should().BeFalse();
+        outcome.PopularityIncrements.Should().BeEmpty();
+
+        var loaded = await _repo.GetByIdAsync(id);
+        loaded!.Status.Should().Be(ReservationStatus.Finished);
+
+        var tableDay = await _context.LoadAsync<TableDay>(tableKey, date.ToString("yyyy-MM-dd"));
+        tableDay!.ReservedSlots.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task FinishAndCompleteOrderIfOpenAsync_WhenOrderBelongsToDifferentWaiter_ShouldFinishReservationOnly()
+    {
+        var id              = Guid.NewGuid().ToString("N");
+        var reservationWaiterId = $"waiter-res-{Guid.NewGuid():N}";
+        var orderWaiterId   = $"waiter-ord-{Guid.NewGuid():N}"; // different waiter
+        var tableKey        = $"loc-mismatch#{Guid.NewGuid():N}";
+        var date            = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(42));
+        var slots           = new List<string> { $"{date:yyyy-MM-dd}T18:00+00:00" };
+
+        var reservation = new Reservation
+        {
+            Id              = id,
+            CustomerId      = $"customer-{Guid.NewGuid():N}",
+            CustomerName    = "Mismatch Customer",
+            WaiterId        = reservationWaiterId,
+            WaiterName      = "Res Waiter",
+            LocationId      = "loc-mm",
+            TableNumber     = 3,
+            TableKey        = tableKey,
+            StartDateTime   = new DateTimeOffset(DateTime.SpecifyKind(date.ToDateTime(new TimeOnly(18, 0)), DateTimeKind.Utc)).ToString("O"),
+            EndDateTime     = new DateTimeOffset(DateTime.SpecifyKind(date.ToDateTime(new TimeOnly(19, 0)), DateTimeKind.Utc)).ToString("O"),
+            ActualStartTime = DateTimeOffset.UtcNow.AddMinutes(-30).ToString("O"),
+            ActualEndTime   = DateTimeOffset.UtcNow.ToString("O"),
+            GuestsCount     = 2,
+            Status          = ReservationStatus.InProgress,
+            CreatedAt       = DateTimeOffset.UtcNow.ToString("O"),
+            UpdatedAt       = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        var order = new Order
+        {
+            Id            = id,
+            ReservationId = id,
+            WaiterId      = orderWaiterId, // intentionally different
+            Status        = OrderStatus.Open,
+            Version       = 1,
+            Dishes        = [],
+            TotalAmount   = 0m,
+            CreatedAt     = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        await _context.SaveAsync(reservation);
+        await _context.SaveAsync(order);
+        await _context.SaveAsync(new TableDay
+        {
+            TableKey      = tableKey,
+            Date          = date.ToString("yyyy-MM-dd"),
+            ReservedSlots = new HashSet<string>(slots),
+            Ttl           = DateTimeOffset.UtcNow.AddDays(2).ToUnixTimeSeconds()
+        });
+
+        var outcome = await _repo.FinishAndCompleteOrderIfOpenAsync(reservation, slots);
+
+        outcome.IsSuccess.Should().BeTrue();
+        outcome.OrderWasCompleted.Should().BeFalse();
+
+        // Order must remain open — the waiter mismatch should have prevented completion
+        var loadedOrder = await _context.LoadAsync<Order>(id);
+        loadedOrder!.Status.Should().Be(OrderStatus.Open);
+    }
+
+    [Fact]
+    public async Task FinishAndCompleteOrderIfOpenAsync_WhenReservationStatusMismatch_ShouldReturnNotSuccess()
+    {
+        var id       = Guid.NewGuid().ToString("N");
+        var tableKey = $"loc-badstatus#{Guid.NewGuid():N}";
+        var date     = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(43));
+        var slots    = new List<string> { $"{date:yyyy-MM-dd}T18:00+00:00" };
+
+        // Persisted as Reserved, but we'll call Finish expecting InProgress — condition fails
+        var reservation = new Reservation
+        {
+            Id              = id,
+            CustomerId      = $"customer-{Guid.NewGuid():N}",
+            CustomerName    = "Bad Status Customer",
+            WaiterId        = $"waiter-{Guid.NewGuid():N}",
+            WaiterName      = "BS Waiter",
+            LocationId      = "loc-bs",
+            TableNumber     = 4,
+            TableKey        = tableKey,
+            StartDateTime   = new DateTimeOffset(DateTime.SpecifyKind(date.ToDateTime(new TimeOnly(18, 0)), DateTimeKind.Utc)).ToString("O"),
+            EndDateTime     = new DateTimeOffset(DateTime.SpecifyKind(date.ToDateTime(new TimeOnly(19, 0)), DateTimeKind.Utc)).ToString("O"),
+            ActualStartTime = DateTimeOffset.UtcNow.AddMinutes(-30).ToString("O"),
+            ActualEndTime   = DateTimeOffset.UtcNow.ToString("O"),
+            GuestsCount     = 2,
+            Status          = ReservationStatus.Reserved, // wrong status on disk
+            CreatedAt       = DateTimeOffset.UtcNow.ToString("O"),
+            UpdatedAt       = DateTimeOffset.UtcNow.ToString("O")
+        };
+
+        await _context.SaveAsync(reservation);
+        await _context.SaveAsync(new TableDay
+        {
+            TableKey      = tableKey,
+            Date          = date.ToString("yyyy-MM-dd"),
+            ReservedSlots = new HashSet<string>(slots),
+            Ttl           = DateTimeOffset.UtcNow.AddDays(2).ToUnixTimeSeconds()
+        });
+
+        // The internal transaction requires status == InProgress; it isn't, so it should fail
+        reservation.Status      = ReservationStatus.Finished;
+        reservation.ActualEndTime = DateTimeOffset.UtcNow.ToString("O");
+
+        var outcome = await _repo.FinishAndCompleteOrderIfOpenAsync(reservation, slots);
+
+        outcome.IsSuccess.Should().BeFalse();
+
+        var loaded = await _repo.GetByIdAsync(id);
+        loaded!.Status.Should().Be(ReservationStatus.Reserved); // unchanged
+    }
 
 }

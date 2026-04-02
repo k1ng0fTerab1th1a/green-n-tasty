@@ -1,6 +1,7 @@
 ﻿using Amazon.CognitoIdentityProvider;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.S3;
 using FluentResults;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
@@ -14,6 +15,9 @@ using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
 using Restaurant.Core.SharedModels;
+using Restaurant.Infrastructure.Services;
+using Restaurant.Reports.Application;
+using Restaurant.Reports.Domain.Data;
 
 namespace Restaurant.IntegrationTests.Api;
 
@@ -28,6 +32,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public FakeCognitoService CognitoService { get; } = new();
     public FakeUserService UserService { get; }
     public FakeTableService TableService { get; } = new();
+    public FakeReceiptService ReceiptService { get; } = new();
+    public FakeReportService ReportService { get; } = new();
+    public Mock<IFileService> FileServiceMock { get; private set; } = new();
 
     public CustomWebApplicationFactory()
     {
@@ -56,7 +63,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddSingleton<IAmazonDynamoDB>(_ => new Mock<IAmazonDynamoDB>().Object);
             services.AddSingleton<IDynamoDBContext>(_ => new Mock<IDynamoDBContext>().Object);
             services.AddSingleton<IAmazonCognitoIdentityProvider>(_ => new Mock<IAmazonCognitoIdentityProvider>().Object);
-
+            
+            services.RemoveAll<IFileService>();
+            services.AddSingleton<IFileService>(FileServiceMock.Object);
+            
             services.RemoveAll<IReservationService>();
             services.AddSingleton<IReservationService>(ReservationService);
 
@@ -83,9 +93,16 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<ITableService>();
             services.AddSingleton<ITableService>(TableService);
+            
+            services.RemoveAll<IReceiptService>();
+            services.AddSingleton<IReceiptService>(ReceiptService);
+            
+            services.RemoveAll<IReportService>();
+            services.AddSingleton<IReportService>(ReportService);
         });
     }
 
+    public void ResetFileServiceMock() => FileServiceMock.Reset();
     public sealed class FakeUserService : IUserService
     {
         private readonly FakeCognitoService _cognitoService;
@@ -110,7 +127,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public string? LastAvatarContentType { get; private set; }
         public long LastAvatarSize { get; private set; }
         public string? LastGetMeUserId { get; private set; }
-
+        
         public void Reset()
         {
             UpdateUserNameFailResult = null;
@@ -235,6 +252,85 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Result.Ok(SignInResponse));
         }
     }
+    
+    public sealed class FakeReportService : IReportService
+{
+    public DateRange? LastRange { get; private set; }
+    public DateRange? LastComparisonRange { get; private set; }
+
+    public BusinessError? FailResult { get; set; }
+
+    public List<LocationReportData> LocationResponse { get; set; } = new();
+    public List<WaiterReportData> WaiterResponse { get; set; } = new();
+
+    public byte[] LocationExportResponse { get; set; } = [1, 2, 3];
+    public byte[] WaiterExportResponse { get; set; } = [4, 5, 6];
+
+    public void Reset()
+    {
+        LastRange = null;
+        LastComparisonRange = null;
+        FailResult = null;
+
+        LocationResponse = new();
+        WaiterResponse = new();
+
+        LocationExportResponse = [1, 2, 3];
+        WaiterExportResponse = [4, 5, 6];
+    }
+
+    public Task<Result<List<LocationReportData>>> GetLocationReportDataAsync(
+        DateRange range, DateRange? comparisonRange, CancellationToken ct)
+    {
+        LastRange = range;
+        LastComparisonRange = comparisonRange;
+
+        if (FailResult is not null)
+            return Task.FromResult(Result.Fail<List<LocationReportData>>(FailResult));
+
+        return Task.FromResult(Result.Ok(LocationResponse));
+    }
+
+    public Task<Result<List<WaiterReportData>>> GetWaiterReportDataAsync(
+        DateRange range, DateRange? comparisonRange, CancellationToken ct)
+    {
+        LastRange = range;
+        LastComparisonRange = comparisonRange;
+
+        if (FailResult is not null)
+            return Task.FromResult(Result.Fail<List<WaiterReportData>>(FailResult));
+
+        return Task.FromResult(Result.Ok(WaiterResponse));
+    }
+
+    public Task<Result<byte[]>> ExportLocationReportAsync(
+        DateRange range, DateRange? comparisonRange, CancellationToken ct)
+    {
+        LastRange = range;
+        LastComparisonRange = comparisonRange;
+
+        if (FailResult is not null)
+            return Task.FromResult(Result.Fail<byte[]>(FailResult));
+
+        return Task.FromResult(Result.Ok(LocationExportResponse));
+    }
+
+    public Task<Result<byte[]>> ExportWaiterReportAsync(
+        DateRange range, DateRange? comparisonRange, CancellationToken ct)
+    {
+        LastRange = range;
+        LastComparisonRange = comparisonRange;
+
+        if (FailResult is not null)
+            return Task.FromResult(Result.Fail<byte[]>(FailResult));
+
+        return Task.FromResult(Result.Ok(WaiterExportResponse));
+    }
+
+    public Task<Result<FullReportData>> GetFullReportDataAsync(
+        DateRange range, DateRange? comparisonRange, CancellationToken ct)
+        => throw new NotImplementedException();
+}
 
     public sealed class FakeOrderService : IOrderService
     {
@@ -790,6 +886,35 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             if (location is null)
                 return Task.FromResult(Result.Fail<Location>(LocationErrors.NotFound));
             return Task.FromResult(Result.Ok(location));
+        }
+    }
+    
+    public sealed class FakeReceiptService : IReceiptService
+    {
+        public byte[] PdfResponse { get; set; } = [0x25, 0x50, 0x44, 0x46];
+        public BusinessError? FailResult { get; set; }
+
+        public string? LastReservationId { get; private set; }
+        public string? LastWaiterId { get; private set; }
+
+        public void Reset()
+        {
+            PdfResponse = [0x25, 0x50, 0x44, 0x46];
+            FailResult = null;
+            LastReservationId = null;
+            LastWaiterId = null;
+        }
+
+        public Task<Result<byte[]>> GetReceiptAsync(
+            string reservationId, string waiterId, CancellationToken ct)
+        {
+            LastReservationId = reservationId;
+            LastWaiterId = waiterId;
+
+            if (FailResult is not null)
+                return Task.FromResult(Result.Fail<byte[]>(FailResult));
+
+            return Task.FromResult(Result.Ok(PdfResponse));
         }
     }
 

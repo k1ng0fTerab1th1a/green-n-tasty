@@ -6,6 +6,7 @@ using Restaurant.Api.Mappers;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Interfaces.Services;
 using Restaurant.Core.Models;
+using Restaurant.Infrastructure.Services;
 
 namespace Restaurant.Api.Controllers;
 
