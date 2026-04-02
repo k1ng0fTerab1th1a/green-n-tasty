@@ -26,10 +26,15 @@ public static class AuthErrors
     public static BusinessError EmailNotVerified =>
         new("Account email is not verified. Please check your inbox for a verification link.", ErrorType.Forbidden);
 
+    public static BusinessError InvalidPasswordChangeRequest =>
+        new("Current password is incorrect or the new password does not meet policy.", ErrorType.Validation);
+
     public static BusinessError InvalidVerificationCode =>
         new("Invalid or expired verification code.", ErrorType.Validation);
 
     public static BusinessError FailedPasswordUpdate =>
         new("Failed password reset", ErrorType.Validation);
 
+    public static BusinessError AccessTokenRequired =>
+        new("Access token is required.", ErrorType.Unauthorized);
 }

@@ -14,14 +14,22 @@ public class AuthService : IAuthService
     private readonly IUserRepository _userRepository;
     private readonly IWaiterListRepository _waiterListRepository;
 
-    public AuthService(ICognitoService cognitoService, IUserRepository userRepository, IWaiterListRepository waiterListRepository)
+    public AuthService(
+        ICognitoService cognitoService,
+        IUserRepository userRepository,
+        IWaiterListRepository waiterListRepository)
     {
         _cognitoService = cognitoService;
         _userRepository = userRepository;
         _waiterListRepository = waiterListRepository;
     }
 
-    public async Task<Result> SignUpAsync(string email, string password, string firstName, string lastName, CancellationToken ct = default)
+    public async Task<Result> SignUpAsync(
+        string email,
+        string password,
+        string firstName,
+        string lastName,
+        CancellationToken ct = default)
     {
         var waiterEntry = await GetWaiterEntry(email, ct);
         var isWaiter = waiterEntry is not null;
@@ -46,6 +54,7 @@ public class AuthService : IAuthService
                 CreatedAt = DateTime.UtcNow.ToString("o"),
                 UpdatedAt = DateTime.UtcNow.ToString("o")
             };
+
             if (isWaiter)
             {
                 user.WaiterFlag = "1";

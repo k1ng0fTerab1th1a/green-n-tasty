@@ -313,5 +313,78 @@ public sealed class UserServiceTests
         _fileService.VerifyNoOtherCalls();
     }
 
+    [Fact]
+    public async Task ChangePasswordAsync_WhenAccessTokenMissing_ShouldReturnUnauthorized_AndNotCallCognito()
+    {
+
+        var result = await _sut.ChangePasswordAsync("", "OldPassword1", "NewPassword2", CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().BeEquivalentTo(AuthErrors.AccessTokenRequired);
+
+        _cognito.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
+        _fileService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_WhenCognitoSucceeds_ShouldReturnOk_AndPassCorrectArguments()
+    {
+        _cognito.Setup(c => c.ChangePasswordAsync(
+                "access-token-1",
+                "OldPassword1",
+                "NewPassword2",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Ok());
+
+        var result = await _sut.ChangePasswordAsync(
+            "access-token-1",
+            "OldPassword1",
+            "NewPassword2",
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+
+        _cognito.Verify(c => c.ChangePasswordAsync(
+            "access-token-1",
+            "OldPassword1",
+            "NewPassword2",
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        _cognito.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
+        _fileService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_WhenCognitoFails_ShouldPropagateFailure()
+    {
+        _cognito.Setup(c => c.ChangePasswordAsync(
+                "access-token-1",
+                "WrongOldPassword1",
+                "NewPassword2",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Fail(AuthErrors.InvalidPasswordChangeRequest));
+
+        var result = await _sut.ChangePasswordAsync(
+            "access-token-1",
+            "WrongOldPassword1",
+            "NewPassword2",
+            CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().BeEquivalentTo(AuthErrors.InvalidPasswordChangeRequest);
+
+        _cognito.Verify(c => c.ChangePasswordAsync(
+            "access-token-1",
+            "WrongOldPassword1",
+            "NewPassword2",
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        _cognito.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
+        _fileService.VerifyNoOtherCalls();
+    }
+
     private static byte[] PngBytes() => [0x89, 0x50, 0x4E, 0x47, 1, 2, 3, 4, 5, 6, 7, 8];
 }

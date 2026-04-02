@@ -5,6 +5,7 @@ using Restaurant.Api.Contracts.Responses;
 using Restaurant.Api.Extensions;
 using Restaurant.Api.Mappers;
 using Restaurant.Core.DTOs;
+using Restaurant.Core.Errors;
 using Restaurant.Core.Interfaces.Services;
 
 namespace Restaurant.Api.Controllers;
@@ -64,8 +65,35 @@ public class UserController : ControllerBase
         var result = await _userService.UpdateUserNameAsync(userId, request.FirstName, request.LastName, ct);
         if (result.IsFailed)
             return result.Errors[0].ToApiResponse<object>();
-        
+
         return ApiResponse<object>.Success(StatusCodes.Status200OK, null, "Username updated successfully");
+    }
+
+    [HttpPut("password")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<ApiResponse<object>> UpdatePassword(
+        [FromBody] ChangePasswordRequest request,
+        CancellationToken ct)
+    {
+        var accessToken = ExtractBearerToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+            return AuthErrors.AccessTokenRequired.ToApiResponse<object>();
+
+        var result = await _userService.ChangePasswordAsync(
+            accessToken,
+            request.CurrentPassword,
+            request.NewPassword,
+            ct);
+
+        if (result.IsFailed)
+            return result.Errors[0].ToApiResponse<object>();
+
+        return ApiResponse<object>.Success(
+            StatusCodes.Status200OK,
+            null,
+            "Password updated successfully");
     }
 
     [HttpPost("avatar")]
@@ -86,7 +114,6 @@ public class UserController : ControllerBase
             return result.Errors[0].ToApiResponse<string>();
 
         return ApiResponse<string>.Success(StatusCodes.Status200OK, result.Value, "Photo updated successfully");
-
     }
 
     [HttpGet("me")]
@@ -133,5 +160,19 @@ public class UserController : ControllerBase
         var res = await _userService.RecoverPassword(email, otp, password, ct);
         return res.IsFailed ? res.Errors[0].ToApiResponse<object>() 
             : ApiResponse<object>.Success(200, null);
+    }
+
+    private string? ExtractBearerToken()
+    {
+        if (!Request.Headers.TryGetValue("Authorization", out var authorizationHeader))
+            return null;
+
+        var value = authorizationHeader.ToString();
+        const string prefix = "Bearer ";
+
+        if (!value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return value[prefix.Length..].Trim();
     }
 }

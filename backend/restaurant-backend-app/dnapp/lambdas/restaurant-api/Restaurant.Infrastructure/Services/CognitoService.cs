@@ -26,7 +26,13 @@ public class CognitoService : ICognitoService
 
     public string GetUserPoolId() => _userPoolId;
 
-    public async Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role = "CUSTOMER", CancellationToken ct = default)
+    public async Task<Result<string>> SignUpAsync(
+        string email,
+        string password,
+        string firstName,
+        string lastName,
+        string role = "CUSTOMER",
+        CancellationToken ct = default)
     {
         try
         {
@@ -52,7 +58,10 @@ public class CognitoService : ICognitoService
         }
     }
 
-    public async Task<Result<(string IdToken, string AccessToken, string RefreshToken)>> SignInAsync(string email, string password, CancellationToken ct = default)
+    public async Task<Result<(string IdToken, string AccessToken, string RefreshToken)>> SignInAsync(
+        string email,
+        string password,
+        CancellationToken ct = default)
     {
         try
         {
@@ -69,9 +78,11 @@ public class CognitoService : ICognitoService
 
             var response = await _client.InitiateAuthAsync(request, ct);
 
-            return (response.AuthenticationResult.IdToken, 
-                response.AuthenticationResult.AccessToken, 
-                response.AuthenticationResult.RefreshToken);
+            return (
+                response.AuthenticationResult.IdToken,
+                response.AuthenticationResult.AccessToken,
+                response.AuthenticationResult.RefreshToken
+            );
         }
         catch (UserNotConfirmedException)
         {
@@ -115,9 +126,9 @@ public class CognitoService : ICognitoService
                 AuthFlow = AuthFlowType.REFRESH_TOKEN_AUTH,
                 ClientId = _clientId,
                 AuthParameters = new Dictionary<string, string>
-            {
-                { "REFRESH_TOKEN", refreshToken }
-            }
+                {
+                    { "REFRESH_TOKEN", refreshToken }
+                }
             };
 
             var response = await _client.InitiateAuthAsync(request, ct);
@@ -202,6 +213,53 @@ public class CognitoService : ICognitoService
         catch (NotAuthorizedException)
         {
             return AuthErrors.InvalidCredentials;
+        }
+    }
+
+    public async Task<Result> ChangePasswordAsync(
+        string accessToken,
+        string previousPassword,
+        string proposedPassword,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            await _client.ChangePasswordAsync(new ChangePasswordRequest
+            {
+                AccessToken = accessToken,
+                PreviousPassword = previousPassword,
+                ProposedPassword = proposedPassword
+            }, ct);
+
+            return Result.Ok();
+        }
+        catch (NotAuthorizedException)
+        {
+            return AuthErrors.InvalidPasswordChangeRequest;
+        }
+        catch (InvalidPasswordException)
+        {
+            return AuthErrors.InvalidPasswordChangeRequest;
+        }
+        catch (InvalidParameterException)
+        {
+            return AuthErrors.InvalidPasswordChangeRequest;
+        }
+        catch (PasswordHistoryPolicyViolationException)
+        {
+            return AuthErrors.InvalidPasswordChangeRequest;
+        }
+        catch (PasswordResetRequiredException)
+        {
+            return AuthErrors.InvalidPasswordChangeRequest;
+        }
+        catch (UserNotConfirmedException)
+        {
+            return AuthErrors.InvalidPasswordChangeRequest;
+        }
+        catch (UserNotFoundException)
+        {
+            return AuthErrors.InvalidPasswordChangeRequest;
         }
     }
 

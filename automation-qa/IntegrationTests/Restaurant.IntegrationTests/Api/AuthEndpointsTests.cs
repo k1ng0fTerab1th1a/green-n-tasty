@@ -84,7 +84,8 @@ public sealed class AuthEndpointsTests : IClassFixture<CustomWebApplicationFacto
     public async Task SignIn_ShouldReturn200_WithAuthResult()
     {
         _factory.AuthService.Reset();
-        _factory.AuthService.SignInResponse = new AuthResult("id-token-1", "access-1", "refresh-1", "John Doe", "CUSTOMER");
+        _factory.AuthService.SignInResponse =
+            new AuthResult("id-token-1", "access-token-1", "refresh-1", "John Doe", "CUSTOMER");
 
         var res = await _client.PostAsync("/auth/sign-in", Json(new
         {
@@ -97,7 +98,7 @@ public sealed class AuthEndpointsTests : IClassFixture<CustomWebApplicationFacto
         using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
         var data = doc.RootElement.GetPropertyIgnoreCase("data");
         data.GetPropertyIgnoreCase("idToken").GetString().Should().Be("id-token-1");
-        data.GetPropertyIgnoreCase("accessToken").GetString().Should().Be("access-1");
+        data.GetPropertyIgnoreCase("accessToken").GetString().Should().Be("access-token-1");
         data.GetPropertyIgnoreCase("refreshToken").GetString().Should().Be("refresh-1");
         data.GetPropertyIgnoreCase("username").GetString().Should().Be("John Doe");
         data.GetPropertyIgnoreCase("role").GetString().Should().Be("CUSTOMER");

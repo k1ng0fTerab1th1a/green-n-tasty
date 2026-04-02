@@ -29,6 +29,7 @@ public sealed class CognitoServiceLiveIntegrationTests
             var signInResult = await sut.SignInAsync(user.Email, user.Password);
             signInResult.IsSuccess.Should().BeTrue();
             signInResult.Value.IdToken.Should().NotBeNullOrWhiteSpace();
+            signInResult.Value.AccessToken.Should().NotBeNullOrWhiteSpace();
             signInResult.Value.RefreshToken.Should().NotBeNullOrWhiteSpace();
 
             var refreshResult = await sut.RefreshTokenAsync(signInResult.Value.RefreshToken);
@@ -240,6 +241,46 @@ public sealed class CognitoServiceLiveIntegrationTests
             var result = await sut.SignInAsync(user.Email, user.Password);
             result.IsFailed.Should().BeTrue();
             result.Errors[0].Should().Be(AuthErrors.EmailNotVerified);
+        }
+        finally
+        {
+            await SafeDeleteAsync(sut, user.Email);
+        }
+    }
+
+    [LiveCognitoFact]
+    [Trait("Category", "LiveCognito")]
+    public async Task ChangePassword_ShouldSucceed_AndAllowLoginWithNewPassword()
+    {
+        var settings = GetRequiredSettings();
+        var sut = CreateSut(settings);
+        var user = CreateTestUser(settings);
+        const string newPassword = "NewPassword123!A";
+
+        await sut.SignUpAsync(user.Email, user.Password, "Live", "ChangePassword", role: "CUSTOMER");
+        await AdminConfirmSignUpForTestAsync(settings, user.Email);
+
+        try
+        {
+            var signInResult = await sut.SignInAsync(user.Email, user.Password);
+            signInResult.IsSuccess.Should().BeTrue();
+            signInResult.Value.AccessToken.Should().NotBeNullOrWhiteSpace();
+
+            var changeResult = await sut.ChangePasswordAsync(
+                signInResult.Value.AccessToken,
+                user.Password,
+                newPassword);
+
+            changeResult.IsSuccess.Should().BeTrue();
+
+            var oldLogin = await sut.SignInAsync(user.Email, user.Password);
+            oldLogin.IsFailed.Should().BeTrue();
+            oldLogin.Errors[0].Should().Be(AuthErrors.InvalidCredentials);
+
+            var newLogin = await sut.SignInAsync(user.Email, newPassword);
+            newLogin.IsSuccess.Should().BeTrue();
+            newLogin.Value.IdToken.Should().NotBeNullOrWhiteSpace();
+            newLogin.Value.AccessToken.Should().NotBeNullOrWhiteSpace();
         }
         finally
         {
