@@ -69,7 +69,7 @@ public class AuthService : IAuthService
         if (signInResult.IsFailed)
             return Result.Fail<AuthResult>(signInResult.Errors);
 
-        var (idToken, refreshToken) = signInResult.Value;
+        var (idToken, accessToken, refreshToken) = signInResult.Value;
 
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(idToken);
@@ -79,7 +79,7 @@ public class AuthService : IAuthService
         var username = $"{firstName} {lastName}".Trim();
         var role = jwtToken.Claims.FirstOrDefault(c => c.Type == "custom:role")?.Value ?? "CUSTOMER";
 
-        return new AuthResult(idToken, refreshToken, username, role);
+        return new AuthResult(idToken, accessToken, refreshToken, username, role);
     }
 
     private async Task<WaiterListEntry?> GetWaiterEntry(string email, CancellationToken ct)

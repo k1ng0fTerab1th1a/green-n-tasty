@@ -146,8 +146,11 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             LastGetMeUserId = null;
         }
 
-        public async Task<Result> UpdateEmailAsync(string userId, string newEmail, CancellationToken ct)
-            => await _cognitoService.UpdateUserEmailAsync(userId, newEmail, ct);
+        public async Task<Result> UpdateEmailAsync(string newEmail, string accessToken, CancellationToken ct)
+            => await _cognitoService.UpdateUserEmailAsync(accessToken, newEmail, ct);
+
+        public Task<Result> VerifyEmailChangeAsync(string userId, string newEmail, string accessToken, string code, CancellationToken ct)
+            => Task.FromResult(Result.Ok());
 
         public Task<Result> UpdateUserNameAsync(string userId, string firstName, string lastName, CancellationToken ct)
         {
@@ -203,7 +206,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
     public sealed class FakeAuthService : IAuthService
     {
-        public AuthResult SignInResponse { get; set; } = new("id-token", "refresh-token", "John Doe", "CUSTOMER");
+        public AuthResult SignInResponse { get; set; } = new("id-token", "access-token", "refresh-token", "John Doe", "CUSTOMER");
 
         public BusinessError? SignUpFailResult { get; set; }
         public BusinessError? SignInFailResult { get; set; }
@@ -217,7 +220,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public void Reset()
         {
-            SignInResponse = new AuthResult("id-token", "refresh-token", "John Doe", "CUSTOMER");
+            SignInResponse = new AuthResult("id-token", "access-token", "refresh-token", "John Doe", "CUSTOMER");
             SignUpFailResult = null;
             SignInFailResult = null;
             LastSignUpEmail = null;
@@ -457,7 +460,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public BusinessError? UpdateEmailFailResult { get; set; }
         public string? LastRefreshTokenInput { get; private set; }
         public string? LastSignOutRefreshToken { get; private set; }
-        public (string UserId, string NewEmail)? LastUpdateEmailArgs { get; private set; }
+        public (string AccessToken, string NewEmail)? LastUpdateEmailArgs { get; private set; }
 
         public void Reset()
         {
@@ -475,7 +478,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role, CancellationToken ct = default)
             => throw new NotImplementedException();
 
-        public Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password, CancellationToken ct = default)
+        public Task<Result<(string IdToken, string AccessToken, string RefreshToken)>> SignInAsync(string email, string password, CancellationToken ct = default)
             => throw new NotImplementedException();
 
         public Task<Result> DeleteUserAsync(string email, CancellationToken ct = default)
@@ -501,15 +504,18 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Result.Ok());
         }
 
-        public Task<Result> UpdateUserEmailAsync(string userId, string newEmail, CancellationToken ct = default)
+        public Task<Result> UpdateUserEmailAsync(string accessToken, string newEmail, CancellationToken ct = default)
         {
-            LastUpdateEmailArgs = (userId, newEmail);
+            LastUpdateEmailArgs = (accessToken, newEmail);
 
             if (UpdateEmailFailResult is not null)
                 return Task.FromResult(Result.Fail(UpdateEmailFailResult));
 
             return Task.FromResult(Result.Ok());
         }
+
+        public Task<Result> VerifyEmailChangeAsync(string accessToken, string code, CancellationToken ct = default)
+            => Task.FromResult(Result.Ok());
     }
 
     public sealed class FakeReservationService : IReservationService
