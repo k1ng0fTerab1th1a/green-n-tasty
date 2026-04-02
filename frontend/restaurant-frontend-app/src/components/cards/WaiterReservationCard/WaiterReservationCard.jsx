@@ -6,6 +6,7 @@ import clockIcon from "../../../assets/icons/clock.svg";
 import dishIcon from "../../../assets/icons/dish.svg";
 import userIcon from "../../../assets/icons/person.svg";
 import guestsIcon from "../../../assets/icons/people.svg";
+import {Button} from "../../index.js";
 
 export default function WaiterReservationCard({
                                                   booking,
