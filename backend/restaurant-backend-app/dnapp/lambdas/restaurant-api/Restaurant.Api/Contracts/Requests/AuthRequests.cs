@@ -57,9 +57,8 @@ public class ChangePasswordRequest : IValidatableObject
         ErrorMessage = "Password must contain at least one uppercase letter and one number.")]
     public string NewPassword { get; set; }
 
-    [Required(ErrorMessage = "Password confirmation is required.")]
-    [Compare(nameof(NewPassword), ErrorMessage = "Password confirmation does not match the new password.")]
-    public string ConfirmNewPassword { get; set; }
+    [Required(ErrorMessage = "Access token is required.")]
+    public string AccessToken { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

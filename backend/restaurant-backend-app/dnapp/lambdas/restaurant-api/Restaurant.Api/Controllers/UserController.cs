@@ -77,7 +77,7 @@ public class UserController : ControllerBase
         [FromBody] ChangePasswordRequest request,
         CancellationToken ct)
     {
-        var accessToken = ExtractBearerToken();
+        var accessToken = request.AccessToken;
         if (string.IsNullOrWhiteSpace(accessToken))
             return AuthErrors.AccessTokenRequired.ToApiResponse<object>();
 

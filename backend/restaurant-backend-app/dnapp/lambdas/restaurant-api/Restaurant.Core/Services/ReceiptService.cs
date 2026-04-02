@@ -35,12 +35,10 @@ public class ReceiptService(
         var guestName = isVisitor ? reservation.VisitorName + " (Visitor)" : reservation.CustomerName ?? string.Empty;
 
         string? secretLink = null;
-        if (isVisitor)
+        if (isVisitor && !string.IsNullOrEmpty(reservation.SecretCode))
         {
-            if (string.IsNullOrEmpty(reservation.SecretCode))
-                return ReceiptErrors.VisitorSecretCodeMissing;
-
-            secretLink = BuildAnonFeedbackLink(reservationId, reservation.SecretCode);
+            if (!string.IsNullOrEmpty(reservation.SecretCode))
+                secretLink = BuildAnonFeedbackLink(reservationId, reservation.SecretCode);
         }
 
         var dto = new ReceiptDTO
