@@ -241,4 +241,44 @@ public class UserRepository : IUserRepository
 
         await _client.UpdateItemAsync(request, ct);
     }
+
+    public async Task<bool> IfUserExistsByEmail(string email, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return false;
+        }
+
+        var request = new QueryRequest
+        {
+            TableName = "Users",
+            IndexName = EmailIndex,
+            Limit = 1,
+            Select = Select.COUNT,
+            KeyConditionExpression = "#role = :role AND #email = :email",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#role", "role" },
+                { "#email", "emailNormalized" }
+            },
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            {
+                { ":role", new AttributeValue { S = CustomerRole } },
+                { ":email", new AttributeValue { S = email } }
+            }
+        };
+
+        var response = await _client.QueryAsync(request, ct);
+        return response.Count > 0;
+    }
+
+    public async Task CreateOtp(UserOtp otp, CancellationToken ct)
+    {
+        await _context.SaveAsync(otp, ct);
+    }
+
+    public async Task<UserOtp?> GetOtpByEmailAsync(string email, CancellationToken ct)
+    {
+        return await _context.LoadAsync<UserOtp>(email, ct);
+    }
 }

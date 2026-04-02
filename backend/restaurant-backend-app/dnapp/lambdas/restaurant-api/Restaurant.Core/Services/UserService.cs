@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Net.Mail;
 using FluentResults;
 using Restaurant.Core.DTOs;
 using Restaurant.Core.Errors;
@@ -12,6 +15,7 @@ public class UserService : IUserService
     private readonly ICognitoService _cognitoService;
     private readonly IUserRepository _userRepository;
     private readonly IFileService _fileService;
+    private readonly IEmailService _emailService;
 
     private const long MaxAvatarSize = 5 * 1024 * 1024;
     private static readonly HashSet<string> AllowedAvatarContentTypes =
@@ -21,11 +25,13 @@ public class UserService : IUserService
         "image/webp"
     ];
 
-    public UserService(ICognitoService cognitoService, IUserRepository userRepository, IFileService fileService)
+    public UserService(ICognitoService cognitoService, IUserRepository userRepository,
+        IFileService fileService, IEmailService emailService)
     {
         _cognitoService = cognitoService;
         _userRepository = userRepository;
         _fileService = fileService;
+        _emailService = emailService;
     }
 
     public async Task<Result> UpdateEmailAsync(string newEmail, string accessToken, CancellationToken ct = default)
@@ -124,6 +130,133 @@ public class UserService : IUserService
         return user;
     }
 
+    public async Task<Result> CreateOtpAsync(string email, CancellationToken ct)
+    {
+        var normalizedEmailResult = ValidateAndNormalizeEmail(email);
+        if (normalizedEmailResult.IsFailed)
+            return Result.Fail(normalizedEmailResult.Errors);
+
+        var normalizedEmail = normalizedEmailResult.Value;
+
+        if (!await _userRepository.IfUserExistsByEmail(normalizedEmail, ct))
+            return UserErrors.UserNotFound;
+
+        var otp = GenerateOtp(normalizedEmail);
+        await _userRepository.CreateOtp(otp, ct);
+
+        await _emailService.SendEmail($"Your One-Time-Password is: {otp.Otp}. It's duration is 10 minutes",
+            "Password Recovery", normalizedEmail, ct);
+
+        return Result.Ok();
+    }
+
+    public async Task<Result> VerifyOtp(string email, string otp, CancellationToken ct)
+    {
+        var normalizedEmailResult = ValidateAndNormalizeEmail(email);
+        if (normalizedEmailResult.IsFailed)
+            return Result.Fail(normalizedEmailResult.Errors);
+
+        var normalizedEmail = normalizedEmailResult.Value;
+
+        if (!await _userRepository.IfUserExistsByEmail(normalizedEmail, ct))
+            return UserErrors.UserNotFound;
+
+        var otpObj = await _userRepository.GetOtpByEmailAsync(normalizedEmail, ct);
+
+        if (otpObj == null)
+            return UserErrors.OtpNotFound;
+
+        if (otpObj.Used)
+            return UserErrors.OtpAlreadyUsed;
+
+        if (IsOtpExpired(otpObj.ExpiresAt))
+            return UserErrors.OtpExpired;
+
+        if (otp == otpObj.Otp)
+            return Result.Ok();
+
+        return UserErrors.OtpIsWrong;
+    }
+
+    public async Task<Result> RecoverPassword(string email, string otp, string password, CancellationToken ct)
+    {
+        var normalizedEmailResult = ValidateAndNormalizeEmail(email);
+        if (normalizedEmailResult.IsFailed)
+            return Result.Fail(normalizedEmailResult.Errors);
+
+        var normalizedEmail = normalizedEmailResult.Value;
+
+        var res = await VerifyOtp(normalizedEmail, otp, ct);
+        if (res.IsFailed)
+            return res;
+
+        res = await _cognitoService.UpdatePasswordAsync(normalizedEmail, password, ct);
+        if (res.IsFailed)
+            return res;
+
+        var otpObj = await _userRepository.GetOtpByEmailAsync(normalizedEmail, ct);
+        if (otpObj is null)
+            return UserErrors.OtpNotFound;
+
+        otpObj.Used = true;
+        await _userRepository.CreateOtp(otpObj, ct);
+
+        return Result.Ok();
+    }
+
+
+    private static UserOtp GenerateOtp(string email)
+    {
+        var now = DateTime.UtcNow;
+
+        return new UserOtp
+        {
+            Email = email,
+            Used = false,
+            Otp = GenerateSecureOtp(6),
+            ExpiresAt = new DateTimeOffset(now.AddMinutes(10)).ToUnixTimeSeconds(),
+            CreatedAt = now.ToString("o") // ISO 8601 format
+        };
+    }
+
+    private static Result<string> ValidateAndNormalizeEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return Result.Fail<string>(UserErrors.EmptyEmail);
+
+        var trimmedEmail = email.Trim();
+
+        try
+        {
+            _ = new MailAddress(trimmedEmail);
+        }
+        catch (FormatException)
+        {
+            return Result.Fail<string>(UserErrors.InvalidEmail);
+        }
+
+        return Result.Ok(trimmedEmail.ToLowerInvariant());
+    }
+    
+    private static string GenerateSecureOtp(int length)
+    {
+        char[] alphanumeric = 
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".ToCharArray();
+        var result = new StringBuilder(length);
+        using var rng = RandomNumberGenerator.Create();
+        var uintBuffer = new byte[4];
+
+        while (result.Length < length)
+        {
+            rng.GetBytes(uintBuffer);
+            var value = BitConverter.ToUInt32(uintBuffer, 0);
+            
+            result.Append(alphanumeric[value % alphanumeric.Length]);
+        }
+
+        return result.ToString();
+    }
+
     private static bool IsImage(Stream stream)
     {
         if (!stream.CanRead)
@@ -162,5 +295,12 @@ public class UserService : IUserService
             return true;
 
         return false;
+    }
+    
+    private static bool IsOtpExpired(long expiresAt)
+    {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    
+        return now >= expiresAt;
     }
 }

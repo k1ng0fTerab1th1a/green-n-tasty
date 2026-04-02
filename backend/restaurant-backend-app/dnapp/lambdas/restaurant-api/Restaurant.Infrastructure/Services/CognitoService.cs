@@ -204,4 +204,34 @@ public class CognitoService : ICognitoService
             return AuthErrors.InvalidCredentials;
         }
     }
+
+    public async Task<Result> UpdatePasswordAsync(string email, string newPassword, CancellationToken ct = default)
+    {
+        try
+        {
+            var request = new AdminSetUserPasswordRequest
+            {
+                UserPoolId = _userPoolId,
+                Username = email,
+                Password = newPassword,
+                Permanent = true
+            };
+
+            await _client.AdminSetUserPasswordAsync(request, ct);
+
+            return Result.Ok();
+        }
+        catch (UserNotFoundException)
+        {
+            return AuthErrors.UserNotFound;
+        }
+        catch (InvalidPasswordException)
+        {
+            return AuthErrors.InvalidPassword;
+        }
+        catch (Exception)
+        {
+            return AuthErrors.FailedPasswordUpdate;
+        }
+    }
 }

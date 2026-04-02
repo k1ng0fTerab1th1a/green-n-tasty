@@ -1,4 +1,4 @@
-﻿using FluentResults;
+using FluentResults;
 
 namespace Restaurant.Core.Interfaces.Services;
 
@@ -10,6 +10,7 @@ public interface ICognitoService
     Task<Result> DeleteUserAsync(string email, CancellationToken ct);
     Task<Result<string>> RefreshTokenAsync(string refreshToken, CancellationToken ct);
     Task<Result> SignOutAsync(string refreshToken, CancellationToken ct);
+    Task<Result> UpdatePasswordAsync(string email, string newPassword, CancellationToken ct = default);
     Task<Result> UpdateUserEmailAsync(string accessToken, string newEmail, CancellationToken ct);
     Task<Result> VerifyEmailChangeAsync(string accessToken, string code, CancellationToken ct);
 }

@@ -54,6 +54,7 @@ public class UserController : ControllerBase
 
     [HttpPut("username")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<ApiResponse<object>> UpdateUsername([FromBody] UpdateUsernameRequest request, CancellationToken
         ct)
@@ -104,5 +105,33 @@ public class UserController : ControllerBase
             return result.Errors[0].ToApiResponse<UserResponse>();
 
         return ApiResponse<UserResponse>.Success(StatusCodes.Status200OK, result.Value.ToResponse(), "User retrieved successfully");
+    }
+
+    [HttpPost("make-otp")]
+    [AllowAnonymous]
+    public async Task<ApiResponse<object>> CreateOtp(string email, CancellationToken ct)
+    {
+        var res = await _userService.CreateOtpAsync(email, ct);
+        return res.IsFailed ? res.Errors[0].ToApiResponse<object>() 
+            : ApiResponse<object>.Success(200, null);
+    }
+
+    [HttpPost("verify-otp")]
+    [AllowAnonymous]
+    public async Task<ApiResponse<object>> VerifyOtp(string email, string otp, CancellationToken ct)
+    {
+        var res = await _userService.VerifyOtp(email, otp, ct);
+        return res.IsFailed ? res.Errors[0].ToApiResponse<object>() 
+            : ApiResponse<object>.Success(200, null);
+    }
+
+    [HttpPost("new-password")]
+    [AllowAnonymous]
+    public async Task<ApiResponse<object>> SetNewPassword(string email, string otp, string password,
+        CancellationToken ct)
+    {
+        var res = await _userService.RecoverPassword(email, otp, password, ct);
+        return res.IsFailed ? res.Errors[0].ToApiResponse<object>() 
+            : ApiResponse<object>.Success(200, null);
     }
 }
