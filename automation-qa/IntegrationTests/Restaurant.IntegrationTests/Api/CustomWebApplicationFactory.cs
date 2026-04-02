@@ -226,6 +226,21 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 TotalRating = 7,
                 FeedbacksCount = 2
             };
+
+        public Task<Result> CreateOtpAsync(string email, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<Result> VerifyOtp(string email, string otp, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<Result> RecoverPassword(string email, string otp, string password, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public sealed class FakeAuthService : IAuthService
@@ -560,6 +575,11 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public Task<Result> VerifyEmailChangeAsync(string accessToken, string code, CancellationToken ct = default)
             => Task.FromResult(Result.Ok());
+
+        public Task<Result> UpdatePasswordAsync(string email, string newPassword, CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public sealed class FakeReservationService : IReservationService
