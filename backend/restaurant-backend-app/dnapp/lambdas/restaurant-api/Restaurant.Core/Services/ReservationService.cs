@@ -4,7 +4,9 @@ using Restaurant.Core.Errors;
 using Restaurant.Core.Helpers;
 using Restaurant.Core.Interfaces.Repositories;
 using Restaurant.Core.Interfaces.Services;
+using Restaurant.Core.Messaging;
 using Restaurant.Core.Models;
+using System.Text.Json;
 
 namespace Restaurant.Core.Services;
 
@@ -19,6 +21,7 @@ public sealed class ReservationService : IReservationService
     private readonly ITableRepository _tableRepository;
     private readonly IUserRepository _userRepository;
     private readonly IDishRepository _dishRepository;
+    private readonly IEventPublisher _eventPublisher;
 
     public ReservationService(
         IReservationRepository repo,
@@ -26,7 +29,8 @@ public sealed class ReservationService : IReservationService
         ILocationRepository locationRepository,
         ITableRepository tableRepository,
         IUserRepository userRepository,
-        IDishRepository dishRepository)
+        IDishRepository dishRepository,
+        IEventPublisher eventPublisher)
     {
         _repo = repo;
         _waiterScheduleRepository = waiterScheduleRepository;
@@ -34,6 +38,7 @@ public sealed class ReservationService : IReservationService
         _tableRepository = tableRepository;
         _userRepository = userRepository;
         _dishRepository = dishRepository;
+        _eventPublisher = eventPublisher;
     }
 
     public async Task<Result<IReadOnlyList<Reservation>>> GetByCustomer(string actorUserId, CancellationToken ct = default)
@@ -425,6 +430,14 @@ public sealed class ReservationService : IReservationService
             }
         }
 
+        var reservationCompletedEvent = new SqsEvent(
+            EventTypes.ReservationCompleted,
+            JsonSerializer.SerializeToElement(new ReservationCompletedDTO(
+                reservation.Id,
+                DateTimeOffset.Parse(actualEnd))));
+
+        await _eventPublisher.PublishAsync(reservationCompletedEvent, ct);
+
         return reservation;
     }
     
@@ -438,7 +451,8 @@ public sealed class ReservationService : IReservationService
 
         var dateCode = start.ToString("ddMMyy");
         var timeCode = start.ToString("HHmm");
+        var suffix = Guid.NewGuid().ToString("N")[..6];
 
-        return $"{addressCode}-{tableNumber}-{dateCode}-{timeCode}";
+        return $"{addressCode}-{tableNumber}-{dateCode}-{timeCode}-{suffix}";
     }
 }

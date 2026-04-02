@@ -1,4 +1,6 @@
-﻿namespace Restaurant.Api.Contracts.Responses;
+﻿using Amazon.DynamoDBv2.DataModel;
+
+namespace Restaurant.Api.Contracts.Responses;
 
 public sealed class ReservationResponse
 {
@@ -18,4 +20,6 @@ public sealed class ReservationResponse
     public string Status { get; set; } = null!;
     public bool IsCreatedByWaiter { get; set; }
     public string? VisitorName { get; set; }
+    public string? ServiceFeedbackId { get; set; }
+    public string? KitchenFeedbackId { get; set; }
 }
