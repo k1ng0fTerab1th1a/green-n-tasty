@@ -67,18 +67,36 @@ public class ReportsRepository : IReportsRepository
         await _dbContext.SaveAsync(reportEntry, ct);
     }
 
-    public async Task UpdateReportFeedbackAsync(string reservationId, int? serviceFeedback, int? cuisineFeedback, CancellationToken ct)
+    public async Task UpdateReportFeedbackAsync(
+        string reservationId, int? serviceFeedback, int? cuisineFeedback, CancellationToken ct)
     {
-        var entry = await _dbContext.LoadAsync<ReportEntry>(reservationId, ct);
-        if (entry == null) return;
+        var updates = new Dictionary<string, AttributeValueUpdate>();
 
         if (serviceFeedback.HasValue)
-            entry.ServiceFeedback = serviceFeedback;
+            updates["ServiceFeedback"] = new AttributeValueUpdate
+            {
+                Action = AttributeAction.PUT,
+                Value = new AttributeValue { N = serviceFeedback.Value.ToString() }
+            };
 
         if (cuisineFeedback.HasValue)
-            entry.CuisineFeedback = cuisineFeedback;
+            updates["CuisineFeedback"] = new AttributeValueUpdate
+            {
+                Action = AttributeAction.PUT,
+                Value = new AttributeValue { N = cuisineFeedback.Value.ToString() }
+            };
 
-        await _dbContext.SaveAsync(entry, ct);
+        if (updates.Count == 0) return;
+
+        await _client.UpdateItemAsync(new UpdateItemRequest
+        {
+            TableName = "Reports",
+            Key = new Dictionary<string, AttributeValue>
+            {
+                ["ReservationId"] = new AttributeValue { S = reservationId }
+            },
+            AttributeUpdates = updates
+        }, ct);
     }
 
     public async IAsyncEnumerable<ReportEntry> QueryReportsByDateAsync(DateTime date, DateTime from, DateTime to, [EnumeratorCancellation] CancellationToken ct)

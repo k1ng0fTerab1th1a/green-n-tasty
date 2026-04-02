@@ -91,15 +91,11 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             var result = await ProcessServiceFeedbackAsync(dto, reservation, author, ct);
             if (result.IsFailed) return result;
 
-            var serviceFeedbackEvent = new SqsEvent(
-            EventTypes.FeedbackCreated,
-            JsonSerializer.SerializeToElement(new FeedbackCreatedDTO(
+            await PublishFeedbackCreatedAsync(
                 reservation.Id,
                 dto.ServiceRating.Value,
                 null,
-                DateTimeOffset.UtcNow)));
-
-             await eventPublisher.PublishAsync(serviceFeedbackEvent, ct);
+                ct);
 
         }
 
@@ -108,15 +104,11 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
             var result = await ProcessCuisineFeedbackAsync(dto, reservation, author, ct);
             if (result.IsFailed) return result;
 
-            var cuisineFeedbackEvent = new SqsEvent(
-            EventTypes.FeedbackCreated,
-            JsonSerializer.SerializeToElement(new FeedbackCreatedDTO(
+            await PublishFeedbackCreatedAsync(
                 reservation.Id,
                 null,
                 dto.CuisineRating.Value,
-                DateTimeOffset.UtcNow)));
-
-            await eventPublisher.PublishAsync(cuisineFeedbackEvent, ct);
+                ct);
         }
 
         return Result.Ok();
@@ -258,15 +250,11 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
 
             if (result.IsFailed) return result;
 
-            var cuisineFeedbackEvent = new SqsEvent(
-                EventTypes.FeedbackCreated,
-                JsonSerializer.SerializeToElement(new FeedbackCreatedDTO(
-                    reservation.Id,
-                    null,
-                    dto.CuisineRating.Value,
-                    DateTimeOffset.UtcNow)));
-
-            await eventPublisher.PublishAsync(cuisineFeedbackEvent, ct);
+            await PublishFeedbackCreatedAsync(
+                reservation.Id,
+                null,
+                dto.CuisineRating.Value,
+                ct);
         }
 
         if (dto.ServiceRating.HasValue)
@@ -277,15 +265,11 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
 
             if (result.IsFailed) return result;
 
-            var serviceFeedbackEvent = new SqsEvent(
-                EventTypes.FeedbackCreated,
-                JsonSerializer.SerializeToElement(new FeedbackCreatedDTO(
-                    reservation.Id,
-                    dto.ServiceRating.Value,
-                    null,
-                    DateTimeOffset.UtcNow)));
-
-            await eventPublisher.PublishAsync(serviceFeedbackEvent, ct);
+            await PublishFeedbackCreatedAsync(
+                reservation.Id,
+                dto.ServiceRating.Value,
+                null,
+                ct);
         }
 
         return Result.Ok();
@@ -349,6 +333,34 @@ public class FeedbackService(IFeedbackRepository feedbackRepository, IReservatio
     {
         var userData = await userRepository.GetUserDataForFeedbackCreationByIdAsync(userId, ct);
         return new FeedbackAuthor(userId, userData.username, userData.iamgeUrl ?? string.Empty);
+    }
+
+    private async Task PublishFeedbackCreatedAsync(
+        string reservationId,
+        int? serviceRating,
+        int? cuisineRating,
+        CancellationToken ct)
+    {
+        var feedbackCreatedEvent = BuildFeedbackCreatedEvent(
+            reservationId,
+            serviceRating,
+            cuisineRating);
+
+        await eventPublisher.PublishAsync(feedbackCreatedEvent, ct);
+    }
+
+    private static SqsEvent BuildFeedbackCreatedEvent(
+        string reservationId,
+        int? serviceRating,
+        int? cuisineRating)
+    {
+        return new SqsEvent(
+            EventTypes.FeedbackCreated,
+            JsonSerializer.SerializeToElement(new FeedbackCreatedDTO(
+                reservationId,
+                serviceRating,
+                cuisineRating,
+                DateTimeOffset.UtcNow)));
     }
     
     private static Result ValidateFeedbackData(CreateFeedbackDTO dto)

@@ -399,10 +399,11 @@ public sealed class ReservationService : IReservationService
         if (reservation.Status != ReservationStatus.InProgress)
             return ReservationErrors.NotFinishable;
 
-        var actualEnd = DateTimeOffset.UtcNow.ToString("O");
+        var actualEnd = DateTimeOffset.UtcNow;
+        var actualEndText = actualEnd.ToString("O");
         reservation.Status = ReservationStatus.Finished;
-        reservation.ActualEndTime = actualEnd;
-        reservation.UpdatedAt = actualEnd;
+        reservation.ActualEndTime = actualEndText;
+        reservation.UpdatedAt = actualEndText;
 
         var slots = ReservationTimeHelper.GenerateSlots(
             DateTimeOffset.Parse(reservation.StartDateTime),
@@ -430,15 +431,23 @@ public sealed class ReservationService : IReservationService
             }
         }
 
+        await PublishReservationCompletedAsync(reservation.Id, actualEnd, ct);
+
+        return reservation;
+    }
+
+    private async Task PublishReservationCompletedAsync(
+        string reservationId,
+        DateTimeOffset actualEnd,
+        CancellationToken ct)
+    {
         var reservationCompletedEvent = new SqsEvent(
             EventTypes.ReservationCompleted,
             JsonSerializer.SerializeToElement(new ReservationCompletedDTO(
-                reservation.Id,
-                DateTimeOffset.Parse(actualEnd))));
+                reservationId,
+                actualEnd)));
 
         await _eventPublisher.PublishAsync(reservationCompletedEvent, ct);
-
-        return reservation;
     }
     
     private static string GenerateReservationId(string locationAddress, int tableNumber, DateTimeOffset start)
