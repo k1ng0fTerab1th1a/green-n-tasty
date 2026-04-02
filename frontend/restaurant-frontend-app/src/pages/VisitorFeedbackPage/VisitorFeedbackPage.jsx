@@ -1,7 +1,7 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MainLayout, FeedbackModal, Toast } from "../../components/index.js";
-import { createVisitorFeedback } from "../../services/feedbacks";
+import { createVisitorFeedback, getFeedbackShortData } from "../../services/feedbacks";
 
 export default function VisitorFeedbackPage() {
     const [searchParams] = useSearchParams();
@@ -10,56 +10,66 @@ export default function VisitorFeedbackPage() {
     const reservationId = searchParams.get("reservationId");
     const secretCode = searchParams.get("secretCode");
 
+    const [feedbackData, setFeedbackData] = useState(null);
+    const [waiter, setWaiter] = useState(null);
+    const [loading, setLoading] = useState(true);
+
     const [toast, setToast] = useState({
-        open: false,
-        type: "success",
-        title: "",
-        message: "",
+        open: false, type: "success", title: "", message: "",
     });
 
-    const handleClose = () => {
-        navigate("/");
-    };
+    useEffect(() => {
+        const fetchInitialInfo = async () => {
+            if (!reservationId) return;
+
+            try {
+                setLoading(true);
+                const result = await getFeedbackShortData(reservationId);
+
+                if (result.isSuccess && result.data) {
+                    const d = result.data;
+
+                    if (d.waiterName) {
+                        setWaiter({
+                            name: d.waiterName,
+                            role: d.waiterRole || "Waiter",
+                            rating: d.waiterRating || 5,
+                            avatar: d.waiterImageUrl || ""
+                        });
+                    }
+
+                    setFeedbackData({
+                        serviceRating: 0,
+                        serviceComment: d.serviceComment || "",
+                        culinaryRating: 0,
+                        cuisineComment: d.cuisineComment || "",
+                    });
+                }
+            } catch (err) {
+                console.error("Помилка при отриманні даних:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchInitialInfo();
+    }, [reservationId]);
+
+    const handleClose = () => navigate("/");
 
     const handleSubmit = async (formData) => {
         if (!secretCode || !reservationId) {
-            setToast({
-                open: true,
-                type: "error",
-                title: "Invalid link",
-                message: "Feedback link is invalid or incomplete.",
-            });
+            setToast({ open: true, type: "error", title: "Error", message: "Invalid link." });
             return;
         }
-
         const result = await createVisitorFeedback(secretCode, formData);
-
         if (result.isSuccess) {
-            setToast({
-                open: true,
-                type: "success",
-                title: "Thank you!",
-                message: "Your feedback has been submitted.",
-            });
-            handleClose();
-        } else {
-            setToast({
-                open: true,
-                type: "error",
-                title: "Error",
-                message: result.message || "Failed to submit feedback.",
-            });
+            setToast({ open: true, type: "success", title: "Success", message: "Feedback sent!" });
+            setTimeout(handleClose, 2000);
         }
     };
 
-
-    if (!reservationId || !secretCode) {
-        return (
-            <MainLayout>
-                <p style={{ padding: 24 }}>Invalid feedback link.</p>
-            </MainLayout>
-        );
-    }
+    if (loading) return <MainLayout><div>Loading...</div></MainLayout>;
 
     return (
         <MainLayout>
@@ -69,13 +79,10 @@ export default function VisitorFeedbackPage() {
                 onSubmit={handleSubmit}
                 reservationId={reservationId}
                 bookingStatus="Finished"
-                waiter={null}
+                waiter={waiter}
+                initialData={feedbackData}
             />
-
-            <Toast
-                {...toast}
-                onClose={() => setToast((prev) => ({ ...prev, open: false }))}
-            />
+            <Toast {...toast} onClose={() => setToast(p => ({ ...p, open: false }))} />
         </MainLayout>
     );
 }
