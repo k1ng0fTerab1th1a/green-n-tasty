@@ -153,7 +153,7 @@ public class AuthServiceTests
                 u.Role == "WAITER" &&
                 u.WaiterFlag == "1" &&
                 u.LocationId == "loc-1"),
-            It.IsAny<CancellationToken>()), It.IsAny<bool>()), Times.Once);
+            It.IsAny<CancellationToken>(), It.IsAny<bool>()), Times.Once);
     }
 
     [Fact]
@@ -259,7 +259,8 @@ public class AuthServiceTests
 
         _userRepo.Verify(r => r.CreateAsync(
             It.IsAny<User>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<CancellationToken>(),
+            It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]
@@ -268,28 +269,37 @@ public class AuthServiceTests
         var fakeToken = GenerateFakeJwt("John", "Doe", "CUSTOMER");
 
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Ok<(string, string)>((fakeToken, "refresh-token")));
+            .ReturnsAsync(Result.Ok((
+                IdToken: fakeToken,
+                AccessToken: "access-token",
+                RefreshToken: "refresh-token")));
 
         var result = await _sut.SignInAsync("user@test.com", "Pass123!");
 
+        result.IsSuccess.Should().BeTrue();
         result.Value.Username.Should().Be("John Doe");
         result.Value.Role.Should().Be("CUSTOMER");
         result.Value.IdToken.Should().Be(fakeToken);
+        result.Value.AccessToken.Should().Be("access-token");
         result.Value.RefreshToken.Should().Be("refresh-token");
     }
-
-
 
     [Fact]
     public async Task SignIn_ShouldReturnWaiterRole_WhenTokenContainsWaiterRole()
     {
         var fakeToken = GenerateFakeJwt("Bob", "Smith", "WAITER");
+
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Ok<(string, string)>((fakeToken, "refresh-token")));
+            .ReturnsAsync(Result.Ok((
+                IdToken: fakeToken,
+                AccessToken: "access-token",
+                RefreshToken: "refresh-token")));
 
         var result = await _sut.SignInAsync("waiter@test.com", "Pass123!");
 
+        result.IsSuccess.Should().BeTrue();
         result.Value.Role.Should().Be("WAITER");
+        result.Value.AccessToken.Should().Be("access-token");
     }
 
     [Fact]
@@ -297,17 +307,22 @@ public class AuthServiceTests
     {
         var token = new JwtSecurityToken(claims: new[]
         {
-            new Claim("given_name", "John"),
-            new Claim("family_name", "Doe")
-        });
+        new Claim("given_name", "John"),
+        new Claim("family_name", "Doe")
+    });
         var fakeToken = new JwtSecurityTokenHandler().WriteToken(token);
 
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Ok<(string, string)>((fakeToken, "refresh-token")));
+            .ReturnsAsync(Result.Ok((
+                IdToken: fakeToken,
+                AccessToken: "access-token",
+                RefreshToken: "refresh-token")));
 
         var result = await _sut.SignInAsync("user@test.com", "Pass123!");
 
+        result.IsSuccess.Should().BeTrue();
         result.Value.Role.Should().Be("CUSTOMER");
+        result.Value.AccessToken.Should().Be("access-token");
     }
 
     [Fact]
@@ -315,28 +330,47 @@ public class AuthServiceTests
     {
         var token = new JwtSecurityToken(claims: new[]
         {
-            new Claim("custom:role", "CUSTOMER")
-        });
+        new Claim("custom:role", "CUSTOMER")
+    });
         var fakeToken = new JwtSecurityTokenHandler().WriteToken(token);
 
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Ok<(string, string)>((fakeToken, "refresh-token")));
+            .ReturnsAsync(Result.Ok((
+                IdToken: fakeToken,
+                AccessToken: "access-token",
+                RefreshToken: "refresh-token")));
 
         var result = await _sut.SignInAsync("user@test.com", "Pass123!");
 
+        result.IsSuccess.Should().BeTrue();
         result.Value.Username.Should().BeEmpty();
+        result.Value.AccessToken.Should().Be("access-token");
     }
 
     [Fact]
     public async Task SignIn_WhenInvalidCredentials_ShouldReturnFailedResult()
     {
         _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Fail<(string, string)>(AuthErrors.InvalidCredentials));
+            .ReturnsAsync(Result.Fail<(string IdToken, string AccessToken, string RefreshToken)>(
+                AuthErrors.InvalidCredentials));
 
         var result = await _sut.SignInAsync("user@test.com", "wrong");
 
         result.IsFailed.Should().BeTrue();
         result.Errors[0].Should().Be(AuthErrors.InvalidCredentials);
+    }
+
+    [Fact]
+    public async Task SignIn_ShouldPropagate_EmailNotVerified_WhenCognitoReturnsEmailNotVerified()
+    {
+        _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Fail<(string IdToken, string AccessToken, string RefreshToken)>(
+                AuthErrors.EmailNotVerified));
+
+        var result = await _sut.SignInAsync("user@test.com", "Pass123!");
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().Be(AuthErrors.EmailNotVerified);
     }
 
     [Fact]
@@ -362,19 +396,10 @@ public class AuthServiceTests
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Never);
 
-        _userRepo.Verify(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task SignIn_ShouldPropagate_EmailNotVerified_WhenCognitoReturnsEmailNotVerified()
-    {
-        _cognito.Setup(c => c.SignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Fail<(string, string)>(AuthErrors.EmailNotVerified));
-
-        var result = await _sut.SignInAsync("user@test.com", "Pass123!");
-
-        result.IsFailed.Should().BeTrue();
-        result.Errors[0].Should().Be(AuthErrors.EmailNotVerified);
+        _userRepo.Verify(r => r.CreateAsync(
+            It.IsAny<User>(),
+            It.IsAny<CancellationToken>(),
+            It.IsAny<bool>()), Times.Never);
     }
 
     private static string GenerateFakeJwt(string firstName, string lastName, string role)

@@ -227,5 +227,95 @@ public sealed class UserServiceTests
         fileService.VerifyNoOtherCalls();
     }
 
+    [Fact]
+    public async Task ChangePasswordAsync_WhenAccessTokenMissing_ShouldReturnUnauthorized_AndNotCallCognito()
+    {
+        var cognito = new Mock<ICognitoService>(MockBehavior.Strict);
+        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
+        var fileService = new Mock<IFileService>(MockBehavior.Strict);
+
+        var sut = new UserService(cognito.Object, userRepo.Object, fileService.Object);
+
+        var result = await sut.ChangePasswordAsync("", "OldPassword1", "NewPassword2", CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().BeEquivalentTo(AuthErrors.AccessTokenRequired);
+
+        cognito.VerifyNoOtherCalls();
+        userRepo.VerifyNoOtherCalls();
+        fileService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_WhenCognitoSucceeds_ShouldReturnOk_AndPassCorrectArguments()
+    {
+        var cognito = new Mock<ICognitoService>(MockBehavior.Strict);
+        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
+        var fileService = new Mock<IFileService>(MockBehavior.Strict);
+
+        cognito.Setup(c => c.ChangePasswordAsync(
+                "access-token-1",
+                "OldPassword1",
+                "NewPassword2",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Ok());
+
+        var sut = new UserService(cognito.Object, userRepo.Object, fileService.Object);
+
+        var result = await sut.ChangePasswordAsync(
+            "access-token-1",
+            "OldPassword1",
+            "NewPassword2",
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+
+        cognito.Verify(c => c.ChangePasswordAsync(
+            "access-token-1",
+            "OldPassword1",
+            "NewPassword2",
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        cognito.VerifyNoOtherCalls();
+        userRepo.VerifyNoOtherCalls();
+        fileService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_WhenCognitoFails_ShouldPropagateFailure()
+    {
+        var cognito = new Mock<ICognitoService>(MockBehavior.Strict);
+        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
+        var fileService = new Mock<IFileService>(MockBehavior.Strict);
+
+        cognito.Setup(c => c.ChangePasswordAsync(
+                "access-token-1",
+                "WrongOldPassword1",
+                "NewPassword2",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Fail(AuthErrors.InvalidPasswordChangeRequest));
+
+        var sut = new UserService(cognito.Object, userRepo.Object, fileService.Object);
+
+        var result = await sut.ChangePasswordAsync(
+            "access-token-1",
+            "WrongOldPassword1",
+            "NewPassword2",
+            CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors[0].Should().BeEquivalentTo(AuthErrors.InvalidPasswordChangeRequest);
+
+        cognito.Verify(c => c.ChangePasswordAsync(
+            "access-token-1",
+            "WrongOldPassword1",
+            "NewPassword2",
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        cognito.VerifyNoOtherCalls();
+        userRepo.VerifyNoOtherCalls();
+        fileService.VerifyNoOtherCalls();
+    }
+
     private static byte[] PngBytes() => [0x89, 0x50, 0x4E, 0x47, 1, 2, 3, 4, 5, 6, 7, 8];
 }

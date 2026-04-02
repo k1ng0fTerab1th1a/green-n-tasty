@@ -101,7 +101,11 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public BusinessError? GetMeFailResult { get; set; }
         public string AvatarUrlResponse { get; set; } = "https://cdn.test/avatar.jpg";
         public User MeResponse { get; set; } = BuildDefaultUser();
+        public BusinessError? ChangePasswordFailResult { get; set; }
 
+        public string? LastChangePasswordAccessToken { get; private set; }
+        public string? LastCurrentPassword { get; private set; }
+        public string? LastNewPassword { get; private set; }
         public string? LastUpdateUserNameUserId { get; private set; }
         public string? LastUpdateFirstName { get; private set; }
         public string? LastUpdateLastName { get; private set; }
@@ -117,7 +121,11 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             GetMeFailResult = null;
             AvatarUrlResponse = "https://cdn.test/avatar.jpg";
             MeResponse = BuildDefaultUser();
+            ChangePasswordFailResult = null;
 
+            LastChangePasswordAccessToken = null;
+            LastCurrentPassword = null;
+            LastNewPassword = null;
             LastUpdateUserNameUserId = null;
             LastUpdateFirstName = null;
             LastUpdateLastName = null;
@@ -164,6 +172,22 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Result.Ok(MeResponse));
         }
 
+        public async Task<Result> ChangePasswordAsync(
+            string accessToken,
+            string currentPassword,
+            string newPassword,
+            CancellationToken ct)
+        {
+            LastChangePasswordAccessToken = accessToken;
+            LastCurrentPassword = currentPassword;
+            LastNewPassword = newPassword;
+
+            if (ChangePasswordFailResult is not null)
+                return Result.Fail(ChangePasswordFailResult);
+
+            return await _cognitoService.ChangePasswordAsync(accessToken, currentPassword, newPassword, ct);
+        }
+
         private static User BuildDefaultUser()
             => new()
             {
@@ -181,7 +205,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
     public sealed class FakeAuthService : IAuthService
     {
-        public AuthResult SignInResponse { get; set; } = new("id-token", "refresh-token", "John Doe", "CUSTOMER");
+        public AuthResult SignInResponse { get; set; } =
+            new("id-token", "access-token", "refresh-token", "John Doe", "CUSTOMER");
 
         public BusinessError? SignUpFailResult { get; set; }
         public BusinessError? SignInFailResult { get; set; }
@@ -195,7 +220,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         public void Reset()
         {
-            SignInResponse = new AuthResult("id-token", "refresh-token", "John Doe", "CUSTOMER");
+            SignInResponse = new AuthResult("id-token", "access-token", "refresh-token", "John Doe", "CUSTOMER");
             SignUpFailResult = null;
             SignInFailResult = null;
             LastSignUpEmail = null;
@@ -354,6 +379,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public BusinessError? RefreshTokenFailResult { get; set; }
         public BusinessError? SignOutFailResult { get; set; }
         public BusinessError? UpdateEmailFailResult { get; set; }
+        public BusinessError? ChangePasswordFailResult { get; set; }
+        public (string AccessToken, string PreviousPassword, string ProposedPassword)? LastChangePasswordArgs { get; private set; }
         public string? LastRefreshTokenInput { get; private set; }
         public string? LastSignOutRefreshToken { get; private set; }
         public (string UserId, string NewEmail)? LastUpdateEmailArgs { get; private set; }
@@ -374,7 +401,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         public Task<Result<string>> SignUpAsync(string email, string password, string firstName, string lastName, string role, CancellationToken ct = default)
             => throw new NotImplementedException();
 
-        public Task<Result<(string IdToken, string RefreshToken)>> SignInAsync(string email, string password, CancellationToken ct = default)
+        public Task<Result<(string IdToken, string AccessToken, string RefreshToken)>> SignInAsync(
+            string email,
+            string password,
+            CancellationToken ct = default)
             => throw new NotImplementedException();
 
         public Task<Result> DeleteUserAsync(string email, CancellationToken ct = default)
@@ -406,6 +436,20 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             if (UpdateEmailFailResult is not null)
                 return Task.FromResult(Result.Fail(UpdateEmailFailResult));
+
+            return Task.FromResult(Result.Ok());
+        }
+
+        public Task<Result> ChangePasswordAsync(
+            string accessToken,
+            string previousPassword,
+            string proposedPassword,
+            CancellationToken ct = default)
+        {
+            LastChangePasswordArgs = (accessToken, previousPassword, proposedPassword);
+
+            if (ChangePasswordFailResult is not null)
+                return Task.FromResult(Result.Fail(ChangePasswordFailResult));
 
             return Task.FromResult(Result.Ok());
         }

@@ -19,10 +19,18 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
         _client = factory.CreateClient();
     }
 
-    private static HttpRequestMessage Authed(HttpMethod method, string url, string userId = "user-1")
+    private static HttpRequestMessage Authed(
+        HttpMethod method,
+        string url,
+        string userId = "user-1",
+        string? accessToken = null)
     {
         var req = new HttpRequestMessage(method, url);
         req.Headers.Add("X-User-Id", userId);
+
+        if (!string.IsNullOrWhiteSpace(accessToken))
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
         return req;
     }
 
@@ -105,6 +113,135 @@ public sealed class UserEndpointsTests : IClassFixture<CustomWebApplicationFacto
 
         using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
         doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task UpdatePassword_WithoutUserHeader_ShouldReturn401()
+    {
+        _factory.UserService.Reset();
+
+        var req = new HttpRequestMessage(HttpMethod.Put, "/user/password");
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "access-token-1");
+        req.Content = Json(new
+        {
+            currentPassword = "OldPassword1",
+            newPassword = "NewPassword2",
+            confirmNewPassword = "NewPassword2"
+        });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        _factory.UserService.LastChangePasswordAccessToken.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdatePassword_WithoutBearerToken_ShouldReturn401_AndNotCallService()
+    {
+        _factory.UserService.Reset();
+
+        var req = Authed(HttpMethod.Put, "/user/password", userId: "user-42");
+        req.Content = Json(new
+        {
+            currentPassword = "OldPassword1",
+            newPassword = "NewPassword2",
+            confirmNewPassword = "NewPassword2"
+        });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        _factory.UserService.LastChangePasswordAccessToken.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdatePassword_WhenBodyInvalid_ShouldReturn400_AndNotCallService()
+    {
+        _factory.UserService.Reset();
+
+        var req = Authed(
+            HttpMethod.Put,
+            "/user/password",
+            userId: "user-42",
+            accessToken: "access-token-1");
+
+        req.Content = Json(new
+        {
+            currentPassword = "OldPassword1",
+            newPassword = "NewPassword2",
+            confirmNewPassword = "DifferentPassword3"
+        });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        _factory.UserService.LastChangePasswordAccessToken.Should().BeNull();
+        _factory.UserService.LastCurrentPassword.Should().BeNull();
+        _factory.UserService.LastNewPassword.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdatePassword_ShouldReturn200_AndCallServiceWithCorrectArgs()
+    {
+        _factory.UserService.Reset();
+        _factory.CognitoService.Reset();
+
+        var req = Authed(
+            HttpMethod.Put,
+            "/user/password",
+            userId: "user-42",
+            accessToken: "access-token-1");
+
+        req.Content = Json(new
+        {
+            currentPassword = "OldPassword1",
+            newPassword = "NewPassword2",
+            confirmNewPassword = "NewPassword2"
+        });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeTrue();
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should().Be("Password updated successfully");
+
+        _factory.UserService.LastChangePasswordAccessToken.Should().Be("access-token-1");
+        _factory.UserService.LastCurrentPassword.Should().Be("OldPassword1");
+        _factory.UserService.LastNewPassword.Should().Be("NewPassword2");
+
+        _factory.CognitoService.LastChangePasswordArgs.Should()
+            .Be(("access-token-1", "OldPassword1", "NewPassword2"));
+    }
+
+    [Fact]
+    public async Task UpdatePassword_WhenCurrentPasswordIsWrong_ShouldReturn400()
+    {
+        _factory.UserService.Reset();
+        _factory.UserService.ChangePasswordFailResult = AuthErrors.InvalidPasswordChangeRequest;
+
+        var req = Authed(
+            HttpMethod.Put,
+            "/user/password",
+            userId: "user-42",
+            accessToken: "access-token-1");
+
+        req.Content = Json(new
+        {
+            currentPassword = "WrongPassword1",
+            newPassword = "NewPassword2",
+            confirmNewPassword = "NewPassword2"
+        });
+
+        var res = await _client.SendAsync(req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetPropertyIgnoreCase("isSuccess").GetBoolean().Should().BeFalse();
+        doc.RootElement.GetPropertyIgnoreCase("message").GetString().Should()
+            .Be(AuthErrors.InvalidPasswordChangeRequest.Message);
     }
 
     [Fact]

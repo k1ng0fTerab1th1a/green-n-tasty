@@ -39,8 +39,11 @@ public class UserService : IUserService
         return Result.Ok();
     }
 
-    public async Task<Result> UpdateUserNameAsync(string userId, string firstName, string lastName, CancellationToken
-            ct)
+    public async Task<Result> UpdateUserNameAsync(
+        string userId,
+        string firstName,
+        string lastName,
+        CancellationToken ct)
     {
         try
         {
@@ -51,7 +54,27 @@ public class UserService : IUserService
         {
             return UserErrors.UpdateNotSuccessful;
         }
+    }
 
+    public async Task<Result> ChangePasswordAsync(
+        string accessToken,
+        string currentPassword,
+        string newPassword,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(accessToken))
+            return Result.Fail(AuthErrors.AccessTokenRequired);
+
+        var result = await _cognitoService.ChangePasswordAsync(
+            accessToken,
+            currentPassword,
+            newPassword,
+            ct);
+
+        if (result.IsFailed)
+            return result;
+
+        return Result.Ok();
     }
 
     public async Task<Result<string>> UpdateAvatarAsync(string userId, FileUploadDto file, CancellationToken ct)
