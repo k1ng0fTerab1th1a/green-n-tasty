@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="../../../backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Core/Restaurant.Core.csproj" />
     <ProjectReference Include="../../../backend/restaurant-backend-app/dnapp/lambdas/restaurant-api/Restaurant.Infrastructure/Restaurant.Infrastructure.csproj" />
+    <ProjectReference Include="../../../backend/restaurant-backend-app/dnapp/Restaurant.Reports/Restaurant.Reports.csproj" />
   </ItemGroup>
 
 </Project>
