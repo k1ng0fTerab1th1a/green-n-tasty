@@ -376,7 +376,7 @@ public sealed class DishRepositoryIntegrationTests
         var result = await _repo.SearchAsync("селед", "SALAD", 1, CancellationToken.None);
 
         result.Should().HaveCount(1);
-        result[0].Id.Should().Be(id2);
+        result.Should().ContainSingle(x => x.Id == id2);
     }
 
     [Fact]
