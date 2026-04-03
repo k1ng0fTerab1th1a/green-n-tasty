@@ -30,6 +30,7 @@ export default function WaiterReservationCard({
         dishCount,
         tableNumber,
         isMealServed,
+        isCreatedByWaiter,
     } = booking;
 
     const displayName = customerName || visitorName || "Guest";
@@ -130,7 +131,8 @@ export default function WaiterReservationCard({
                     {/*)}*/}
                     <div className={styles.infoRow}>
                         <img src={userIcon} alt="" className={styles.icon} />
-                        <span className="body-bold">Customer: {displayName}</span>
+                        {customerName ? "Customer: " : "Visitor: "}
+                        {displayName}
                     </div>
 
                     <div className={styles.infoRow}>
@@ -146,6 +148,11 @@ export default function WaiterReservationCard({
                     <div className={styles.badge}>
                         <span className="caption">{status || "New"}</span>
                     </div>
+                    {isCreatedByWaiter && (
+                        <div className={`${styles.badge} ${styles.waiterBadge}`}>
+                            <span className="caption">Created by Waiter</span>
+                        </div>
+                    )}
                 </div>
             </div>
             <div className={styles.actions}>{renderActions()}</div>

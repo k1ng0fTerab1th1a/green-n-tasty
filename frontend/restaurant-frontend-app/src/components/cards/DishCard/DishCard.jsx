@@ -42,18 +42,18 @@ export default function DishCard({
                     <div className={styles.weight}>{weight} g</div>
                 </div>
 
-                {available ? (
-                    <div className={styles.cta}>
-                        <Button
-                            variant="primary"
-                            size="lg"
-                            onClick={onPreOrder}
-                            className={styles.preorderBtn}
-                        >
-                            Pre-order
-                        </Button>
-                    </div>
-                ) : null}
+                {/*{available ? (*/}
+                {/*    <div className={styles.cta}>*/}
+                {/*        <Button*/}
+                {/*            variant="primary"*/}
+                {/*            size="lg"*/}
+                {/*            onClick={onPreOrder}*/}
+                {/*            className={styles.preorderBtn}*/}
+                {/*        >*/}
+                {/*            Pre-order*/}
+                {/*        </Button>*/}
+                {/*    </div>*/}
+                {/*) : null}*/}
             </div>
         </div>
     );

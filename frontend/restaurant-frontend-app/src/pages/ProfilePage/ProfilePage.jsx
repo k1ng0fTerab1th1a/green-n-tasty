@@ -183,7 +183,14 @@ export default function ProfilePage() {
         try {
             const res = await uploadAvatar(file);
             if (res.data.isSuccess) {
-                setUserProfile(prev => ({ ...prev, imageUrl: res.data.data }));
+                const newImageUrl = `${res.data.data}?t=${new Date().getTime()}`;
+
+                setUserProfile(prev => ({ ...prev, imageUrl: newImageUrl }));
+                updateUserProfile({
+                    ...auth,
+                    imageUrl: newImageUrl
+                });
+
                 setToastData({
                     type: "success",
                     title: "Success",
