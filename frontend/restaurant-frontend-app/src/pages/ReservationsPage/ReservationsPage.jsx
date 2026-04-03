@@ -139,21 +139,25 @@ export default function ReservationsPage() {
         try {
             const payload = { reservationId: data.reservationId };
 
-            // Додаємо поля ТІЛЬКИ якщо вони були заповнені (не 0)
             if (data.serviceRating > 0) {
                 payload.serviceRating = data.serviceRating;
                 payload.serviceComment = data.serviceComment || "";
-            } else if (data.culinaryRating > 0) {
+            }
+
+            if (data.culinaryRating > 0) {
                 payload.cuisineRating = data.culinaryRating;
                 payload.cuisineComment = data.cuisineComment || "";
             }
 
+            if (!payload.serviceRating && !payload.cuisineRating) {
+                showToast("error", "Error", "Please provide at least one rating.");
+                return;
+            }
+
             let result;
             if (isEditingFeedback) {
-                // PUT /feedbacks/update-feedback
                 result = await updateAuthorisedFeedback(payload);
             } else {
-                // POST /feedbacks/authorised
                 result = await submitAuthorisedFeedback(payload);
             }
 
@@ -171,11 +175,7 @@ export default function ReservationsPage() {
                 showToast("error", "Failed", result.message);
             }
         } catch (error) {
-            const message =
-                error?.response?.data?.message ||
-                error?.message ||
-                String(error);
-
+            const message = error?.response?.data?.message || error?.message || String(error);
             showToast("error", "Error", message);
         }
     };

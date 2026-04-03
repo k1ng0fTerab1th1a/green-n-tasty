@@ -62,10 +62,25 @@ export default function VisitorFeedbackPage() {
             setToast({ open: true, type: "error", title: "Error", message: "Invalid link." });
             return;
         }
-        const result = await createVisitorFeedback(secretCode, formData);
+
+        const cleanData = { reservationId: formData.reservationId };
+
+        if (formData.serviceRating > 0) {
+            cleanData.serviceRating = formData.serviceRating;
+            cleanData.serviceComment = formData.serviceComment;
+        }
+
+        if (formData.culinaryRating > 0) {
+            cleanData.cuisineRating = formData.culinaryRating;
+            cleanData.cuisineComment = formData.cuisineComment;
+        }
+
+        const result = await createVisitorFeedback(secretCode, cleanData);
         if (result.isSuccess) {
             setToast({ open: true, type: "success", title: "Success", message: "Feedback sent!" });
             setTimeout(handleClose, 2000);
+        } else {
+            setToast({ open: true, type: "error", title: "Failed", message: result.message });
         }
     };
 

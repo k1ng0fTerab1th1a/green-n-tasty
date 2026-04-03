@@ -50,15 +50,12 @@ export default function FeedbackModal({
     };
 
     const handleSubmit = () => {
-        const isService = activeTab === "service";
-        if (!isService && isCulinaryDisabled) return;
-
         onSubmit?.({
             reservationId,
-            serviceRating: isService ? serviceRating : 0,
-            serviceComment: isService ? serviceComment : "",
-            culinaryRating: !isService ? culinaryRating : 0,
-            cuisineComment: !isService ? cuisineComment : ""
+            serviceRating: serviceRating,
+            serviceComment: serviceComment,
+            culinaryRating: isCulinaryDisabled ? 0 : culinaryRating,
+            cuisineComment: isCulinaryDisabled ? "" : cuisineComment
         });
     };
 
