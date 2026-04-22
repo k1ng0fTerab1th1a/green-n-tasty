@@ -13,7 +13,6 @@
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Testing](#testing)
-- [Getting Started](#getting-started)
 
 ---
 
@@ -45,39 +44,8 @@ A team of five engineers who took ownership from design to deployment:
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                  React SPA (S3 + CloudFront)                    │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ HTTPS
-┌──────────────────────────────▼──────────────────────────────────┐
-│                        AWS API Gateway                          │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│               Restaurant API Lambda (.NET 8 / ASP.NET Core)     │
-│                                                                 │
-│  Controllers → Services → Repositories → DynamoDB               │
-│                        ↓                                        │
-│              SQS Event Publisher                                │
-└───────────┬─────────────────────────────────────────┬───────────┘
-            │                                         │
-┌───────────▼──────────┐               ┌──────────────▼──────────┐
-│  Reports Handler     │               │  AWS Cognito            │
-│  Lambda (SQS)        │               │  (AuthN / AuthZ)        │
-│  → DynamoDB Reports  │               └─────────────────────────┘
-└───────────┬──────────┘
-            │
-┌───────────▼──────────┐
-│  Reports Sender      │
-│  Lambda (CloudWatch  │
-│  scheduled weekly)   │
-│  → SES email (Excel  │
-│    + CSV attachments)│
-└──────────────────────┘
+<img width="833" height="469" alt="image" src="https://github.com/user-attachments/assets/d9bc556e-a7c8-4161-b63c-122c1a924442" />
 
-Dish images → S3
-```
 
 The backend follows a clean three-layer architecture inside the Lambda:
 - **Restaurant.Api** — ASP.NET Core controllers, request/response contracts, middleware
